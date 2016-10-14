@@ -421,6 +421,8 @@ namespace IntermediatorBotSample
                         {
                             replyActivity = activity.CreateReply("No pending requests");
                         }
+
+                        wasHandled = true;
                     }
                 }
                 else if (messageInLowerCase.StartsWith("list parties"))
