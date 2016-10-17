@@ -50,16 +50,29 @@ namespace IntermediatorBotSample
 
         private Activity HandleSystemMessage(Activity message)
         {
+            MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+
             if (message.Type == ActivityTypes.DeleteUserData)
             {
                 // Implement user deletion here
                 // If we handle user deletion, return a real message
+                messageRouterManager.RemoveParty(MessagingUtils.CreateSenderParty(message));
             }
             else if (message.Type == ActivityTypes.ConversationUpdate)
             {
                 // Handle conversation state changes, like members being added and removed
                 // Use Activity.MembersAdded and Activity.MembersRemoved and Activity.Action for info
                 // Not available in all channels
+                foreach (ChannelAccount channelAccount in message.MembersRemoved)
+                {
+                    Party party = new Party(
+                        message.ServiceUrl, message.ChannelId, channelAccount, message.Conversation);
+
+                    if (messageRouterManager.RemoveParty(party))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Party {party.ToString()} removed");
+                    }
+                }
             }
             else if (message.Type == ActivityTypes.ContactRelationUpdate)
             {

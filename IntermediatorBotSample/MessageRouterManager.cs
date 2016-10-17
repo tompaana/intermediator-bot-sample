@@ -131,6 +131,39 @@ namespace IntermediatorBotSample
         }
 
         /// <summary>
+        /// Removes the party from all possible containers.
+        /// </summary>
+        /// <param name="partyToRemove">The party to remove.</param>
+        /// <returns>True, if the given party was removed. False otherwise.</returns>
+        public bool RemoveParty(Party partyToRemove)
+        {
+            // If we have the party stored, it will always be in either UserParties or BotParties
+            bool wasRemoved = UserParties.Remove(partyToRemove) || BotParties.Remove(partyToRemove);
+
+            if (wasRemoved)
+            {
+                // Check the pending requests
+                PendingRequests.Remove(partyToRemove);
+
+                // Check if the party exists in EngagedParties
+                if (!EngagedParties.Remove(partyToRemove))
+                {
+                    // The party to remove was not in keys of the dictionary - check the values
+                    for (int i = 0; i < EngagedParties.Count; ++i)
+                    {
+                        if (EngagedParties.Values.ElementAt(i).Equals(partyToRemove))
+                        {
+                            EngagedParties.Remove(EngagedParties.Keys.ElementAt(i));
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return wasRemoved;
+        }
+
+        /// <summary>
         /// Checks the given parties and adds them to the collection, if not already there.
         /// 
         /// Note that this method expects that the recipient is the bot. The sender could also be
