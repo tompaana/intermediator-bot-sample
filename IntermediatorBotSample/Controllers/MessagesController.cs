@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web.Http;
-using System.Web.Http.Description;
 using Microsoft.Bot.Connector;
-using Newtonsoft.Json;
+using MessageRouting;
 
 namespace IntermediatorBotSample
 {
@@ -19,20 +17,19 @@ namespace IntermediatorBotSample
         }
 
         /// <summary>
-        /// POST: api/Messages
-        /// Receive a message from a user and reply to it
+        /// Handles the received message.
         /// </summary>
         public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
         {
             if (activity.Type == ActivityTypes.Message)
             {
+                // Get the message router manager instance
                 MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
 
-                Party senderParty = MessagingUtils.CreateSenderParty(activity);
-                Party recipientParty = MessagingUtils.CreateRecipientParty(activity);
+                // Make we have the details of the sender and the receiver (bot) stored
+                messageRouterManager.MakeSurePartiesAreTracked(activity);
 
-                messageRouterManager.MakeSurePartiesAreTracked(senderParty, recipientParty);
-
+                // Check for possible commands first
                 if (await messageRouterManager.HandleDirectCommandToBotAsync(activity) == false)
                 {
                     // No command to the bot was issued so it must be a message then
@@ -56,7 +53,12 @@ namespace IntermediatorBotSample
             {
                 // Implement user deletion here
                 // If we handle user deletion, return a real message
-                messageRouterManager.RemoveParty(MessagingUtils.CreateSenderParty(message));
+                Party senderParty = MessagingUtils.CreateSenderParty(message);
+
+                if (messageRouterManager.RemoveParty(senderParty))
+                {
+                    return message.CreateReply($"Data of user {senderParty.ChannelAccount.Name} removed");
+                }
             }
             else if (message.Type == ActivityTypes.ConversationUpdate)
             {

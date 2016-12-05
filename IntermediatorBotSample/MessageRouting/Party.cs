@@ -1,7 +1,7 @@
 ﻿using Microsoft.Bot.Connector;
 using System;
 
-namespace IntermediatorBotSample
+namespace MessageRouting
 {
     /// <summary>
     /// Represents a party in a conversation, for example:
@@ -11,6 +11,7 @@ namespace IntermediatorBotSample
     /// 
     /// If the ChannelAccount property of this class is null, it means the two last cases mentioned.
     /// </summary>
+    [Serializable]
     public class Party : IEquatable<Party>
     {
         public string ServiceUrl
@@ -43,6 +44,14 @@ namespace IntermediatorBotSample
             private set;
         }
 
+        public string Language
+        {
+            get;
+            set;
+        }
+
+        private const char PropertySeparator = ';';
+
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -73,6 +82,22 @@ namespace IntermediatorBotSample
             ChannelId = channelId;
             ChannelAccount = channelAccount;
             ConversationAccount = conversationAccount;
+            Language = string.Empty;
+        }
+
+        /// <summary>
+        /// Checks if the channel ID and channel account ID match the ones of the given party.
+        /// Note that this method works only on users/bots - not with channels (where ChannelAccount is null).
+        /// </summary>
+        /// <param name="other">Another party.</param>
+        /// <returns>True, if the channel information is a match. False otherwise.</returns>
+        public bool HasMatchingChannelInformation(Party other)
+        {
+            return (other != null
+                && other.ChannelId.Equals(ChannelId)
+                && other.ChannelAccount != null
+                && ChannelAccount != null
+                && other.ChannelAccount.Id.Equals(ChannelAccount.Id));
         }
 
         /// <summary>
@@ -87,6 +112,37 @@ namespace IntermediatorBotSample
                 && other.ServiceUrl.Equals(ServiceUrl)
                 && other.ChannelId.Equals(ChannelId)
                 && other.ConversationAccount.Id.Equals(ConversationAccount.Id));
+        }
+
+        public string ToIdString()
+        {
+            return ServiceUrl + PropertySeparator
+                + ChannelId + PropertySeparator
+                + ChannelAccount?.Id + PropertySeparator
+                + ChannelAccount?.Name + PropertySeparator
+                + ConversationAccount.Id + PropertySeparator
+                + ConversationAccount.Name;
+        }
+
+        public static Party FromIdString(string idString)
+        {
+            Party party = null;
+
+            if (!string.IsNullOrEmpty(idString))
+            {
+                string[] properties = idString.Split(PropertySeparator);
+
+                if (properties.Length == 6)
+                {
+                    party = new Party(
+                        properties[0], // Service URL
+                        properties[1], // Channel ID
+                        new ChannelAccount(id: properties[2], name: properties[3]),
+                        new ConversationAccount(id: properties[4], name: properties[5]));
+                }
+            }
+
+            return party;
         }
 
         public bool Equals(Party other)

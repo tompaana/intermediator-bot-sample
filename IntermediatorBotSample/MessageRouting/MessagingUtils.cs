@@ -1,8 +1,11 @@
 ﻿using Microsoft.Bot.Connector;
 using System;
 
-namespace IntermediatorBotSample
+namespace MessageRouting
 {
+    /// <summary>
+    /// Utility methods.
+    /// </summary>
     public class MessagingUtils
     {
         public struct ConnectorClientAndMessageBundle
@@ -16,7 +19,7 @@ namespace IntermediatorBotSample
         /// </summary>
         /// <param name="activity"></param>
         /// <returns>A newly created Party instance.</returns>
-        public static Party CreateSenderParty(Activity activity)
+        public static Party CreateSenderParty(IActivity activity)
         {
             return new Party(activity.ServiceUrl, activity.ChannelId, activity.From, activity.Conversation);
         }
@@ -26,7 +29,7 @@ namespace IntermediatorBotSample
         /// </summary>
         /// <param name="activity"></param>
         /// <returns>A newly created Party instance.</returns>
-        public static Party CreateRecipientParty(Activity activity)
+        public static Party CreateRecipientParty(IActivity activity)
         {
             return new Party(activity.ServiceUrl, activity.ChannelId, activity.Recipient, activity.Conversation);
         }
@@ -101,13 +104,14 @@ namespace IntermediatorBotSample
         }
 
         /// <summary>
-        /// Checks whether the API response was OK or not.
+        /// Checks whether the resource response was OK or not.
         /// </summary>
-        /// <param name="apiResponse">The API response to check.</param>
+        /// <param name="resourceResponse">The resource response to check.</param>
         /// <returns>True, if the response was OK (e.g. message went through). False otherwise.</returns>
-        public static bool WasSuccessful(APIResponse apiResponse)
+        public static bool WasSuccessful(ResourceResponse resourceResponse)
         {
-            return (apiResponse == null || string.IsNullOrEmpty(apiResponse.Message));
+            // TODO Check the ID too once we've fixed the gateway error that occurs in message relaying
+            return (resourceResponse != null /*&& resourceResponse.Id != null*/);
         }
     }
 }
