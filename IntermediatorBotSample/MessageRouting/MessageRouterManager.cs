@@ -49,6 +49,8 @@ namespace MessageRouting
             private set;
         }
 
+        private const string CommandKeyword = "command ";
+
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -338,6 +340,28 @@ namespace MessageRouting
         }
 
         /// <summary>
+        /// Tries to resolve the name of the bot in the same conversation with the given party.
+        /// </summary>
+        /// <param name="party"></param>
+        /// <returns>The name of the bot or null, if unable to resolve.</returns>
+        public string ResolveBotNameInConversation(Party party)
+        {
+            string botName = null;
+
+            if (party != null)
+            {
+                Party botParty = FindBotPartyByChannelAndConversation(party.ChannelId, party.ConversationAccount);
+
+                if (botParty != null && botParty.ChannelAccount != null)
+                {
+                    botName = botParty.ChannelAccount.Name;
+                }
+            }
+
+            return botName;
+        }
+
+        /// <summary>
         /// Checks if the given party is engaged in a 1:1 conversation.
         /// </summary>
         /// <param name="party">The party to check.</param>
@@ -456,12 +480,14 @@ namespace MessageRouting
                 {
                     List<ResourceResponse> resourceResponses = new List<ResourceResponse>();
 
-                    foreach (Party AggregationParty in Data.AggregationParties)
+                    foreach (Party aggregationParty in Data.AggregationParties)
                     {
+                        string botName = ResolveBotNameInConversation(aggregationParty);
+                        string commandKeyword = string.IsNullOrEmpty(botName) ? CommandKeyword : ("@" + botName + " ");
+
                         resourceResponses.Add(
-                            await SendMessageToPartyByBotAsync(AggregationParty,
-                                $"User {senderName} requests a chat; issue command \"accept {senderName}\" to accept")
-                        );
+                            await SendMessageToPartyByBotAsync(aggregationParty,
+                                $"User \"{senderName}\" requests a chat; type \"{commandKeyword}accept {senderName}\" to accept"));
                     }
 
                     foreach (ResourceResponse resourceResponse in resourceResponses)
@@ -605,8 +631,11 @@ namespace MessageRouting
             else if (!IsInitialized())
             {
                 // No aggregation channel set up
-                replyActivity = activity.CreateReply(
-                    "Not initialized; issue command \"init\" to setup the aggregation channel");
+                string botName = ResolveBotNameInConversation(senderParty);
+                string replyMessage = "Not initialized; type \"";
+                replyMessage += string.IsNullOrEmpty(botName) ? CommandKeyword : ("@" + botName + " ");
+                replyMessage += "init\" to setup the aggregation channel";
+                replyActivity = activity.CreateReply(replyMessage);
             }
             else if ((await InitiateEngagementAsync(activity)) == false) // Try to initiate an engagement
             {
@@ -672,9 +701,16 @@ namespace MessageRouting
             bool wasHandled = false;
             Activity replyActivity = null;
 
-            if (WasBotAddressedDirectly(activity))
+            if (WasBotAddressedDirectly(activity)
+                || (!string.IsNullOrEmpty(activity.Text) && activity.Text.StartsWith(CommandKeyword)))
             {
                 string message = MessagingUtils.StripMentionsFromMessage(activity);
+                
+                if (message.StartsWith(CommandKeyword))
+                {
+                    message = message.Remove(0, CommandKeyword.Length);
+                }
+
                 string messageInLowerCase = message?.ToLower();
 
                 if (messageInLowerCase.StartsWith("enable aggregation"))
@@ -740,7 +776,7 @@ namespace MessageRouting
                                         partyToAccept = Data.PendingRequests.Single(
                                               party => (party.ChannelAccount != null
                                                   && !string.IsNullOrEmpty(party.ChannelAccount.Name)
-                                                  && party.ChannelAccount.Name.ToLower().Equals(splitMessage[1])));
+                                                  && party.ChannelAccount.Name.Equals(splitMessage[1])));
                                     }
                                     catch (InvalidOperationException e)
                                     {
@@ -772,7 +808,17 @@ namespace MessageRouting
                         }
                         else
                         {
-                            replyActivity = activity.CreateReply("You are already engaged in a conversation with [TODO]");
+                            Party otherParty = null;
+                            Data.EngagedParties.TryGetValue(senderInConversation, out otherParty);
+
+                            if (otherParty != null)
+                            {
+                                replyActivity = activity.CreateReply($"You are already engaged in a conversation with {otherParty.ChannelAccount.Name}");
+                            }
+                            else
+                            {
+                                replyActivity = activity.CreateReply("An error occured");
+                            }
                         }
 
                         wasHandled = true;
