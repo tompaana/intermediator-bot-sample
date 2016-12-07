@@ -7,7 +7,7 @@ A possible use case for this type of a bot would be a customer service scenario
 where the bot relays the messages between a customer and a customer service agent.
 
 
-### Running and testing ###
+## Running and testing ##
 
 To test the bot, publish it and connect it to the channels of your choice.
 If you are new to bots, please familiarize yourself first with the basics
@@ -25,7 +25,7 @@ can use [ngrok](https://ngrok.com/) tunneling software:
 
 See also: [Microsoft Bot Framework Emulator wiki](https://github.com/microsoft/botframework-emulator/wiki/Getting-Started)
 
-#### The flow ####
+### The flow ###
 
 | Emulator with ngrok | Slack |
 | ------------------- | ----- |
@@ -35,11 +35,83 @@ See also: [Microsoft Bot Framework Emulator wiki](https://github.com/microsoft/b
 | ![Conversation in emulator](/Documentation/Screenshots/ConversationInEmulator.png?raw=true) | ![Conversation in Slack](/Documentation/Screenshots/ConversationInSlack.png?raw=true) |
 
 
-### Implementation ###
+## Implementation ##
 
-TBD
+### Terminology ###
 
-### Acknowledgements ###
+| Term | Description |
+| ---- | ----------- |
+| Aggregation (channel) | A channel where the chat requests are sent. The users in the aggregation channel can accept the requests. |
+| Engagement | Is created when a request is accepted - the acceptor and the one accepted form an engagement (1:1 chat where the bot relays the messages between the users). |
+| Party | A user/bot in a specific conversation. |
+
+### Classes ###
+
+**[Party](/IntermediatorBotSample/MessageRouting/Party.cs)** holds the details
+of specific user/bot in a specific conversation. Note that the bot collects
+parties from all the conversations it's in and there will be a `Party` instance
+of a user/bot for each conversation (i.e. there can be multiple parties for a
+single user/bot). One can think of `Party` as a full address the bot needs in
+order to send a message to the user in a conversation. The `Party` instances are
+stored in routing data.
+
+**[RoutingData](/IntermediatorBotSample/MessageRouting/RoutingData.cs)**
+contains the parties (users/bot), aggregation channel details, the list of
+engaged parties and pending requests. **Note** that this data should be stored
+in e.g. a blob storage! For testing it is OK to have the data in memory.
+
+**[MessageRouterManager](/IntermediatorBotSample/MessageRouting/MessageRouterManager.cs)**
+is the main class of the sample. It manages the routing data and handles
+commands to the bot and executes the actual message mediation between the
+parties engaged in a conversation. The most important methods in this class
+are as follows:
+
+* `AddParty`: Adds a new party to the routing data. It is recommended to use `MakeSurePartiesAreTracked` instead of this for adding parties.
+* `RemoveParty`: Removes all the instances related to the given party from the routing data (since there can be multiple - one for each conversation).
+* `MakeSurePartiesAreTracked`: A convenient method for adding parties. The given parties are added if they are new.
+* `IntiateEngagement`: Creates and posts a new chat request.
+* `AddEngagement`: Establishes an engagement between the given parties. This method is called when a chat request is accepted.
+* `HandleMessageAsync`: Handles the incoming messages: Creates chat requests if needed and relays the messages between engaged parties.
+* `HandleDirectCommandToBot`: Handles bot commands.
+
+### Taking the classes into use ###
+
+The most convenient place to use the aforementioned classes is in the
+**[MessagesController](/IntermediatorBotSample/Controllers/MessagesController.cs)**
+class - you can first call the methods in `MessageRouterManager` and, for
+instance, if no action is taken by the manager, you can forward the `Activity`
+to a `Dialog`:
+
+```cs
+public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
+{
+    if (activity.Type == ActivityTypes.Message)
+    {
+        // Get the message router manager instance
+        MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+
+        // Make we have the details of the sender and the receiver (bot) stored
+        messageRouterManager.MakeSurePartiesAreTracked(activity);
+
+        // Check for possible commands first
+        if (await messageRouterManager.HandleDirectCommandToBotAsync(activity) == false)
+        {
+            // No command to the bot was issued so it must be a message then
+            messageRouterManager.HandleMessageAsync(activity);
+        }
+    }
+    else
+    {
+        HandleSystemMessage(activity);
+    }
+
+    var response = Request.CreateResponse(HttpStatusCode.OK);
+    return response;
+}
+```
+
+
+## Acknowledgements ##
 
 Although you can't see it in the change history,
 [Edouard Mathon](https://github.com/edouard-mathon) added
