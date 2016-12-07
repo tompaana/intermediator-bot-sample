@@ -673,7 +673,7 @@ namespace MessageRouting
                 messageActivity.From = botParty.ChannelAccount;
                 messageActivity.Recipient = acceptorParty.ChannelAccount;
                 messageActivity.Conversation = new ConversationAccount(id: conversationResourceResponse.Id);
-                messageActivity.Text = $"Request from user {partyToAccept.ChannelAccount.Name} accepted, feel free to start the chat";
+                messageActivity.Text = $"Request from user \"{partyToAccept.ChannelAccount.Name}\" accepted, feel free to start the chat";
 
                 ResourceResponse resourceResponse =
                     await connectorClient.Conversations.SendToConversationAsync((Activity)messageActivity);
