@@ -69,10 +69,10 @@ are as follows:
 * `AddParty`: Adds a new party to the routing data. It is recommended to use `MakeSurePartiesAreTracked` instead of this for adding parties.
 * `RemoveParty`: Removes all the instances related to the given party from the routing data (since there can be multiple - one for each conversation).
 * `MakeSurePartiesAreTracked`: A convenient method for adding parties. The given parties are added if they are new.
-* `IntiateEngagement`: Creates and posts a new chat request.
-* `AddEngagement`: Establishes an engagement between the given parties. This method is called when a chat request is accepted.
+* `IntiateEngagementAsync`: Creates and posts a new chat request.
+* `AddEngagementAsync`: Establishes an engagement between the given parties. This method is called when a chat request is accepted.
 * `HandleMessageAsync`: Handles the incoming messages: Creates chat requests if needed and relays the messages between engaged parties.
-* `HandleDirectCommandToBot`: Handles bot commands.
+* `HandleDirectCommandToBotAsync`: Handles bot commands.
 
 ### Taking the classes into use ###
 
