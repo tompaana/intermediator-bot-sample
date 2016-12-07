@@ -6,9 +6,9 @@ different channels.
 | Emulator with ngrok | Slack |
 | ------------------- | ----- |
 | | ![Initialization](Documentation/Screenshots/Initialization.png?raw=true) |
-| [[https://github.com/tompaana/intermediator-bot-sample/blob/master/Documentation/Screenshots/RequestSent.png|alt=Request]] | [[https://github.com/tompaana/intermediator-bot-sample/blob/master/Documentation/Screenshots/RequestAccepted.png|alt=Accept]] |
-| | [[https://github.com/tompaana/intermediator-bot-sample/blob/master/Documentation/Screenshots/DirectMessagingChannelCreated.png|alt=DM]] |
-| [[https://github.com/tompaana/intermediator-bot-sample/blob/master/Documentation/Screenshots/ConversationInEmulator.png|alt=Conversation]] | [[https://github.com/tompaana/intermediator-bot-sample/blob/master/Documentation/Screenshots/ConversationInSlack.png|alt=Conversation]] |
+| ![Request sent](/Documentation/Screenshots/RequestSent.png?raw=true) | ![Request accepted](/Documentation/Screenshots/RequestAccepted.png?raw=true) |
+| | ![Direct messaging channel created](/Documentation/Screenshots/DirectMessagingChannelCreated.png?raw=true) |
+| ![Conversation in emulator](/Documentation/Screenshots/ConversationInEmulator.png?raw=true) | ![Conversation in Slack](/Documentation/Screenshots/ConversationInSlack.png?raw=true) |
 
 
 ### Running and testing ###
