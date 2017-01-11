@@ -6,6 +6,8 @@ routes messages between two users on different channels.
 A possible use case for this type of a bot would be a customer service scenario
 where the bot relays the messages between a customer and a customer service agent.
 
+See also [Chatbots as Middlemen blog post](http://tomipaananen.azurewebsites.net/?p=1851) related to
+this sample.
 
 ## Running and testing ##
 
