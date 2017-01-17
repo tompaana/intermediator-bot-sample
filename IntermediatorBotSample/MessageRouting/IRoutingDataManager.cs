@@ -5,58 +5,30 @@ using System.Collections.Generic;
 namespace MessageRouting
 {
     /// <summary>
+    /// Defines the type of engagement:
+    /// - Client: E.g. a customer
+    /// - Owner: E.g. a customer service agent
+    /// - Any: Either a client or an owner
+    /// </summary>
+    public enum EngagementProfile
+    {
+        Client,
+        Owner,
+        Any
+    };
+
+    /// <summary>
     /// Interface for routing data managers.
     /// </summary>
     public interface IRoutingDataManager
     {
-        #region Properties
-        /// <summary>
-        /// Parties that are users (not this bot).
-        /// </summary>
-        IList<Party> UserParties
-        {
-            get;
-        }
-
-        /// <summary>
-        /// If the bot is addressed from different channels, its identity in terms of ID and name
-        /// can vary. Those different identities are stored in this list.
-        /// </summary>
-        IList<Party> BotParties
-        {
-            get;
-        }
-
-        /// <summary>
-        /// Represents the channel (and the specific conversation e.g. specific channel in Slack),
-        /// where the chat requests are directed. For instance, this channel could be where the
-        /// customer service agents accept customer chat requests.
-        /// Edit: List of channels 
-        /// </summary>
-        IList<Party> AggregationParties
-        {
-            get;
-        }
-
-        /// <summary>
-        /// The queue of parties waiting for their (conversation) requests to be accepted.
-        /// </summary>
-        List<Party> PendingRequests
-        {
-            get;
-        }
-        /// <summary>
-        /// Contains 1:1 associations between parties i.e. parties engaged in a conversation.
-        /// Furthermore, the key party is considered to be the conversation owner e.g. in
-        /// a customer service situation the customer service agent.
-        /// </summary>
-        Dictionary<Party, Party> EngagedParties
-        {
-            get;
-        }
-        #endregion
-
         #region CRUD methods
+        /// <returns>The user parties as a readonly list.</returns>
+        IList<Party> GetUserParties();
+
+        /// <returns>The bot parties as a readonly list.</returns>
+        IList<Party> GetBotParties();
+
         /// <summary>
         /// Adds the given party to the data.
         /// </summary>
@@ -89,6 +61,83 @@ namespace MessageRouting
         bool RemoveParty(Party partyToRemove);
 
         /// <summary>
+        /// Checks if the given party is associated with aggregation. In human toung this means
+        /// that the given party is, for instance, a customer service agent who deals with the
+        /// requests coming from customers.
+        /// </summary>
+        /// <param name="party">The party to check.</param>
+        /// <returns>True, if is associated. False otherwise.</returns>
+        bool IsAssociatedWithAggregation(Party party);
+
+        /// <returns>The aggregation parties as a readonly list.</returns>
+        IList<Party> GetAggregationParties();
+
+        /// <summary>
+        /// Adds the given aggregation party.
+        /// </summary>
+        /// <param name="party">The party to be added as an aggregation party (channel).</param>
+        /// <returns>True, if added. False otherwise (e.g. matching request already exists).</returns>
+        bool AddAggregationParty(Party party);
+
+        /// <summary>
+        /// Removes the given aggregation party.
+        /// </summary>
+        /// <param name="party">The aggregation party to remove.</param>
+        /// <returns>True, if removed successfully. False otherwise.</returns>
+        bool RemoveAggregationParty(Party party);
+
+        /// <returns>The (parties with) pending requests as a readonly list.</returns>
+        IList<Party> GetPendingRequests();
+
+        /// <summary>
+        /// Adds the pending request for the given party.
+        /// </summary>
+        /// <param name="party">The party whose pending request to add.</param>
+        /// <returns>True, if added. False otherwise (e.g. matching request already exists).</returns>
+        bool AddPendingRequest(Party party);
+
+        /// <summary>
+        /// Removes the pending request of the given party.
+        /// </summary>
+        /// <param name="party">The party whose request to remove.</param>
+        /// <returns>True, if removed successfully. False otherwise.</returns>
+        bool RemovePendingRequest(Party party);
+
+        /// <summary>
+        /// Checks if the given party is engaged in a 1:1 conversation as defined by the engagement
+        /// profile (e.g. as a customer, as an agent or either one).
+        /// </summary>
+        /// <param name="party">The party to check.</param>
+        /// <param name="engagementProfile">Defines whether to look for clients, owners or both.</param>
+        /// <returns>True, if the party is engaged as defined by the given engagement profile.
+        /// False otherwise.</returns>
+        bool IsEngaged(Party party, EngagementProfile engagementProfile);
+
+        /// <summary>
+        /// Resolves the given party's counterpart in a 1:1 conversation.
+        /// </summary>
+        /// <param name="partyWhoseCounterpartToFind">The party whose counterpart to resolve.</param>
+        /// <returns>The counterpart or null, if not found.</returns>
+        Party GetEngagedCounterpart(Party partyWhoseCounterpartToFind);
+
+        /// <summary>
+        /// Creates a new engagement between the given parties. The method also clears the pending
+        /// request of the client party, if one exists.
+        /// </summary>
+        /// <param name="conversationOwner">The conversation owner party.</param>
+        /// <param name="conversationClient">The conversation client (customer) party.</param>
+        /// <returns>True, if successful. False otherwise.</returns>
+        bool AddEngagementAndClearPendingRequest(Party conversationOwner, Party conversationClient);
+
+        /// <summary>
+        /// Removes an engagement(s) of the given party i.e. ends the 1:1 conversations.
+        /// </summary>
+        /// <param name="party">The party whose engagements to remove.</param>
+        /// <param name="engagementProfile">The engagement profile of the party (owner/client/either).</param>
+        /// <returns>The number of engagements removed.</returns>
+        int RemoveEngagement(Party party, EngagementProfile engagementProfile);
+
+        /// <summary>
         /// Deletes all existing routing data permanently.
         /// </summary>
         void DeleteAll();
@@ -103,15 +152,6 @@ namespace MessageRouting
         Party FindExistingUserParty(Party partyToFind);
 
         /// <summary>
-        /// Tries to find a stored bot party instance matching the given channel ID and
-        /// conversation account.
-        /// </summary>
-        /// <param name="channelId">The channel ID.</param>
-        /// <param name="conversationAccount">The conversation account.</param>
-        /// <returns>The bot party instance matching the given details or null if not found.</returns>
-        Party FindBotPartyByChannelAndConversation(string channelId, ConversationAccount conversationAccount);
-
-        /// <summary>
         /// Tries to find a stored party instance matching the given channel account ID and
         /// conversation ID.
         /// </summary>
@@ -119,6 +159,15 @@ namespace MessageRouting
         /// <param name="conversationId">The conversation ID.</param>
         /// <returns>The party instance matching the given IDs or null if not found.</returns>
         Party FindPartyByChannelAccountIdAndConversationId(string channelAccountId, string conversationId);
+
+        /// <summary>
+        /// Tries to find a stored bot party instance matching the given channel ID and
+        /// conversation account.
+        /// </summary>
+        /// <param name="channelId">The channel ID.</param>
+        /// <param name="conversationAccount">The conversation account.</param>
+        /// <returns>The bot party instance matching the given details or null if not found.</returns>
+        Party FindBotPartyByChannelAndConversation(string channelId, ConversationAccount conversationAccount);
 
         /// <summary>
         /// Tries to find a party engaged in a conversation.
@@ -135,6 +184,12 @@ namespace MessageRouting
         /// <param name="parties">The list of parties (candidates).</param>
         /// <returns>A newly created list of matching parties or null if none found.</returns>
         IList<Party> FindPartiesWithMatchingChannelAccount(Party partyToFind, IList<Party> parties);
+        #endregion
+
+        #region Methods for debugging
+        /// <returns>The engagements (parties in conversation) as a string.
+        /// Will return an empty string, if no engagements exist.</returns>
+        string EngagementsAsString();
         #endregion
     }
 }

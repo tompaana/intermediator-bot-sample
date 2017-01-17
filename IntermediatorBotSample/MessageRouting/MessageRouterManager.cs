@@ -41,9 +41,8 @@ namespace MessageRouting
 
         /// <summary>
         /// The routing data and all the parties the bot has seen including the instances of itself.
-        /// Note: You should store/restore this data to/from e.g. cloud storage!
         /// </summary>
-        public RoutingData Data
+        public IRoutingDataManager RoutingDataManager
         {
             get;
             private set;
@@ -59,117 +58,13 @@ namespace MessageRouting
             AggregationRequired = true; // Do not change the value here!
 
             // TODO: Get this instance from a data storage instead of keeping a local copy!
-            Data = new RoutingData();
+            RoutingDataManager = new LocalRoutingDataManager();
         }
 
         public bool IsInitialized()
         {
-            return (!AggregationRequired || (Data.AggregationParties != null && Data.AggregationParties.Count() > 0));
-        }
-
-        /// <summary>
-        /// Adds the given party to the container.
-        /// </summary>
-        /// <param name="newParty">The new party to add.</param>
-        /// <param name="isUser">If true, will try to add the party to the list of users.
-        /// If false, will try to add it to the list of bot identities.</param>
-        /// <returns>True, if the given party was added. False otherwise (was null or already in the collection).</returns>
-        public bool AddParty(Party newParty, bool isUser = true)
-        {
-            if (newParty == null || (isUser ? Data.UserParties.Contains(newParty) : Data.BotParties.Contains(newParty)))
-            {
-                return false;
-            }
-
-            if (isUser)
-            {
-                Data.UserParties.Add(newParty);
-            }
-            else
-            {
-                if (newParty.ChannelAccount == null)
-                {
-                    throw new NullReferenceException("Channel account of a bot party cannot be null - " + nameof(newParty.ChannelAccount));
-                }
-
-                Data.BotParties.Add(newParty);
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Adds a new party with the given properties into the container.
-        /// </summary>
-        /// <param name="serviceUrl"></param>
-        /// <param name="channelId"></param>
-        /// <param name="channelAccount"></param>
-        /// <param name="conversationAccount"></param>
-        /// <param name="isUser">If true, will try to add the party to the list of users.
-        /// If false, will try to add it to the list of bot identities.</param>
-        /// <returns>True, if the party was added. False otherwise (identical party already in
-        /// the collection.</returns>
-        public bool AddParty(string serviceUrl, string channelId,
-            ChannelAccount channelAccount, ConversationAccount conversationAccount,
-            bool isUser = true)
-        {
-            Party newParty = new Party(serviceUrl, channelId, channelAccount, conversationAccount);
-            return AddParty(newParty, isUser);
-        }
-
-        /// <summary>
-        /// Removes the party from all possible containers.
-        /// Note that this method removes the party's all instances (user from all conversations).
-        /// </summary>
-        /// <param name="partyToRemove">The party to remove.</param>
-        /// <returns>True, if the given party was removed. False otherwise.</returns>
-        public bool RemoveParty(Party partyToRemove)
-        {
-            IList<Party>[] partyLists = new IList<Party>[]
-            {
-                Data.UserParties,
-                Data.BotParties,
-                Data.PendingRequests
-            };
-
-            bool wasRemoved = false;
-
-            foreach (IList<Party> partyList in partyLists)
-            {
-                IList<Party> partiesToRemove = FindPartiesWithMatchingChannelAccount(partyToRemove, partyList);
-
-                if (partiesToRemove != null)
-                {
-                    foreach (Party party in partiesToRemove)
-                    {
-                        partiesToRemove.Remove(party);
-                    }
-
-                    wasRemoved = true;
-                }
-            }
-
-            if (wasRemoved)
-            {
-                // Check if the party exists in EngagedParties
-                List<Party> keys = new List<Party>();
-
-                foreach (var partyPair in Data.EngagedParties)
-                {
-                    if (partyPair.Key.HasMatchingChannelInformation(partyToRemove)
-                        || partyPair.Value.HasMatchingChannelInformation(partyToRemove))
-                    {
-                        keys.Add(partyPair.Key);
-                    }
-                }
-
-                foreach (Party key in keys)
-                {
-                    Data.EngagedParties.Remove(key);
-                }
-            }
-
-            return wasRemoved;
+            IList<Party> aggregationParties = RoutingDataManager.GetAggregationParties();
+            return (!AggregationRequired || (aggregationParties != null && aggregationParties.Count() > 0));
         }
 
         /// <summary>
@@ -183,13 +78,13 @@ namespace MessageRouting
         public void MakeSurePartiesAreTracked(Party senderParty, Party recipientParty)
         {
             // Store the bot identity, if not already stored
-            AddParty(recipientParty, false);
+            RoutingDataManager.AddParty(recipientParty, false);
 
             // Check that the party who sent the message is not the bot
-            if (!Data.BotParties.Contains(senderParty))
+            if (!RoutingDataManager.GetBotParties().Contains(senderParty))
             {
                 // Store the user party, if not already stored
-                AddParty(senderParty);
+                RoutingDataManager.AddParty(senderParty);
             }
         }
 
@@ -206,140 +101,6 @@ namespace MessageRouting
         }
 
         /// <summary>
-        /// Tries to find the existing user party (stored earlier) matching the given one.
-        /// </summary>
-        /// <param name="partyToFind">The party to find.</param>
-        /// <returns>The existing party matching the given one.</returns>
-        public Party FindExistingUserParty(Party partyToFind)
-        {
-            Party foundParty = null;
-
-            try
-            {
-                foundParty = Data.UserParties.First(party => partyToFind.Equals(party));
-            }
-            catch (ArgumentNullException)
-            {
-            }
-            catch (InvalidOperationException)
-            {
-            }
-
-            return foundParty;
-        }
-
-        /// <summary>
-        /// Tries to find a stored bot party instance matching the given channel ID and
-        /// conversation account.
-        /// </summary>
-        /// <param name="channelId">The channel ID.</param>
-        /// <param name="conversationAccount">The conversation account.</param>
-        /// <returns>The bot party instance matching the given details or null if not found.</returns>
-        public Party FindBotPartyByChannelAndConversation(string channelId, ConversationAccount conversationAccount)
-        {
-            Party botParty = null;
-
-            try
-            {
-                botParty = Data.BotParties.Single(party =>
-                        (party.ChannelId.Equals(channelId)
-                         && party.ConversationAccount.Id.Equals(conversationAccount.Id)));
-            }
-            catch (InvalidOperationException)
-            {
-            }
-
-            return botParty;
-        }
-
-        /// <summary>
-        /// Tries to find a stored party instance matching the given channel account ID and
-        /// conversation ID.
-        /// </summary>
-        /// <param name="channelAccountId">The channel account ID (user ID).</param>
-        /// <param name="conversationId">The conversation ID.</param>
-        /// <returns>The party instance matching the given IDs or null if not found.</returns>
-        public Party FindPartyByChannelAccountIdAndConversationId(string channelAccountId, string conversationId)
-        {
-            Party userParty = null;
-
-            try
-            {
-                userParty = Data.UserParties.Single(party =>
-                        (party.ChannelAccount.Id.Equals(channelAccountId)
-                         && party.ConversationAccount.Id.Equals(conversationId)));
-            }
-            catch (InvalidOperationException)
-            {
-            }
-
-            return userParty;
-        }
-
-        /// <summary>
-        /// Finds the parties from the given list that match the channel account (and ID) of the given party.
-        /// </summary>
-        /// <param name="partyToFind">The party containing the channel details to match.</param>
-        /// <param name="parties">The list of parties (candidates).</param>
-        /// <returns>A newly created list of matching parties or null if none found.</returns>
-        private IList<Party> FindPartiesWithMatchingChannelAccount(Party partyToFind, IList<Party> parties)
-        {
-            IList<Party> matchingParties = null;
-            IEnumerable<Party> foundParties = null;
-
-            try
-            {
-                foundParties = Data.UserParties.Where(party => party.HasMatchingChannelInformation(partyToFind));
-            }
-            catch (ArgumentNullException)
-            {
-            }
-            catch (InvalidOperationException)
-            {
-            }
-
-            if (foundParties != null)
-            {
-                matchingParties = foundParties.ToArray();
-            }
-
-            return matchingParties;
-        }
-
-        /// <summary>
-        /// Tries to find a party engaged in a conversation.
-        /// </summary>
-        /// <param name="channelId">The channel ID.</param>
-        /// <param name="channelAccount">The channel account.</param>
-        /// <returns>The party matching the given details or null if not found.</returns>
-        public Party FindEngagedPartyByChannel(string channelId, ChannelAccount channelAccount)
-        {
-            Party foundParty = null;
-
-            try
-            {
-                foundParty = Data.EngagedParties.Keys.Single(party =>
-                        (party.ChannelId.Equals(channelId)
-                         && party.ChannelAccount != null
-                         && party.ChannelAccount.Id.Equals(channelAccount.Id)));
-
-                if (foundParty == null)
-                {
-                    // Not found in keys, try the values
-                    foundParty = Data.EngagedParties.Values.First(party =>
-                            (party.ChannelId.Equals(channelId)
-                             && party.ChannelAccount != null
-                             && party.ChannelAccount.Id.Equals(channelAccount.Id)));
-                }
-            }
-            catch (InvalidOperationException)
-            {
-            }
-
-            return foundParty;
-        }
-
-        /// <summary>
         /// Tries to resolve the name of the bot in the same conversation with the given party.
         /// </summary>
         /// <param name="party"></param>
@@ -350,7 +111,7 @@ namespace MessageRouting
 
             if (party != null)
             {
-                Party botParty = FindBotPartyByChannelAndConversation(party.ChannelId, party.ConversationAccount);
+                Party botParty = RoutingDataManager.FindBotPartyByChannelAndConversation(party.ChannelId, party.ConversationAccount);
 
                 if (botParty != null && botParty.ChannelAccount != null)
                 {
@@ -359,45 +120,6 @@ namespace MessageRouting
             }
 
             return botName;
-        }
-
-        /// <summary>
-        /// Checks if the given party is engaged in a 1:1 conversation.
-        /// </summary>
-        /// <param name="party">The party to check.</param>
-        /// <returns>True, if the given party is engaged in a 1:1 conversation. False otherwise.</returns>
-        public bool IsEngaged(Party party)
-        {
-            return (party != null &&
-                (Data.EngagedParties.Keys.Contains(party) || Data.EngagedParties.Values.Contains(party)));
-        }
-
-        /// <summary>
-        /// Checks if the given party is associated with aggregation. In human toung this means
-        /// that the given party is, for instance, a customer service agent who deals with the
-        /// requests coming from customers.
-        /// </summary>
-        /// <param name="party">The party to check.</param>
-        /// <returns>True, if is associated. False otherwise.</returns>
-        public bool IsAssociatedWithAggregation(Party party)
-        {
-            return (Data.AggregationParties != null
-                && Data.AggregationParties.Count() > 0
-                && party != null
-                && Data.AggregationParties.Where(ag => ag.ConversationAccount.Id == party.ConversationAccount.Id && ag.ServiceUrl == party.ServiceUrl && ag.ChannelId == party.ChannelId).Count() > 0
-                );
-        }
-
-        /// <summary>
-        /// Checks if the given party is engaged in a 1:1 conversation and is not associated with
-        /// the aggregation channel (e.g. the user is a customer - not a customer service agent).
-        /// </summary>
-        /// <param name="party">The party to check.</param>
-        /// <returns>True, if the given party is engaged in a conversation and not associated with
-        /// the aggregation channel. False otherwise.</returns>
-        public bool IsEngagedAndNotAssociatedWithAggregation(Party party)
-        {
-            return (party != null && Data.EngagedParties.Values.Contains(party));
         }
 
         /// <summary>
@@ -415,7 +137,7 @@ namespace MessageRouting
 
             foreach (Mention mention in mentions)
             {
-                foreach (Party botParty in Data.BotParties)
+                foreach (Party botParty in RoutingDataManager.GetBotParties())
                 {
                     if (mention.Mentioned.Id.Equals(botParty.ChannelAccount.Id))
                     {
@@ -440,7 +162,7 @@ namespace MessageRouting
             // We need the channel account of the bot in the SAME CHANNEL as the RECIPIENT.
             // The identity of the bot in the channel of the sender is most likely a different one and
             // thus unusable since it will not be recognized on the recipient's channel.
-            Party botParty = FindBotPartyByChannelAndConversation(
+            Party botParty = RoutingDataManager.FindBotPartyByChannelAndConversation(
                 partyToMessage.ChannelId, partyToMessage.ConversationAccount);
 
             MessagingUtils.ConnectorClientAndMessageBundle bundle =
@@ -465,7 +187,7 @@ namespace MessageRouting
 
             if (IsInitialized()
                 && senderParty.ChannelAccount != null
-                && !IsAssociatedWithAggregation(senderParty))
+                && !RoutingDataManager.IsAssociatedWithAggregation(senderParty))
             {
                 // Sender is not engaged in a conversation and is not a member of the aggregation
                 // channel - thus, it must be a new "customer"
@@ -480,7 +202,7 @@ namespace MessageRouting
                 {
                     List<ResourceResponse> resourceResponses = new List<ResourceResponse>();
 
-                    foreach (Party aggregationParty in Data.AggregationParties)
+                    foreach (Party aggregationParty in RoutingDataManager.GetAggregationParties())
                     {
                         string botName = ResolveBotNameInConversation(aggregationParty);
                         string commandKeyword = string.IsNullOrEmpty(botName) ? CommandKeyword : ("@" + botName + " ");
@@ -507,11 +229,7 @@ namespace MessageRouting
 
                 if (wasSuccessful)
                 {
-                    if (!Data.PendingRequests.Contains(senderParty))
-                    {
-                        Data.PendingRequests.Add(senderParty);
-                    }
-
+                    RoutingDataManager.AddPendingRequest(senderParty);
                     replyActivity = (activity as Activity).CreateReply("Please wait for your request to be accepted");
                     wasInitiated = true;
                 }
@@ -535,22 +253,22 @@ namespace MessageRouting
         /// Note that the conversation owner will have a new separate party in the created engagement.
         /// </summary>
         /// <param name="conversationOwnerParty">The party who owns the conversation (e.g. customer service agent).</param>
-        /// <param name="otherParty">The other party in the conversation.</param>
+        /// <param name="conversationClientParty">The other party in the conversation.</param>
         /// <returns>A valid ConversationResourceResponse of the newly created direct conversation
         /// (between the bot [who will relay messages] and the conversation owner),
         /// if the engagement was added and a conversation created successfully.
         /// False otherwise.</returns>
-        private async Task<ConversationResourceResponse> AddEngagementAsync(Party conversationOwnerParty, Party otherParty)
+        private async Task<ConversationResourceResponse> AddEngagementAsync(Party conversationOwnerParty, Party conversationClientParty)
         {
             ConversationResourceResponse conversationResourceResponse = null;
 
-            if (conversationOwnerParty == null || otherParty == null)
+            if (conversationOwnerParty == null || conversationClientParty == null)
             {
                 throw new ArgumentNullException(
-                    $"Neither of the arguments ({nameof(conversationOwnerParty)}, {nameof(otherParty)}) can be null");
+                    $"Neither of the arguments ({nameof(conversationOwnerParty)}, {nameof(conversationClientParty)}) can be null");
             }
 
-            Party botParty = FindBotPartyByChannelAndConversation(
+            Party botParty = RoutingDataManager.FindBotPartyByChannelAndConversation(
                 conversationOwnerParty.ChannelId, conversationOwnerParty.ConversationAccount);
 
             if (botParty != null)
@@ -571,9 +289,8 @@ namespace MessageRouting
                         conversationOwnerParty.ServiceUrl, conversationOwnerParty.ChannelId,
                         conversationOwnerParty.ChannelAccount, new ConversationAccount(id: conversationResourceResponse.Id));
 
-                    AddParty(acceptorPartyEngaged);
-                    Data.EngagedParties.Add(acceptorPartyEngaged, otherParty);
-                    Data.PendingRequests.Remove(otherParty);
+                    RoutingDataManager.AddParty(acceptorPartyEngaged);
+                    RoutingDataManager.AddEngagementAndClearPendingRequest(acceptorPartyEngaged, conversationClientParty);
                 }
             }
 
@@ -591,11 +308,10 @@ namespace MessageRouting
             Party senderParty = MessagingUtils.CreateSenderParty(activity);
             Activity replyActivity = null;
 
-            if (Data.EngagedParties.Keys.Contains(senderParty))
+            if (RoutingDataManager.IsEngaged(senderParty, EngagementProfile.Owner))
             {
                 // Sender is an owner of an ongoing conversation - forward the message
-                Party partyToForwardMessageTo = null;
-                Data.EngagedParties.TryGetValue(senderParty, out partyToForwardMessageTo);
+                Party partyToForwardMessageTo = RoutingDataManager.GetEngagedCounterpart(senderParty);
 
                 if (partyToForwardMessageTo != null)
                 {
@@ -608,19 +324,10 @@ namespace MessageRouting
                     }
                 }
             }
-            else if (Data.EngagedParties.Values.Contains(senderParty))
+            else if (RoutingDataManager.IsEngaged(senderParty, EngagementProfile.Client))
             {
                 // Sender is a participant of an ongoing conversation - forward the message
-                Party partyToForwardMessageTo = null;
-                
-                for (int i = 0; i < Data.EngagedParties.Count; ++i)
-                {
-                    if (Data.EngagedParties.Values.ElementAt(i).Equals(senderParty))
-                    {
-                        partyToForwardMessageTo = Data.EngagedParties.Keys.ElementAt(i);
-                        break;
-                    }
-                }
+                Party partyToForwardMessageTo = RoutingDataManager.GetEngagedCounterpart(senderParty);
 
                 if (partyToForwardMessageTo != null)
                 {
@@ -665,7 +372,7 @@ namespace MessageRouting
 
             if (conversationResourceResponse != null)
             {
-                Party botParty = FindBotPartyByChannelAndConversation(
+                Party botParty = RoutingDataManager.FindBotPartyByChannelAndConversation(
                     acceptorParty.ChannelId, acceptorParty.ConversationAccount);
                 ConnectorClient connectorClient = new ConnectorClient(new Uri(acceptorParty.ServiceUrl));
 
@@ -726,24 +433,24 @@ namespace MessageRouting
                 else if (messageInLowerCase.StartsWith("init"))
                 {
                     // Check if the Aggregation Party already exists
-                    Party currentParty = new Party(
+                    Party aggregationParty = new Party(
                         activity.ServiceUrl,
                         activity.ChannelId,
                         /* not a specific user, but a channel/conv */ null,
                         activity.Conversation);
 
-                    if (Data.AggregationParties.Contains(currentParty))
+                    if (RoutingDataManager.AddAggregationParty(aggregationParty))
+                    {
+                        // Establish the sender's channel/conversation as an aggreated one
+                        RoutingDataManager.GetAggregationParties().Add(aggregationParty);
+                        replyActivity = activity.CreateReply(
+                            "This channel/conversation is now where the requests are aggregated");
+                    }
+                    else
                     {
                         // Aggregation already exists
                         replyActivity = activity.CreateReply(
                             "This channel/conversation is already receiving requests");
-                    }
-                    else
-                    {
-                        // Establish the sender's channel/conversation as an aggreated one
-                        Data.AggregationParties.Add(currentParty);
-                        replyActivity = activity.CreateReply(
-                            "This channel/conversation is now where the requests are aggregated");
                     }
 
                     wasHandled = true;
@@ -753,15 +460,15 @@ namespace MessageRouting
                     // Accept conversation request
                     Party senderParty = MessagingUtils.CreateSenderParty(activity);
 
-                    if (IsAssociatedWithAggregation(senderParty))
+                    if (RoutingDataManager.IsAssociatedWithAggregation(senderParty))
                     {
                         // The party is associated with the aggregation and has the right to accept
                         Party senderInConversation =
-                            FindEngagedPartyByChannel(senderParty.ChannelId, senderParty.ChannelAccount);
+                            RoutingDataManager.FindEngagedPartyByChannel(senderParty.ChannelId, senderParty.ChannelAccount);
 
-                        if (senderInConversation == null || !Data.EngagedParties.Keys.Contains(senderInConversation))
+                        if (senderInConversation == null || !RoutingDataManager.IsEngaged(senderInConversation, EngagementProfile.Owner))
                         {
-                            if (Data.PendingRequests.Count > 0)
+                            if (RoutingDataManager.GetPendingRequests().Count > 0)
                             {
                                 // The name of the user to accept should be the second word
                                 string[] splitMessage = message.Split(' ');
@@ -773,7 +480,8 @@ namespace MessageRouting
 
                                     try
                                     {
-                                        partyToAccept = Data.PendingRequests.Single(
+                                        // TODO: Name alone is not enough to ID the right pending request!
+                                        partyToAccept = RoutingDataManager.GetPendingRequests().Single(
                                               party => (party.ChannelAccount != null
                                                   && !string.IsNullOrEmpty(party.ChannelAccount.Name)
                                                   && party.ChannelAccount.Name.Equals(splitMessage[1])));
@@ -808,8 +516,7 @@ namespace MessageRouting
                         }
                         else
                         {
-                            Party otherParty = null;
-                            Data.EngagedParties.TryGetValue(senderInConversation, out otherParty);
+                            Party otherParty = RoutingDataManager.GetEngagedCounterpart(senderInConversation);
 
                             if (otherParty != null)
                             {
@@ -829,18 +536,18 @@ namespace MessageRouting
                     // Close the 1:1 conversation
                     Party senderParty = MessagingUtils.CreateSenderParty(activity);
                     Party senderInConversation =
-                        FindEngagedPartyByChannel(senderParty.ChannelId, senderParty.ChannelAccount);
+                        RoutingDataManager.FindEngagedPartyByChannel(senderParty.ChannelId, senderParty.ChannelAccount);
 
-                    if (senderInConversation != null || Data.EngagedParties.Keys.Contains(senderInConversation))
+                    if (senderInConversation != null && RoutingDataManager.IsEngaged(senderInConversation, EngagementProfile.Owner))
                     {
-                        Party otherParty = Data.EngagedParties[senderInConversation];
+                        Party otherParty = RoutingDataManager.GetEngagedCounterpart(senderInConversation);
 
-                        if (Data.EngagedParties.Remove(senderInConversation))
+                        if (RoutingDataManager.RemoveEngagement(senderInConversation, EngagementProfile.Owner) > 0)
                         {
                             replyActivity = activity.CreateReply("You are now disengaged from the conversation");
 
                             // Notify the other party
-                            Party botParty = FindBotPartyByChannelAndConversation(
+                            Party botParty = RoutingDataManager.FindBotPartyByChannelAndConversation(
                                 otherParty.ChannelId, otherParty.ConversationAccount);
                             IMessageActivity messageActivity = Activity.CreateMessageActivity();
                             messageActivity.From = botParty.ChannelAccount;
@@ -862,6 +569,7 @@ namespace MessageRouting
                     {
                         replyActivity = activity.CreateReply("No conversation to close found");
                     }
+
                     wasHandled = true;
                 }
                 else if (messageInLowerCase.StartsWith("reset"))
@@ -869,7 +577,7 @@ namespace MessageRouting
                     ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
                     await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Clearing all data..."));
 
-                    Data.Clear();
+                    RoutingDataManager.DeleteAll();
 
                     wasHandled = true;
                 }
@@ -879,7 +587,7 @@ namespace MessageRouting
                     string replyMessage = string.Empty;
                     string parties = string.Empty;
 
-                    foreach (Party userParty in Data.UserParties)
+                    foreach (Party userParty in RoutingDataManager.GetUserParties())
                     {
                         parties += userParty.ToString() + "\n";
                     }
@@ -895,7 +603,7 @@ namespace MessageRouting
 
                     parties = string.Empty;
 
-                    foreach (Party botParty in Data.BotParties)
+                    foreach (Party botParty in RoutingDataManager.GetBotParties())
                     {
                         parties += botParty.ToString() + "\n";
                     }
@@ -916,7 +624,7 @@ namespace MessageRouting
                 {
                     string parties = string.Empty;
 
-                    foreach (Party party in Data.PendingRequests)
+                    foreach (Party party in RoutingDataManager.GetPendingRequests())
                     {
                         parties += party.ToString() + "\n";
                     }
@@ -931,20 +639,15 @@ namespace MessageRouting
                 }
                 else if (messageInLowerCase.StartsWith("list conversations"))
                 {
-                    string parties = string.Empty;
+                    string parties = RoutingDataManager.EngagementsAsString();
 
-                    foreach (KeyValuePair<Party, Party> keyValuePair in Data.EngagedParties)
+                    if (string.IsNullOrEmpty(parties))
                     {
-                        parties += keyValuePair.Key + " -> " + keyValuePair.Value + "\n";
-                    }
-
-                    if (parties.Length > 0)
-                    {
-                        replyActivity = activity.CreateReply(parties);
+                        replyActivity = activity.CreateReply("No conversations");
                     }
                     else
                     {
-                        replyActivity = activity.CreateReply("No conversations");
+                        replyActivity = activity.CreateReply(parties);
                     }
 
                     wasHandled = true;

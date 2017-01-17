@@ -47,25 +47,28 @@ namespace MessageRouting
         public static ConnectorClientAndMessageBundle CreateConnectorClientAndMessageActivity(
             Party partyToMessage, string messageText, ChannelAccount senderAccount)
         {
-            ConnectorClient connectorClient = new ConnectorClient(new Uri(partyToMessage.ServiceUrl));
+            ConnectorClient newConnectorClient = new ConnectorClient(new Uri(partyToMessage.ServiceUrl));
 
-            IMessageActivity messageActivity = Activity.CreateMessageActivity();
-            messageActivity.Conversation = partyToMessage.ConversationAccount;
-            messageActivity.Text = messageText;
+            IMessageActivity newMessageActivity = Activity.CreateMessageActivity();
+            newMessageActivity.Conversation = partyToMessage.ConversationAccount;
+            newMessageActivity.Text = messageText;
 
             if (senderAccount != null)
             {
-                messageActivity.From = senderAccount;
+                newMessageActivity.From = senderAccount;
             }
 
             if (partyToMessage.ChannelAccount != null)
             {
-                messageActivity.Recipient = partyToMessage.ChannelAccount;
+                newMessageActivity.Recipient = partyToMessage.ChannelAccount;
             }
 
-            ConnectorClientAndMessageBundle bundle = new ConnectorClientAndMessageBundle();
-            bundle.connectorClient = connectorClient;
-            bundle.messageActivity = messageActivity;
+            ConnectorClientAndMessageBundle bundle = new ConnectorClientAndMessageBundle()
+            {
+                connectorClient = newConnectorClient,
+                messageActivity = newMessageActivity
+            };
+
             return bundle;
         }
 

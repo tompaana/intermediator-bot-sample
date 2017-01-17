@@ -8,64 +8,30 @@ namespace MessageRouting
 {
     /// <summary>
     /// Routing data manager that stores the data in Azure Table storage services.
+    /// Caching policy: If the local query finds nothing, update the data from the storage.
+    /// See IRoutingDataManager for general documentation of properties and methods.
     /// </summary>
-    public class AzureTableStorageRoutingDataManager : IRoutingDataManager
+    public class AzureTableStorageRoutingDataManager : LocalRoutingDataManager
     {
-        public IList<Party> UserParties => throw new NotImplementedException();
+        private string _connectionString;
 
-        public IList<Party> BotParties => throw new NotImplementedException();
-
-        public IList<Party> AggregationParties => throw new NotImplementedException();
-
-        public List<Party> PendingRequests => throw new NotImplementedException();
-
-        public Dictionary<Party, Party> EngagedParties => throw new NotImplementedException();
-
-        public bool AddParty(Party newParty, bool isUser = true)
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="connectionString">The connection string for the Azure Table storage services.</param>
+        public AzureTableStorageRoutingDataManager(string connectionString) : base()
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new ArgumentNullException($"Connection string ({nameof(connectionString)}) cannot be empty or null");
+            }
+
+            _connectionString = connectionString;
         }
 
-        public bool AddParty(string serviceUrl, string channelId,
-            ChannelAccount channelAccount, ConversationAccount conversationAccount,
-            bool isUser = true)
+        public override bool AddParty(Party newParty, bool isUser = true)
         {
-            throw new NotImplementedException();
-        }
-
-        public bool RemoveParty(Party partyToRemove)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void DeleteAll()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Party FindBotPartyByChannelAndConversation(string channelId, ConversationAccount conversationAccount)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Party FindEngagedPartyByChannel(string channelId, ChannelAccount channelAccount)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Party FindExistingUserParty(Party partyToFind)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IList<Party> FindPartiesWithMatchingChannelAccount(Party partyToFind, IList<Party> parties)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Party FindPartyByChannelAccountIdAndConversationId(string channelAccountId, string conversationId)
-        {
-            throw new NotImplementedException();
+            return base.AddParty(newParty, isUser);
         }
     }
 }
