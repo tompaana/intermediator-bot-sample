@@ -60,15 +60,6 @@ namespace MessageRouting
         /// <returns>True, if the given party was removed. False otherwise.</returns>
         bool RemoveParty(Party partyToRemove);
 
-        /// <summary>
-        /// Checks if the given party is associated with aggregation. In human toung this means
-        /// that the given party is, for instance, a customer service agent who deals with the
-        /// requests coming from customers.
-        /// </summary>
-        /// <param name="party">The party to check.</param>
-        /// <returns>True, if is associated. False otherwise.</returns>
-        bool IsAssociatedWithAggregation(Party party);
-
         /// <returns>The aggregation parties as a readonly list.</returns>
         IList<Party> GetAggregationParties();
 
@@ -144,6 +135,15 @@ namespace MessageRouting
         #endregion
 
         #region Utility methods
+        /// <summary>
+        /// Checks if the given party is associated with aggregation. In human toung this means
+        /// that the given party is, for instance, a customer service agent who deals with the
+        /// requests coming from customers.
+        /// </summary>
+        /// <param name="party">The party to check.</param>
+        /// <returns>True, if is associated. False otherwise.</returns>
+        bool IsAssociatedWithAggregation(Party party);
+
         /// <summary>
         /// Tries to find the existing user party (stored earlier) matching the given one.
         /// </summary>

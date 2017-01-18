@@ -1,7 +1,6 @@
 ﻿using Microsoft.Bot.Connector;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 
 namespace MessageRouting
@@ -170,15 +169,6 @@ namespace MessageRouting
             }
 
             return wasRemoved;
-        }
-
-        public virtual bool IsAssociatedWithAggregation(Party party)
-        {
-            return (party != null && AggregationParties != null && AggregationParties.Count() > 0
-                    && AggregationParties.Where(aggregationParty =>
-                        aggregationParty.ConversationAccount.Id == party.ConversationAccount.Id
-                        && aggregationParty.ServiceUrl == party.ServiceUrl
-                        && aggregationParty.ChannelId == party.ChannelId).Count() > 0);
         }
 
         public virtual IList<Party> GetAggregationParties()
@@ -357,6 +347,15 @@ namespace MessageRouting
             BotParties.Clear();
             PendingRequests.Clear();
             EngagedParties.Clear();
+        }
+
+        public virtual bool IsAssociatedWithAggregation(Party party)
+        {
+            return (party != null && AggregationParties != null && AggregationParties.Count() > 0
+                    && AggregationParties.Where(aggregationParty =>
+                        aggregationParty.ConversationAccount.Id == party.ConversationAccount.Id
+                        && aggregationParty.ServiceUrl == party.ServiceUrl
+                        && aggregationParty.ChannelId == party.ChannelId).Count() > 0);
         }
 
         public virtual Party FindExistingUserParty(Party partyToFind)

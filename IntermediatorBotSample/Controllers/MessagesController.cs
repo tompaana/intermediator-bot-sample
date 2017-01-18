@@ -30,7 +30,7 @@ namespace IntermediatorBotSample
                 messageRouterManager.MakeSurePartiesAreTracked(activity);
 
                 // Check for possible commands first
-                if (await messageRouterManager.HandleDirectCommandToBotAsync(activity) == false)
+                if (await messageRouterManager.BotCommandHandler.HandleBotCommandAsync(activity) == false)
                 {
                     // No command to the bot was issued so it must be a message then
                     messageRouterManager.HandleMessageAsync(activity);
@@ -65,14 +65,17 @@ namespace IntermediatorBotSample
                 // Handle conversation state changes, like members being added and removed
                 // Use Activity.MembersAdded and Activity.MembersRemoved and Activity.Action for info
                 // Not available in all channels
-                foreach (ChannelAccount channelAccount in message.MembersRemoved)
+                if (message.MembersRemoved != null && message.MembersRemoved.Count > 0)
                 {
-                    Party party = new Party(
-                        message.ServiceUrl, message.ChannelId, channelAccount, message.Conversation);
-
-                    if (messageRouterManager.RoutingDataManager.RemoveParty(party))
+                    foreach (ChannelAccount channelAccount in message.MembersRemoved)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Party {party.ToString()} removed");
+                        Party party = new Party(
+                            message.ServiceUrl, message.ChannelId, channelAccount, message.Conversation);
+
+                        if (messageRouterManager.RoutingDataManager.RemoveParty(party))
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Party {party.ToString()} removed");
+                        }
                     }
                 }
             }
@@ -83,7 +86,7 @@ namespace IntermediatorBotSample
             }
             else if (message.Type == ActivityTypes.Typing)
             {
-                // Handle knowing tha the user is typing
+                // Handle knowing that the user is typing
             }
             else if (message.Type == ActivityTypes.Ping)
             {

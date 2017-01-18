@@ -123,6 +123,7 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="MessageRouting\AzureTableStorageRoutingDataManager.cs" />
+    <Compile Include="MessageRouting\BotCommandHandler.cs" />
     <Compile Include="MessageRouting\IRoutingDataManager.cs" />
     <Compile Include="MessageRouting\LocalRoutingDataManager.cs" />
     <Compile Include="MessageRouting\MessageRouterManager.cs" />
