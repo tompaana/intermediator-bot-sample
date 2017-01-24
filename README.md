@@ -51,7 +51,7 @@ See also: [Microsoft Bot Framework Emulator wiki](https://github.com/microsoft/b
 | Conversation client | A reqular user e.g. a customer. |
 | Conversation owner | E.g. a customer service **agent**. |
 
-### Classes ###
+### Interfaces and classes ###
 
 **[Party](/IntermediatorBotSample/MessageRouting/Party.cs)** holds the details
 of specific user/bot in a specific conversation. Note that the bot collects
@@ -61,7 +61,7 @@ single user/bot). One can think of `Party` as a full address the bot needs in
 order to send a message to the user in a conversation. The `Party` instances are
 stored in routing data.
 
-**[RoutingData](/IntermediatorBotSample/MessageRouting/IRoutingDataManager.cs)**
+**[IRoutingDataManager](/IntermediatorBotSample/MessageRouting/IRoutingDataManager.cs)**
 manages the parties (users/bot), aggregation channel details, the list of
 engaged parties and pending requests. **Note** that this data should be stored
 in e.g. a blob storage! For testing it is OK to have the data in memory.
@@ -99,7 +99,7 @@ public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
         // Get the message router manager instance
         MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
 
-        // Make we have the details of the sender and the receiver (bot) stored
+        // Make sure we have the details of the sender and the receiver (bot) stored
         messageRouterManager.MakeSurePartiesAreTracked(activity);
 
         // Check for possible commands first

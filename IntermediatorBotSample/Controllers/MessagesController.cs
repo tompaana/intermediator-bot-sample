@@ -28,7 +28,7 @@ namespace IntermediatorBotSample
                 // Get the message router manager instance
                 MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
 
-                // Make we have the details of the sender and the receiver (bot) stored
+                // Make sure we have the details of the sender and the receiver (bot) stored
                 messageRouterManager.MakeSurePartiesAreTracked(activity);
 
                 // Check for possible commands first
