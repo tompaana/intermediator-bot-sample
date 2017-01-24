@@ -6,12 +6,14 @@ namespace MessageRouting
 {
     /// <summary>
     /// Defines the type of engagement:
+    /// - None: No engagement
     /// - Client: E.g. a customer
     /// - Owner: E.g. a customer service agent
     /// - Any: Either a client or an owner
     /// </summary>
     public enum EngagementProfile
     {
+        None,
         Client,
         Owner,
         Any
@@ -22,6 +24,11 @@ namespace MessageRouting
     /// </summary>
     public interface IRoutingDataManager
     {
+        /// <summary>
+        /// Invoked when an engagement is initiated, established (added) or ended (removed).
+        /// </summary>
+        event EventHandler<EngagementChangedEventArgs> EngagementChanged;
+
         #region CRUD methods
         /// <returns>The user parties as a readonly list.</returns>
         IList<Party> GetUserParties();
@@ -115,10 +122,10 @@ namespace MessageRouting
         /// Creates a new engagement between the given parties. The method also clears the pending
         /// request of the client party, if one exists.
         /// </summary>
-        /// <param name="conversationOwner">The conversation owner party.</param>
-        /// <param name="conversationClient">The conversation client (customer) party.</param>
+        /// <param name="conversationOwnerParty">The conversation owner party.</param>
+        /// <param name="conversationClientParty">The conversation client (customer) party.</param>
         /// <returns>True, if successful. False otherwise.</returns>
-        bool AddEngagementAndClearPendingRequest(Party conversationOwner, Party conversationClient);
+        bool AddEngagementAndClearPendingRequest(Party conversationOwnerParty, Party conversationClientParty);
 
         /// <summary>
         /// Removes an engagement(s) of the given party i.e. ends the 1:1 conversations.
@@ -143,6 +150,13 @@ namespace MessageRouting
         /// <param name="party">The party to check.</param>
         /// <returns>True, if is associated. False otherwise.</returns>
         bool IsAssociatedWithAggregation(Party party);
+
+        /// <summary>
+        /// Tries to resolve the name of the bot in the same conversation with the given party.
+        /// </summary>
+        /// <param name="party">The party from whose perspective to resolve the name.</param>
+        /// <returns>The name of the bot or null, if unable to resolve.</returns>
+        string ResolveBotNameInConversation(Party party);
 
         /// <summary>
         /// Tries to find the existing user party (stored earlier) matching the given one.

@@ -35,9 +35,30 @@ namespace MessageRouting
         }
 
         /// <summary>
-        /// Creates a connector client and a message activity for the given party as the recipient.
-        /// If this party has an ID of a specific user (ChannelAccount is valid), then the that
-        /// user is set as the recipient. Otherwise, the whole channel is addressed.
+        /// Creates a connector client with the given message activity for the given party as the
+        /// recipient. If this party has an ID of a specific user (ChannelAccount is valid), then
+        /// the that user is set as the recipient. Otherwise, the whole channel is addressed.
+        /// </summary>
+        /// <param name="serviceUrl">The service URL of the channel of the party to send the message to.</param>
+        /// <param name="newMessageActivity">The message activity to send.</param>
+        /// <returns>A bundle containing a newly created connector client (that is used to send
+        /// the message and the message activity (the content of the message).</returns>
+        public static ConnectorClientAndMessageBundle CreateConnectorClientAndMessageActivity(
+            string serviceUrl, IMessageActivity newMessageActivity)
+        {
+            ConnectorClient newConnectorClient = new ConnectorClient(new Uri(serviceUrl));
+
+            ConnectorClientAndMessageBundle bundle = new ConnectorClientAndMessageBundle()
+            {
+                connectorClient = newConnectorClient,
+                messageActivity = newMessageActivity
+            };
+
+            return bundle;
+        }
+
+        /// <summary>
+        /// For convenience.
         /// </summary>
         /// <param name="partyToMessage">The party to send the message to.</param>
         /// <param name="messageText">The message text content.</param>
@@ -47,8 +68,6 @@ namespace MessageRouting
         public static ConnectorClientAndMessageBundle CreateConnectorClientAndMessageActivity(
             Party partyToMessage, string messageText, ChannelAccount senderAccount)
         {
-            ConnectorClient newConnectorClient = new ConnectorClient(new Uri(partyToMessage.ServiceUrl));
-
             IMessageActivity newMessageActivity = Activity.CreateMessageActivity();
             newMessageActivity.Conversation = partyToMessage.ConversationAccount;
             newMessageActivity.Text = messageText;
@@ -63,13 +82,7 @@ namespace MessageRouting
                 newMessageActivity.Recipient = partyToMessage.ChannelAccount;
             }
 
-            ConnectorClientAndMessageBundle bundle = new ConnectorClientAndMessageBundle()
-            {
-                connectorClient = newConnectorClient,
-                messageActivity = newMessageActivity
-            };
-
-            return bundle;
+            return CreateConnectorClientAndMessageActivity(partyToMessage.ServiceUrl, newMessageActivity);
         }
 
         /// <summary>

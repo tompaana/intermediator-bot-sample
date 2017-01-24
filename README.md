@@ -48,6 +48,8 @@ See also: [Microsoft Bot Framework Emulator wiki](https://github.com/microsoft/b
 | Aggregation (channel) | A channel where the chat requests are sent. The users in the aggregation channel can accept the requests. |
 | Engagement | Is created when a request is accepted - the acceptor and the one accepted form an engagement (1:1 chat where the bot relays the messages between the users). |
 | Party | A user/bot in a specific conversation. |
+| Conversation client | A reqular user e.g. a customer. |
+| Conversation owner | E.g. a customer service **agent**. |
 
 ### Classes ###
 
@@ -59,8 +61,8 @@ single user/bot). One can think of `Party` as a full address the bot needs in
 order to send a message to the user in a conversation. The `Party` instances are
 stored in routing data.
 
-**[RoutingData](/IntermediatorBotSample/MessageRouting/RoutingData.cs)**
-contains the parties (users/bot), aggregation channel details, the list of
+**[RoutingData](/IntermediatorBotSample/MessageRouting/IRoutingDataManager.cs)**
+manages the parties (users/bot), aggregation channel details, the list of
 engaged parties and pending requests. **Note** that this data should be stored
 in e.g. a blob storage! For testing it is OK to have the data in memory.
 
@@ -73,10 +75,9 @@ are as follows:
 * `AddParty`: Adds a new party to the routing data. It is recommended to use `MakeSurePartiesAreTracked` instead of this for adding parties.
 * `RemoveParty`: Removes all the instances related to the given party from the routing data (since there can be multiple - one for each conversation).
 * `MakeSurePartiesAreTracked`: A convenient method for adding parties. The given parties are added if they are new.
-* `IntiateEngagementAsync`: Creates and posts a new chat request.
+* `IntiateEngagement`: Creates and posts a new chat request.
 * `AddEngagementAsync`: Establishes an engagement between the given parties. This method is called when a chat request is accepted.
-* `HandleMessageAsync`: Handles the incoming messages: Creates chat requests if needed and relays the messages between engaged parties.
-* `HandleDirectCommandToBotAsync`: Handles bot commands.
+* `HandleMessageAsync`: Handles the incoming messages: Relays the messages between engaged parties.
 
 ### Taking the classes into use ###
 
@@ -87,6 +88,10 @@ instance, if no action is taken by the manager, you can forward the `Activity`
 to a `Dialog`:
 
 ```cs
+private DefaultMessageRouterEventHandler _messageRouterEventHander = new DefaultMessageRouterEventHandler(true);
+
+...
+
 public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
 {
     if (activity.Type == ActivityTypes.Message)
@@ -98,10 +103,25 @@ public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
         messageRouterManager.MakeSurePartiesAreTracked(activity);
 
         // Check for possible commands first
-        if (await messageRouterManager.HandleDirectCommandToBotAsync(activity) == false)
+        if (await messageRouterManager.BotCommandHandler.HandleBotCommandAsync(activity) == false)
         {
             // No command to the bot was issued so it must be a message then
-            messageRouterManager.HandleMessageAsync(activity);
+            if (await messageRouterManager.HandleMessageAsync(activity) == false)
+            {
+                // The message router manager failed to handle the message. This is likely
+                // due to the sender not being engaged in a conversation. Another reason
+                // could be that the manager has not been initialized.
+                //
+                // If you get here and you are sure that the manager has been initialized
+                // (note that initialization is only needed if there is an aggregation
+                // channel), you should either (depending on your use case):
+                //  1) Let the bot handle the message in the usual manner (e.g. let dialog
+                //     handle the message) or
+                //  2) automatically initiate the engagement, if the only thing this bot
+                //     does is forwards messages.
+
+                messageRouterManager.InitiateEngagement(activity);
+            }
         }
     }
     else

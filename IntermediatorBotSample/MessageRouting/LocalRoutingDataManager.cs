@@ -16,6 +16,8 @@ namespace MessageRouting
     [Serializable]
     public class LocalRoutingDataManager : IRoutingDataManager
     {
+        public event EventHandler<EngagementChangedEventArgs> EngagementChanged;
+
         /// <summary>
         /// Parties that are users (not this bot).
         /// </summary>
@@ -164,7 +166,7 @@ namespace MessageRouting
 
                 foreach (Party key in keys)
                 {
-                    EngagedParties.Remove(key);
+                    RemoveEngagement(key, EngagementProfile.Owner);
                 }
             }
 
@@ -212,6 +214,14 @@ namespace MessageRouting
             if (party != null && !PendingRequests.Contains(party))
             {
                 PendingRequests.Add(party);
+
+                EngagementChanged?.Invoke(this, new EngagementChangedEventArgs()
+                {
+                    ChangeType = ChangeTypes.Initiated,
+                    ConversationOwnerParty = null, // No owner until the request has been accepted
+                    ConversationClientParty = party
+                });
+
                 return true;
             }
 
@@ -239,6 +249,8 @@ namespace MessageRouting
                         break;
                     case EngagementProfile.Any:
                         isEngaged = (EngagedParties.Values.Contains(party) || EngagedParties.Keys.Contains(party));
+                        break;
+                    default:
                         break;
                 }
             }
@@ -269,22 +281,32 @@ namespace MessageRouting
             return counterparty;
         }
 
-        public virtual bool AddEngagementAndClearPendingRequest(Party conversationOwner, Party conversationClient)
+        public virtual bool AddEngagementAndClearPendingRequest(Party conversationOwnerParty, Party conversationClientParty)
         {
             bool success = false;
 
-            if (conversationOwner != null && conversationClient != null)
+            if (conversationOwnerParty != null && conversationClientParty != null)
             {
                 try
                 {
-                    EngagedParties.Add(conversationOwner, conversationClient);
-                    PendingRequests.Remove(conversationClient);
+                    EngagedParties.Add(conversationOwnerParty, conversationClientParty);
+                    PendingRequests.Remove(conversationClientParty);
                     success = true;
                 }
                 catch (ArgumentException e)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Failed to add engagement between parties {conversationOwner} and {conversationClient}: {e.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Failed to add engagement between parties {conversationOwnerParty} and {conversationClientParty}: {e.Message}");
                 }
+            }
+
+            if (success)
+            {
+                EngagementChanged?.Invoke(this, new EngagementChangedEventArgs()
+                {
+                    ChangeType = ChangeTypes.Added,
+                    ConversationOwnerParty = conversationOwnerParty,
+                    ConversationClientParty = conversationClientParty
+                });
             }
 
             return success;
@@ -313,6 +335,8 @@ namespace MessageRouting
                         case EngagementProfile.Any:
                             removeThisPair = (partyPair.Value.Equals(party) || partyPair.Key.Equals(party));
                             break;
+                        default:
+                            break;
                     }
 
                     if (removeThisPair)
@@ -329,10 +353,20 @@ namespace MessageRouting
 
                 foreach (Party key in keysToRemove)
                 {
+                    Party conversationClientParty = null;
+                    EngagedParties.TryGetValue(key, out conversationClientParty);
+
                     if (EngagedParties.Remove(key))
                     {
                         System.Diagnostics.Debug.WriteLine($"Removed engagements where {key.ToString()} was the owner of the conversation");
                         engagementsRemoved++;
+
+                        EngagementChanged?.Invoke(this, new EngagementChangedEventArgs()
+                        {
+                            ChangeType = ChangeTypes.Removed,
+                            ConversationOwnerParty = key,
+                            ConversationClientParty = conversationClientParty
+                        });
                     }
                 }
             }
@@ -356,6 +390,23 @@ namespace MessageRouting
                         aggregationParty.ConversationAccount.Id == party.ConversationAccount.Id
                         && aggregationParty.ServiceUrl == party.ServiceUrl
                         && aggregationParty.ChannelId == party.ChannelId).Count() > 0);
+        }
+
+        public virtual string ResolveBotNameInConversation(Party party)
+        {
+            string botName = null;
+
+            if (party != null)
+            {
+                Party botParty = FindBotPartyByChannelAndConversation(party.ChannelId, party.ConversationAccount);
+
+                if (botParty != null && botParty.ChannelAccount != null)
+                {
+                    botName = botParty.ChannelAccount.Name;
+                }
+            }
+
+            return botName;
         }
 
         public virtual Party FindExistingUserParty(Party partyToFind)

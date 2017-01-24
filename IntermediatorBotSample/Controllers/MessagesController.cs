@@ -11,6 +11,8 @@ namespace IntermediatorBotSample
     [BotAuthentication]
     public class MessagesController : ApiController
     {
+        private DefaultMessageRouterEventHandler _messageRouterEventHander = new DefaultMessageRouterEventHandler(true);
+
         public MessagesController()
         {
             // Note: This class is constructed every time there is a new activity (Post called).
@@ -33,7 +35,22 @@ namespace IntermediatorBotSample
                 if (await messageRouterManager.BotCommandHandler.HandleBotCommandAsync(activity) == false)
                 {
                     // No command to the bot was issued so it must be a message then
-                    await messageRouterManager.HandleMessageAsync(activity);
+                    if (await messageRouterManager.HandleMessageAsync(activity) == false)
+                    {
+                        // The message router manager failed to handle the message. This is likely
+                        // due to the sender not being engaged in a conversation. Another reason
+                        // could be that the manager has not been initialized.
+                        //
+                        // If you get here and you are sure that the manager has been initialized
+                        // (note that initialization is only needed if there is an aggregation
+                        // channel), you should either (depending on your use case):
+                        //  1) Let the bot handle the message in the usual manner (e.g. let dialog
+                        //     handle the message) or
+                        //  2) automatically initiate the engagement, if the only thing this bot
+                        //     does is forwards messages.
+
+                        messageRouterManager.InitiateEngagement(activity);
+                    }
                 }
             }
             else

@@ -11,6 +11,33 @@ namespace MessageRouting
     /// </summary>
     public class MessageRouterManager
     {
+        /// <summary>
+        /// Invoked when an engagement is initiated, established (added) or ended (removed).
+        /// </summary>
+        public event EventHandler<EngagementChangedEventArgs> EngagementChanged
+        {
+            add
+            {
+                RoutingDataManager.EngagementChanged += value;
+            }
+            remove
+            {
+                RoutingDataManager.EngagementChanged -= value;
+            }
+        }
+
+        /// <summary>
+        /// Invoked when an action cannot be executed due to this instance not being initialized.
+        /// See IsInitialized property for more information.
+        /// </summary>
+        public event EventHandler<MessageRouterFailureEventArgs> NotInitialized;
+
+        /// <summary>
+        /// Invoked when this manager fails to forward a message.
+        /// See HandleMessageAsync method for more information.
+        /// </summary>
+        public event EventHandler<MessageRouterFailureEventArgs> FailedToForwardMessage;
+
         private static MessageRouterManager _instance;
         /// <summary>
         /// The singleton instance of this class.
@@ -29,24 +56,6 @@ namespace MessageRouting
         }
 
         /// <summary>
-        /// The routing data and all the parties the bot has seen including the instances of itself.
-        /// </summary>
-        public IRoutingDataManager RoutingDataManager
-        {
-            get;
-            private set;
-        }
-
-        /// <summary>
-        /// Handler for direct commands given to the bot.
-        /// </summary>
-        public BotCommandHandler BotCommandHandler
-        {
-            get;
-            private set;
-        }
-
-        /// <summary>
         /// If true, the router needs an aggregation channel/conversation to be set before any
         /// routing can take place. True by default. It is recommended to set this value in
         /// App_Start/WebApiConfig.cs
@@ -58,25 +67,48 @@ namespace MessageRouting
         }
 
         /// <summary>
+        /// Handler for direct commands given to the bot.
+        /// If you want to use your own command handler, it is recommended to set it to this
+        /// property in App_Start/WebApiConfig.cs
+        /// </summary>
+        public IBotCommandHandler BotCommandHandler
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// True, if this router manager instance is ready to serve customers. False otherwise.
+        /// Note that if the aggregation is not required, this method will always return true.
+        /// </summary>
+        public bool IsInitialized
+        {
+            get
+            {
+                IList<Party> aggregationParties = RoutingDataManager.GetAggregationParties();
+                return (!AggregationRequired || (aggregationParties != null && aggregationParties.Count() > 0));
+            }
+        }
+
+        /// <summary>
+        /// The routing data and all the parties the bot has seen including the instances of itself.
+        /// </summary>
+        public IRoutingDataManager RoutingDataManager
+        {
+            get;
+            private set;
+        }
+
+        /// <summary>
         /// Constructor.
         /// </summary>
         private MessageRouterManager()
         {
             AggregationRequired = true; // Do not change the value here!
+            BotCommandHandler = new DefaultBotCommandHandler(); // You can override this by setting the value of the property afterwards
 
             // TODO: Get this instance from a data storage instead of keeping a local copy!
             RoutingDataManager = new LocalRoutingDataManager();
-
-            BotCommandHandler = new BotCommandHandler(RoutingDataManager);
-        }
-
-        /// <returns>True, if this router manager instance is ready to serve customers.
-        /// False otherwise. Note that if the aggregation is not required, this method will
-        /// always return true.</returns>
-        public bool IsInitialized()
-        {
-            IList<Party> aggregationParties = RoutingDataManager.GetAggregationParties();
-            return (!AggregationRequired || (aggregationParties != null && aggregationParties.Count() > 0));
         }
 
         /// <summary>
@@ -113,13 +145,13 @@ namespace MessageRouting
         }
 
         /// <summary>
-        /// Tries to send the given message to the given party using this bot on the same channel
-        /// as the party who the message is sent to.
+        /// Tries to send the given message activity to the given party using this bot on the same
+        /// channel as the party who the message is sent to.
         /// </summary>
         /// <param name="partyToMessage">The party to send the message to.</param>
-        /// <param name="messageText">The message content.</param>
-        /// <returns>The APIResponse instance or null in case of an error.</returns>
-        public async Task<ResourceResponse> SendMessageToPartyByBotAsync(Party partyToMessage, string messageText)
+        /// <param name="messageActivity">The message activity to send (message content).</param>
+        /// <returns>The ResourceResponse instance or null in case of an error.</returns>
+        public async Task<ResourceResponse> SendMessageToPartyByBotAsync(Party partyToMessage, IMessageActivity messageActivity)
         {
             Party botParty = null;
 
@@ -128,6 +160,36 @@ namespace MessageRouting
                 // We need the channel account of the bot in the SAME CHANNEL as the RECIPIENT.
                 // The identity of the bot in the channel of the sender is most likely a different one and
                 // thus unusable since it will not be recognized on the recipient's channel.
+                botParty = RoutingDataManager.FindBotPartyByChannelAndConversation(
+                    partyToMessage.ChannelId, partyToMessage.ConversationAccount);
+            }
+
+            if (botParty != null)
+            {
+                MessagingUtils.ConnectorClientAndMessageBundle bundle =
+                    MessagingUtils.CreateConnectorClientAndMessageActivity(
+                        partyToMessage.ServiceUrl, messageActivity);
+
+                return await bundle.connectorClient.Conversations.SendToConversationAsync(
+                    (Activity)bundle.messageActivity);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Tries to send the given message to the given party using this bot on the same channel
+        /// as the party who the message is sent to.
+        /// </summary>
+        /// <param name="partyToMessage">The party to send the message to.</param>
+        /// <param name="messageText">The message content.</param>
+        /// <returns>The ResourceResponse instance or null in case of an error.</returns>
+        public async Task<ResourceResponse> SendMessageToPartyByBotAsync(Party partyToMessage, string messageText)
+        {
+            Party botParty = null;
+
+            if (partyToMessage != null)
+            {
                 botParty = RoutingDataManager.FindBotPartyByChannelAndConversation(
                     partyToMessage.ChannelId, partyToMessage.ConversationAccount);
             }
@@ -147,75 +209,25 @@ namespace MessageRouting
 
         /// <summary>
         /// Tries to initiates the engagement by creating a request on behalf of the sender in the
-        /// given activity.
+        /// given activity. This method does nothing, if a request for the same user already exists.
         /// </summary>
         /// <param name="activity">The activity.</param>
         /// <returns>True, if successful. False otherwise.</returns>
-        public async Task<bool> InitiateEngagementAsync(Activity activity)
+        public bool InitiateEngagement(Activity activity)
         {
-            Party senderParty = MessagingUtils.CreateSenderParty(activity);
-            Activity replyActivity = null;
-            bool wasInitiated = false;
-
-            if (IsInitialized()
-                && senderParty.ChannelAccount != null
-                && !RoutingDataManager.IsAssociatedWithAggregation(senderParty))
+            if (IsInitialized)
             {
-                // Sender is not engaged in a conversation and is not a member of the aggregation
-                // channel - thus, it must be a new "customer"
-                string senderName = senderParty.ChannelAccount.Name;
-                bool wasSuccessful = false;
-
-                if (AggregationRequired)
-                {
-                    List<ResourceResponse> resourceResponses = new List<ResourceResponse>();
-
-                    foreach (Party aggregationParty in RoutingDataManager.GetAggregationParties())
-                    {
-                        string botName = ResolveBotNameInConversation(aggregationParty);
-                        string commandKeyword = string.IsNullOrEmpty(botName) ? BotCommandHandler.CommandKeyword : ("@" + botName + " ");
-
-                        // TODO: The user experience here can be greatly improved by instead of sending
-                        // a message displaying a card with buttons "accept" and "reject" on it
-                        resourceResponses.Add(
-                            await SendMessageToPartyByBotAsync(aggregationParty,
-                                $"User \"{senderName}\" requests a chat; type \"{commandKeyword}accept {senderName}\" to accept"));
-                    }
-
-                    foreach (ResourceResponse resourceResponse in resourceResponses)
-                    {
-                        if (MessagingUtils.WasSuccessful(resourceResponse))
-                        {
-                            wasSuccessful = true;
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    // No aggregation channel/conversation required
-                    wasSuccessful = true;
-                }
-
-                if (wasSuccessful)
-                {
-                    RoutingDataManager.AddPendingRequest(senderParty);
-                    replyActivity = (activity as Activity).CreateReply("Please wait for your request to be accepted");
-                    wasInitiated = true;
-                }
-                else
-                {
-                    replyActivity = (activity as Activity).CreateReply("An error occured processing your request...");
-                }
+                RoutingDataManager.AddPendingRequest(MessagingUtils.CreateSenderParty(activity));                
+                return true;
             }
 
-            if (replyActivity != null)
+            NotInitialized?.Invoke(this, new MessageRouterFailureEventArgs()
             {
-                ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
-                await connector.Conversations.ReplyToActivityAsync(replyActivity);
-            }
+                Activity = activity,
+                ErrorMessage = "Cannot initiate an engagement"
+            });
 
-            return wasInitiated;
+            return false;
         }
 
         /// <summary>
@@ -274,11 +286,15 @@ namespace MessageRouting
         /// channel that party is on.
         /// </summary>
         /// <param name="activity">The activity to handle.</param>
-        public async Task<bool> HandleMessageAsync(Activity activity)
+        /// <param name="addClientNameToMessage">If true, will add the client's name to the beginning of the message.</param>
+        /// <param name="addOwnerNameToMessage">If true, will add the owner's (agent) name to the beginning of the message.</param>
+        /// <returns>True, if the message was handled (forwared to the appropriate party).
+        /// False otherwise (e.g. when the user is not engaged in a 1:1 conversation).</returns>
+        public async Task<bool> HandleMessageAsync(
+            Activity activity, bool addClientNameToMessage = true, bool addOwnerNameToMessage = false)
         {
             bool wasHandled = false;
             Party senderParty = MessagingUtils.CreateSenderParty(activity);
-            Activity replyActivity = null;
 
             if (RoutingDataManager.IsEngaged(senderParty, EngagementProfile.Owner))
             {
@@ -287,18 +303,22 @@ namespace MessageRouting
 
                 if (partyToForwardMessageTo != null)
                 {
+                    string message = addOwnerNameToMessage
+                        ? $"{senderParty.ChannelAccount.Name}: {activity.Text}" : activity.Text;
                     ResourceResponse resourceResponse =
                         await SendMessageToPartyByBotAsync(partyToForwardMessageTo, activity.Text);
 
                     if (!MessagingUtils.WasSuccessful(resourceResponse))
                     {
-                        replyActivity = activity.CreateReply("Failed to send the message");
-                    }
-                    else
-                    {
-                        wasHandled = true;
+                        FailedToForwardMessage?.Invoke(this, new MessageRouterFailureEventArgs()
+                        {
+                            Activity = activity,
+                            ErrorMessage = $"Failed to forward the message to user {partyToForwardMessageTo}"
+                        });
                     }
                 }
+
+                wasHandled = true;
             }
             else if (RoutingDataManager.IsEngaged(senderParty, EngagementProfile.Client))
             {
@@ -307,36 +327,21 @@ namespace MessageRouting
 
                 if (partyToForwardMessageTo != null)
                 {
-                    string message = $"{senderParty.ChannelAccount.Name} says: {activity.Text}";
+                    string message = addClientNameToMessage
+                        ? $"{senderParty.ChannelAccount.Name}: {activity.Text}" : activity.Text;
                     await SendMessageToPartyByBotAsync(partyToForwardMessageTo, message);
-                    wasHandled = true;
                 }
-            }
-            else if (!IsInitialized())
-            {
-                // No aggregation channel set up
-                string botName = ResolveBotNameInConversation(senderParty);
-                string replyMessage = "Not initialized; type \"";
-                replyMessage += string.IsNullOrEmpty(botName) ? BotCommandHandler.CommandKeyword : ("@" + botName + " ");
-                replyMessage += "init\" to setup the aggregation channel";
-                replyActivity = activity.CreateReply(replyMessage);
+
                 wasHandled = true;
             }
-            else if ((await InitiateEngagementAsync(activity)) == false) // Try to initiate an engagement
+            else if (!IsInitialized)
             {
-                if (AggregationRequired)
+                // No aggregation channel set up
+                NotInitialized?.Invoke(this, new MessageRouterFailureEventArgs()
                 {
-                    if (!RoutingDataManager.IsAssociatedWithAggregation(senderParty))
-                    {
-                        replyActivity = activity.CreateReply("Failed to handle your message");
-                    }
-                }
-            }
-
-            if (replyActivity != null)
-            {
-                ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
-                await connector.Conversations.ReplyToActivityAsync(replyActivity);
+                    Activity = activity,
+                    ErrorMessage = "Failed to handle the message"
+                });
             }
 
             return wasHandled;
@@ -344,65 +349,17 @@ namespace MessageRouting
 
         /// <summary>
         /// Handles the request acceptance and tries to establish 1:1 chat between the two given
-        /// parties.
+        /// parties. This method is only used when the aggregation is enabled.
         /// </summary>
         /// <param name="acceptorParty">The party accepting the request.</param>
         /// <param name="partyToAccept">The party to be accepted.</param>
         /// <returns>True, if the accepted request was handled successfully. False otherwise.</returns>
         public async Task<bool> HandleAcceptedRequestAsync(Party acceptorParty, Party partyToAccept)
         {
-            bool wasSuccessful = false;
-
             ConversationResourceResponse conversationResourceResponse =
                 await AddEngagementAsync(acceptorParty, partyToAccept);
 
-            if (conversationResourceResponse != null)
-            {
-                Party botParty = RoutingDataManager.FindBotPartyByChannelAndConversation(
-                    acceptorParty.ChannelId, acceptorParty.ConversationAccount);
-                ConnectorClient connectorClient = new ConnectorClient(new Uri(acceptorParty.ServiceUrl));
-
-                IMessageActivity messageActivity = Activity.CreateMessageActivity();
-                messageActivity.From = botParty.ChannelAccount;
-                messageActivity.Recipient = acceptorParty.ChannelAccount;
-                messageActivity.Conversation = new ConversationAccount(id: conversationResourceResponse.Id);
-                messageActivity.Text = $"Request from user \"{partyToAccept.ChannelAccount.Name}\" accepted, feel free to start the chat";
-
-                ResourceResponse resourceResponse =
-                    await connectorClient.Conversations.SendToConversationAsync((Activity)messageActivity);
-
-                if (MessagingUtils.WasSuccessful(resourceResponse))
-                {
-                    await SendMessageToPartyByBotAsync(partyToAccept,
-                        "Your request has been accepted, feel free to start the chat");
-
-                    wasSuccessful = true;
-                }
-            }
-
-            return wasSuccessful;
-        }
-
-        /// <summary>
-        /// Tries to resolve the name of the bot in the same conversation with the given party.
-        /// </summary>
-        /// <param name="party"></param>
-        /// <returns>The name of the bot or null, if unable to resolve.</returns>
-        private string ResolveBotNameInConversation(Party party)
-        {
-            string botName = null;
-
-            if (party != null)
-            {
-                Party botParty = RoutingDataManager.FindBotPartyByChannelAndConversation(party.ChannelId, party.ConversationAccount);
-
-                if (botParty != null && botParty.ChannelAccount != null)
-                {
-                    botName = botParty.ChannelAccount.Name;
-                }
-            }
-
-            return botName;
+            return (conversationResourceResponse != null);
         }
     }
 }

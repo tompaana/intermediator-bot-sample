@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 namespace MessageRouting
 {
     /// <summary>
-    /// Handler for bot commands related to message routing.
+    /// The default handler for bot commands related to message routing.
     /// </summary>
-    public class BotCommandHandler
+    public class DefaultBotCommandHandler : IBotCommandHandler
     {
-        public const string CommandKeyword = "command ";
+        private const string CommandKeyword = "command";
         private const string CommandInitialize = "init";
         private const string CommandAcceptRequest = "accept";
         private const string CommandCloseEngagement = "close";
@@ -21,35 +21,24 @@ namespace MessageRouting
         private const string CommandListPendingRequests = "list requests";
         private const string CommandListEngagements = "list conversations";
 
-        private IRoutingDataManager _routingDataManager;
+        private IRoutingDataManager _routingDataManager = MessageRouterManager.Instance.RoutingDataManager;
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        /// <param name="routingDataManager"></param>
-        public BotCommandHandler(IRoutingDataManager routingDataManager)
+        public virtual string GetCommandKeyword()
         {
-            if (routingDataManager == null)
-            {
-                throw new ArgumentNullException($"Routing data manager instance ({nameof(routingDataManager)} cannot be null");
-            }
-
-            _routingDataManager = routingDataManager;
+            return CommandKeyword;
         }
 
         /// <summary>
-        /// Handles the direct commands to the bot.
         /// All messages where the bot was mentioned ("@<bot name>) are checked for possible commands.
+        /// See IBotCommandHandler.cs for more information.
         /// </summary>
-        /// <param name="activity">The activity containing a possible command.</param>
-        /// <returns>True, if a command was detected and handled. False otherwise.</returns>
         public async virtual Task<bool> HandleBotCommandAsync(Activity activity)
         {
             bool wasHandled = false;
             Activity replyActivity = null;
 
             if (WasBotAddressedDirectly(activity)
-                || (!string.IsNullOrEmpty(activity.Text) && activity.Text.StartsWith(CommandKeyword)))
+                || (!string.IsNullOrEmpty(activity.Text) && activity.Text.StartsWith($"{GetCommandKeyword()} ")))
             {
                 string message = MessagingUtils.StripMentionsFromMessage(activity);
 
