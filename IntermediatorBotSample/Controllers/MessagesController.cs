@@ -33,7 +33,7 @@ namespace IntermediatorBotSample
                 if (await messageRouterManager.BotCommandHandler.HandleBotCommandAsync(activity) == false)
                 {
                     // No command to the bot was issued so it must be a message then
-                    messageRouterManager.HandleMessageAsync(activity);
+                    await messageRouterManager.HandleMessageAsync(activity);
                 }
             }
             else

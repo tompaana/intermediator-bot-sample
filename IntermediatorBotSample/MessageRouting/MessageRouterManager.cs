@@ -118,28 +118,38 @@ namespace MessageRouting
         /// </summary>
         /// <param name="partyToMessage">The party to send the message to.</param>
         /// <param name="messageText">The message content.</param>
-        /// <returns>The APIResponse instance.</returns>
+        /// <returns>The APIResponse instance or null in case of an error.</returns>
         public async Task<ResourceResponse> SendMessageToPartyByBotAsync(Party partyToMessage, string messageText)
         {
-            // We need the channel account of the bot in the SAME CHANNEL as the RECIPIENT.
-            // The identity of the bot in the channel of the sender is most likely a different one and
-            // thus unusable since it will not be recognized on the recipient's channel.
-            Party botParty = RoutingDataManager.FindBotPartyByChannelAndConversation(
-                partyToMessage.ChannelId, partyToMessage.ConversationAccount);
+            Party botParty = null;
 
-            MessagingUtils.ConnectorClientAndMessageBundle bundle =
-                MessagingUtils.CreateConnectorClientAndMessageActivity(
-                    partyToMessage, messageText, botParty?.ChannelAccount);
+            if (partyToMessage != null)
+            {
+                // We need the channel account of the bot in the SAME CHANNEL as the RECIPIENT.
+                // The identity of the bot in the channel of the sender is most likely a different one and
+                // thus unusable since it will not be recognized on the recipient's channel.
+                botParty = RoutingDataManager.FindBotPartyByChannelAndConversation(
+                    partyToMessage.ChannelId, partyToMessage.ConversationAccount);
+            }
 
-            return await bundle.connectorClient.Conversations.SendToConversationAsync(
-                (Activity)bundle.messageActivity);
+            if (botParty != null)
+            {
+                MessagingUtils.ConnectorClientAndMessageBundle bundle =
+                    MessagingUtils.CreateConnectorClientAndMessageActivity(
+                        partyToMessage, messageText, botParty?.ChannelAccount);
+
+                return await bundle.connectorClient.Conversations.SendToConversationAsync(
+                    (Activity)bundle.messageActivity);
+            }
+
+            return null;
         }
 
         /// <summary>
         /// Tries to initiates the engagement by creating a request on behalf of the sender in the
         /// given activity.
         /// </summary>
-        /// <param name="activity"></param>
+        /// <param name="activity">The activity.</param>
         /// <returns>True, if successful. False otherwise.</returns>
         public async Task<bool> InitiateEngagementAsync(Activity activity)
         {
@@ -264,8 +274,9 @@ namespace MessageRouting
         /// channel that party is on.
         /// </summary>
         /// <param name="activity">The activity to handle.</param>
-        public async void HandleMessageAsync(Activity activity)
+        public async Task<bool> HandleMessageAsync(Activity activity)
         {
+            bool wasHandled = false;
             Party senderParty = MessagingUtils.CreateSenderParty(activity);
             Activity replyActivity = null;
 
@@ -283,6 +294,10 @@ namespace MessageRouting
                     {
                         replyActivity = activity.CreateReply("Failed to send the message");
                     }
+                    else
+                    {
+                        wasHandled = true;
+                    }
                 }
             }
             else if (RoutingDataManager.IsEngaged(senderParty, EngagementProfile.Client))
@@ -294,6 +309,7 @@ namespace MessageRouting
                 {
                     string message = $"{senderParty.ChannelAccount.Name} says: {activity.Text}";
                     await SendMessageToPartyByBotAsync(partyToForwardMessageTo, message);
+                    wasHandled = true;
                 }
             }
             else if (!IsInitialized())
@@ -304,6 +320,7 @@ namespace MessageRouting
                 replyMessage += string.IsNullOrEmpty(botName) ? BotCommandHandler.CommandKeyword : ("@" + botName + " ");
                 replyMessage += "init\" to setup the aggregation channel";
                 replyActivity = activity.CreateReply(replyMessage);
+                wasHandled = true;
             }
             else if ((await InitiateEngagementAsync(activity)) == false) // Try to initiate an engagement
             {
@@ -321,6 +338,8 @@ namespace MessageRouting
                 ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
                 await connector.Conversations.ReplyToActivityAsync(replyActivity);
             }
+
+            return wasHandled;
         }
 
         /// <summary>

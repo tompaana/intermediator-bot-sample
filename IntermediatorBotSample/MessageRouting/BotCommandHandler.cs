@@ -29,8 +29,12 @@ namespace MessageRouting
         /// <param name="routingDataManager"></param>
         public BotCommandHandler(IRoutingDataManager routingDataManager)
         {
-            _routingDataManager = routingDataManager
-                ?? throw new ArgumentNullException($"Routing data manager instance ({nameof(routingDataManager)} cannot be null");
+            if (routingDataManager == null)
+            {
+                throw new ArgumentNullException($"Routing data manager instance ({nameof(routingDataManager)} cannot be null");
+            }
+
+            _routingDataManager = routingDataManager;
         }
 
         /// <summary>
