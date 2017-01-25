@@ -10,6 +10,8 @@ namespace MessageRouting
     /// Routing data manager that stores the data in Azure Table storage services.
     /// Caching policy: If the local query finds nothing, update the data from the storage.
     /// See IRoutingDataManager for general documentation of properties and methods.
+    /// 
+    /// NOTE: DO NOT USE THIS CLASS - THIS IS NOT FAR FROM A PLACEHOLDER CURRENTLY
     /// </summary>
     public class AzureTableStorageRoutingDataManager : LocalRoutingDataManager
     {

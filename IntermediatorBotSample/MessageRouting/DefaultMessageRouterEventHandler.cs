@@ -15,49 +15,13 @@ namespace MessageRouting
             protected set;
         }
 
-        private static DefaultMessageRouterEventHandler _instance = null;
-        /// <summary>
-        /// Singleton instance of this class.
-        /// </summary>
-        public static DefaultMessageRouterEventHandler Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    _instance = new DefaultMessageRouterEventHandler(true);
-                }
-
-                return _instance;
-            }
-        }
-
         /// <summary>
         /// Constructor.
+        /// Initializes the class automatically.
         /// </summary>
-        /// <param name="initializeInConstruction">If true, will initialize this instance right away.</param>
-        private DefaultMessageRouterEventHandler(bool initializeInConstruction)
+        public DefaultMessageRouterEventHandler()
         {
-            if (initializeInConstruction)
-            {
-                Initialize();
-            }
-        }
-
-        /// <summary>
-        /// Hooks the events from the message router manager.
-        /// </summary>
-        public virtual void Initialize()
-        {
-            if (!IsInitialized)
-            {
-                MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
-                messageRouterManager.EngagementChanged += OnEngagementChangedAsync;
-                messageRouterManager.NotInitialized += OnNotInitializedAsync;
-                messageRouterManager.FailedToForwardMessage += OnFailedToForwardMessageAsync;
-                IsInitialized = true;
-                System.Diagnostics.Debug.WriteLine("Message router event handler initialized");
-            }
+            Initialize();
         }
 
         /// <summary>
@@ -75,6 +39,22 @@ namespace MessageRouting
                 messageRouterManager.FailedToForwardMessage -= OnFailedToForwardMessageAsync;
                 IsInitialized = false;
                 System.Diagnostics.Debug.WriteLine("Message router event handler disposed");
+            }
+        }
+
+        /// <summary>
+        /// Hooks the events from the message router manager.
+        /// </summary>
+        protected virtual void Initialize()
+        {
+            if (!IsInitialized)
+            {
+                MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+                messageRouterManager.EngagementChanged += OnEngagementChangedAsync;
+                messageRouterManager.NotInitialized += OnNotInitializedAsync;
+                messageRouterManager.FailedToForwardMessage += OnFailedToForwardMessageAsync;
+                IsInitialized = true;
+                System.Diagnostics.Debug.WriteLine("Message router event handler initialized");
             }
         }
 
