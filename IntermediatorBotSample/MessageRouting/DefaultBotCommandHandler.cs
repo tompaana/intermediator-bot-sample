@@ -51,9 +51,9 @@ namespace MessageRouting
             {
                 string message = MessagingUtils.StripMentionsFromMessage(activity);
 
-                if (message.StartsWith(CommandKeyword))
+                if (message.StartsWith($"{CommandKeyword} "))
                 {
-                    message = message.Remove(0, CommandKeyword.Length);
+                    message = message.Remove(0, CommandKeyword.Length + 1);
                 }
 
                 string messageInLowerCase = message?.ToLower();

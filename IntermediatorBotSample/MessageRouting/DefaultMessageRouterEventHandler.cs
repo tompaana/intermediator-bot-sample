@@ -92,8 +92,8 @@ namespace MessageRouting
             Party conversationOwnerParty = e.ConversationOwnerParty;
             Party conversationClientParty = e.ConversationClientParty;
 
-            string conversationOwnerName = conversationOwnerParty.ChannelAccount.Name;
-            string conversationClientName = conversationClientParty.ChannelAccount.Name;
+            string conversationOwnerName = conversationOwnerParty?.ChannelAccount.Name;
+            string conversationClientName = conversationClientParty?.ChannelAccount.Name;
 
             string messageToConversationOwner = string.Empty;
             string messageToConversationClient = string.Empty;
