@@ -15,11 +15,28 @@ namespace MessageRouting
             protected set;
         }
 
+        private static DefaultMessageRouterEventHandler _instance = null;
+        /// <summary>
+        /// Singleton instance of this class.
+        /// </summary>
+        public static DefaultMessageRouterEventHandler Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = new DefaultMessageRouterEventHandler(true);
+                }
+
+                return _instance;
+            }
+        }
+
         /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="initializeInConstruction">If true, will initialize this instance right away.</param>
-        public DefaultMessageRouterEventHandler(bool initializeInConstruction)
+        private DefaultMessageRouterEventHandler(bool initializeInConstruction)
         {
             if (initializeInConstruction)
             {

@@ -11,7 +11,7 @@ namespace IntermediatorBotSample
     [BotAuthentication]
     public class MessagesController : ApiController
     {
-        private DefaultMessageRouterEventHandler _messageRouterEventHander = new DefaultMessageRouterEventHandler(true);
+        private DefaultMessageRouterEventHandler _messageRouterEventHander = DefaultMessageRouterEventHandler.Instance;
 
         public MessagesController()
         {

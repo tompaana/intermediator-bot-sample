@@ -21,8 +21,17 @@ namespace MessageRouting
         private const string CommandListPendingRequests = "list requests";
         private const string CommandListEngagements = "list conversations";
 
-        private IRoutingDataManager _routingDataManager = MessageRouterManager.Instance.RoutingDataManager;
+        private IRoutingDataManager _routingDataManager;
 
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="routingDataManager">The routing data manager.</param>
+        public DefaultBotCommandHandler(IRoutingDataManager routingDataManager)
+        {
+            _routingDataManager = routingDataManager;
+        }
+        
         public virtual string GetCommandKeyword()
         {
             return CommandKeyword;

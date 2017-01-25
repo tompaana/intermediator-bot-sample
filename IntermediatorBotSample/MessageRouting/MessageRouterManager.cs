@@ -104,11 +104,11 @@ namespace MessageRouting
         /// </summary>
         private MessageRouterManager()
         {
-            AggregationRequired = true; // Do not change the value here!
-            BotCommandHandler = new DefaultBotCommandHandler(); // You can override this by setting the value of the property afterwards
-
             // TODO: Get this instance from a data storage instead of keeping a local copy!
             RoutingDataManager = new LocalRoutingDataManager();
+
+            AggregationRequired = true; // Do not change the value here!
+            BotCommandHandler = new DefaultBotCommandHandler(RoutingDataManager); // You can override this by setting the value of the property afterwards
         }
 
         /// <summary>
