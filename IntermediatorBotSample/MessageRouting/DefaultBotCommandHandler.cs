@@ -158,25 +158,14 @@ namespace MessageRouting
                         wasHandled = true;
                     }
                 }
-                else if (messageInLowerCase.StartsWith(Commands.CommandCloseEngagement))
+                else if (messageInLowerCase.StartsWith(Commands.CommandEndEngagement))
                 {
-                    // Close the 1:1 conversation
+                    // End the 1:1 conversation
                     Party senderParty = MessagingUtils.CreateSenderParty(activity);
-                    Party senderInConversation =
-                        _routingDataManager.FindEngagedPartyByChannel(senderParty.ChannelId, senderParty.ChannelAccount);
 
-                    if (senderInConversation != null && _routingDataManager.IsEngaged(senderInConversation, EngagementProfile.Owner))
+                    if (await MessageRouterManager.Instance.EndEngagementAsync(senderParty) == false)
                     {
-                        Party otherParty = _routingDataManager.GetEngagedCounterpart(senderInConversation);
-
-                        if (await _routingDataManager.RemoveEngagementAsync(senderInConversation, EngagementProfile.Owner) == 0)
-                        {
-                            replyActivity = activity.CreateReply("An error occured");
-                        }
-                    }
-                    else
-                    {
-                        replyActivity = activity.CreateReply("No conversation to close found");
+                        replyActivity = activity.CreateReply("Failed to end the engagement");
                     }
 
                     wasHandled = true;

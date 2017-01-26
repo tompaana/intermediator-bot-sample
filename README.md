@@ -97,8 +97,23 @@ public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
 
         if (result.Type == MessageRouterResultType.NoActionTaken)
         {
-            // No action was taken
-            // You can forward the activity to e.g. a dialog here
+            // No action was taken by the message router manager. This means that the user
+            // is not engaged in a 1:1 conversation with a human (e.g. customer service
+            // agent) yet.
+            //
+            // You can, for example, check if the user (customer) needs human assistance
+            // here or forward the activity to a dialog. You could also do the check in
+            // the dialog too...
+            //
+            // Here's an example:
+            if (!string.IsNullOrEmpty(activity.Text) && activity.Text.ToLower().Contains("human"))
+            {
+                await MessageRouterManager.Instance.InitiateEngagement(activity);
+            }
+            else
+            {
+                await Conversation.SendAsync(activity, () => new RootDialog());
+            }
         }
     }
     else

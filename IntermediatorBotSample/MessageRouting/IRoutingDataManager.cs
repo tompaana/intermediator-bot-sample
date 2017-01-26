@@ -60,8 +60,8 @@ namespace MessageRouting
         /// Note that this method removes the party's all instances (user from all conversations).
         /// </summary>
         /// <param name="partyToRemove">The party to remove.</param>
-        /// <returns>True, if the given party was removed. False otherwise.</returns>
-        Task<bool> RemovePartyAsync(Party partyToRemove);
+        /// <returns>A list of operation results.</returns>
+        IList<MessageRouterResult> RemoveParty(Party partyToRemove);
 
         /// <returns>The aggregation parties as a readonly list.</returns>
         IList<Party> GetAggregationParties();
@@ -128,8 +128,8 @@ namespace MessageRouting
         /// </summary>
         /// <param name="party">The party whose engagements to remove.</param>
         /// <param name="engagementProfile">The engagement profile of the party (owner/client/either).</param>
-        /// <returns>The number of engagements removed.</returns>
-        Task<int> RemoveEngagementAsync(Party party, EngagementProfile engagementProfile);
+        /// <returns>A list of operation results.</returns>
+        IList<MessageRouterResult> RemoveEngagement(Party party, EngagementProfile engagementProfile);
 
         /// <summary>
         /// Deletes all existing routing data permanently.

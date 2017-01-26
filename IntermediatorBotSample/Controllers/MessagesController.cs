@@ -68,7 +68,7 @@ namespace IntermediatorBotSample
                 // If we handle user deletion, return a real message
                 Party senderParty = MessagingUtils.CreateSenderParty(message);
 
-                if (await messageRouterManager.RoutingDataManager.RemovePartyAsync(senderParty))
+                if (await messageRouterManager.RemovePartyAsync(senderParty))
                 {
                     return message.CreateReply($"Data of user {senderParty.ChannelAccount?.Name} removed");
                 }
@@ -85,7 +85,7 @@ namespace IntermediatorBotSample
                         Party party = new Party(
                             message.ServiceUrl, message.ChannelId, channelAccount, message.Conversation);
 
-                        if (await messageRouterManager.RoutingDataManager.RemovePartyAsync(party))
+                        if (await messageRouterManager.RemovePartyAsync(party))
                         {
                             System.Diagnostics.Debug.WriteLine($"Party {party.ToString()} removed");
                         }

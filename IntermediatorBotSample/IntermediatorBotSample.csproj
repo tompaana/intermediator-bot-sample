@@ -134,6 +134,7 @@
     <Compile Include="MessageRouting\MessageRouterResult.cs" />
     <Compile Include="MessageRouting\MessagingUtils.cs" />
     <Compile Include="MessageRouting\Party.cs" />
+    <Compile Include="MyCustomMessageRouterResultHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

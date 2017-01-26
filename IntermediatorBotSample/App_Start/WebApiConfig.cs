@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using IntermediatorBot;
+using MessageRouting;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
@@ -32,6 +34,11 @@ namespace IntermediatorBotSample
                 routeTemplate: "api/{controller}/{id}",
                 defaults: new { id = RouteParameter.Optional }
             );
+
+            // Message router manager settings:
+            MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+            //messageRouterManager.AggregationRequired = false;
+            messageRouterManager.ResultHandler = new MyCustomMessageRouterResultHandler();
         }
     }
 }

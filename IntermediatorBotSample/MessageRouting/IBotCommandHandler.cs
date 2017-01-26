@@ -9,7 +9,7 @@ namespace MessageRouting
         public const string CommandAddAggregationChannel = "add aggregation";
         public const string CommandAcceptRequest = "accept";
         public const string CommandRejectRequest = "reject";
-        public const string CommandCloseEngagement = "close";
+        public const string CommandEndEngagement = "end";
         public const string CommandDeleteAllRoutingData = "reset";
 
         // For debugging

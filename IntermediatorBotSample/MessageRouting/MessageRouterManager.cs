@@ -41,6 +41,15 @@ namespace MessageRouting
         }
 
         /// <summary>
+        /// The routing data and all the parties the bot has seen including the instances of itself.
+        /// </summary>
+        public IRoutingDataManager RoutingDataManager
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Handler for the results of the more complex operations of this class.
         /// 
         /// If you want to set your own result handler, it is recommended to set it to this
@@ -48,7 +57,7 @@ namespace MessageRouting
         /// </summary>
         public IMessageRouterResultHandler ResultHandler
         {
-            get;
+            protected get;
             set;
         }
 
@@ -60,7 +69,7 @@ namespace MessageRouting
         /// </summary>
         public IBotCommandHandler CommandHandler
         {
-            get;
+            protected get;
             set;
         }
 
@@ -78,15 +87,6 @@ namespace MessageRouting
         }
 
         /// <summary>
-        /// The routing data and all the parties the bot has seen including the instances of itself.
-        /// </summary>
-        public IRoutingDataManager RoutingDataManager
-        {
-            get;
-            private set;
-        }
-
-        /// <summary>
         /// Constructor.
         /// </summary>
         private MessageRouterManager()
@@ -100,39 +100,6 @@ namespace MessageRouting
             AggregationRequired = true; // Do not change the value here!
             ResultHandler = new DefaultMessageRouterResultHandler();
             CommandHandler = new DefaultBotCommandHandler(RoutingDataManager);
-        }
-
-        /// <summary>
-        /// Checks the given parties and adds them to the collection, if not already there.
-        /// 
-        /// Note that this method expects that the recipient is the bot. The sender could also be
-        /// the bot, but that case is checked before adding the sender to the container.
-        /// </summary>
-        /// <param name="senderParty">The sender party (from).</param>
-        /// <param name="recipientParty">The recipient party.</param>
-        public void MakeSurePartiesAreTracked(Party senderParty, Party recipientParty)
-        {
-            // Store the bot identity, if not already stored
-            RoutingDataManager.AddParty(recipientParty, false);
-
-            // Check that the party who sent the message is not the bot
-            if (!RoutingDataManager.GetBotParties().Contains(senderParty))
-            {
-                // Store the user party, if not already stored
-                RoutingDataManager.AddParty(senderParty);
-            }
-        }
-
-        /// <summary>
-        /// Checks the given activity for new parties and adds them to the collection, if not
-        /// already there.
-        /// </summary>
-        /// <param name="activity">The activity.</param>
-        public void MakeSurePartiesAreTracked(IActivity activity)
-        {
-            MakeSurePartiesAreTracked(
-                MessagingUtils.CreateSenderParty(activity),
-                MessagingUtils.CreateRecipientParty(activity));
         }
 
         /// <summary>
@@ -239,6 +206,56 @@ namespace MessageRouting
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Checks the given parties and adds them to the collection, if not already there.
+        /// 
+        /// Note that this method expects that the recipient is the bot. The sender could also be
+        /// the bot, but that case is checked before adding the sender to the container.
+        /// </summary>
+        /// <param name="senderParty">The sender party (from).</param>
+        /// <param name="recipientParty">The recipient party.</param>
+        public void MakeSurePartiesAreTracked(Party senderParty, Party recipientParty)
+        {
+            // Store the bot identity, if not already stored
+            RoutingDataManager.AddParty(recipientParty, false);
+
+            // Check that the party who sent the message is not the bot
+            if (!RoutingDataManager.GetBotParties().Contains(senderParty))
+            {
+                // Store the user party, if not already stored
+                RoutingDataManager.AddParty(senderParty);
+            }
+        }
+
+        /// <summary>
+        /// Checks the given activity for new parties and adds them to the collection, if not
+        /// already there.
+        /// </summary>
+        /// <param name="activity">The activity.</param>
+        public void MakeSurePartiesAreTracked(IActivity activity)
+        {
+            MakeSurePartiesAreTracked(
+                MessagingUtils.CreateSenderParty(activity),
+                MessagingUtils.CreateRecipientParty(activity));
+        }
+
+        /// <summary>
+        /// Removes the given party from the routing data.
+        /// </summary>
+        /// <param name="partyToRemove">The party to remove.</param>
+        /// <returns>True, if the party was removed. False otherwise.</returns>
+        public async Task<bool> RemovePartyAsync(Party partyToRemove)
+        {
+            IList<MessageRouterResult> messageRouterResults = RoutingDataManager.RemoveParty(partyToRemove);
+
+            foreach (MessageRouterResult messageRouterResult in messageRouterResults)
+            {
+                await HandleAndLogMessageRouterResultAsync(messageRouterResult);
+            }
+
+            return (messageRouterResults.Count > 0);
         }
 
         /// <summary>
@@ -362,6 +379,43 @@ namespace MessageRouting
 
             await HandleAndLogMessageRouterResultAsync(result);
             return result;
+        }
+
+        /// <summary>
+        /// Ends the engagement where the given party is the conversation owner
+        /// (e.g. a customer service agent).
+        /// </summary>
+        /// <param name="conversationOwnerParty">The owner of the engagement (conversation).</param>
+        /// <returns>True, if the engagement was ended. False otherwise.</returns>
+        public async Task<bool> EndEngagementAsync(Party conversationOwnerParty)
+        {
+            List<MessageRouterResult> messageRouterResults = new List<MessageRouterResult>();
+
+            Party ownerInConversation = RoutingDataManager.FindEngagedPartyByChannel(
+                conversationOwnerParty.ChannelId, conversationOwnerParty.ChannelAccount);
+
+            if (ownerInConversation != null && RoutingDataManager.IsEngaged(ownerInConversation, EngagementProfile.Owner))
+            {
+                Party otherParty = RoutingDataManager.GetEngagedCounterpart(ownerInConversation);
+                messageRouterResults.AddRange(
+                    RoutingDataManager.RemoveEngagement(ownerInConversation, EngagementProfile.Owner));
+            }
+            else
+            {
+                messageRouterResults.Add(new MessageRouterResult()
+                {
+                    Type = MessageRouterResultType.Error,
+                    ConversationOwnerParty = conversationOwnerParty,
+                    ErrorMessage = "No conversation to close found"
+                });
+            }
+
+            foreach (MessageRouterResult messageRouterResult in messageRouterResults)
+            {
+                await HandleAndLogMessageRouterResultAsync(messageRouterResult);
+            }
+
+            return (messageRouterResults.Count > 0);    
         }
 
         /// <summary>
