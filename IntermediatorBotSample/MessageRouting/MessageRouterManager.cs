@@ -226,14 +226,14 @@ namespace MessageRouting
             else
             {
                 // No command to the bot was issued so it must be an actual message then
-                result = await HandleMessageAsync(activity);
+                result = await HandleMessageAsync(activity, addClientNameToMessage, addOwnerNameToMessage);
 
                 if (result.Type == MessageRouterResultType.NoActionTaken)
                 {
                     // The message was not handled, because the sender is not engaged in a conversation
                     if (tryToInitiateEngagementIfNotEngaged)
                     {
-                        result = InitiateEngagement(activity);
+                        result = await InitiateEngagement(activity);
                     }
                 }
             }
@@ -247,7 +247,7 @@ namespace MessageRouting
         /// </summary>
         /// <param name="activity">The activity.</param>
         /// <returns>The result of the operation.</returns>
-        public MessageRouterResult InitiateEngagement(Activity activity)
+        public async Task<MessageRouterResult> InitiateEngagement(Activity activity)
         {
             MessageRouterResult result = new MessageRouterResult()
             {
@@ -263,7 +263,7 @@ namespace MessageRouting
                 result.Type = MessageRouterResultType.NoAggregationChannel;
             }
 
-            HandleAndLogMessageRouterResultAsync(result);
+            await HandleAndLogMessageRouterResultAsync(result);
             return result;
         }
 
