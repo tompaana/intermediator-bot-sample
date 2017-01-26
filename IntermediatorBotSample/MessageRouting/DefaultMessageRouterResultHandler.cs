@@ -67,7 +67,7 @@ namespace MessageRouting
                 {
                     MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
 
-                    if (messageRouterManager.IsInitialized)
+                    if (messageRouterManager.IsAggregationSetIfRequired)
                     {
                         IList<Party> aggregationChannels = messageRouterManager.RoutingDataManager.GetAggregationParties();
 

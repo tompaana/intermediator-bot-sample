@@ -77,7 +77,7 @@ namespace MessageRouting
         /// True, if this router manager instance is ready to serve customers. False otherwise.
         /// Note that if the aggregation is not required, this method will always return true.
         /// </summary>
-        public bool IsInitialized
+        public bool IsAggregationSetIfRequired
         {
             get
             {
@@ -271,7 +271,7 @@ namespace MessageRouting
                 Activity = activity
             };
 
-            if (IsInitialized)
+            if (IsAggregationSetIfRequired)
             {
                 result = RoutingDataManager.AddPendingRequest(MessagingUtils.CreateSenderParty(activity));                
             }
@@ -488,7 +488,7 @@ namespace MessageRouting
                     result.ErrorMessage = "Failed to find the party to forward the message to";
                 }
             }
-            else if (!IsInitialized)
+            else if (!IsAggregationSetIfRequired)
             {
                 // No aggregation channel set up
                 result.Type = MessageRouterResultType.NoAggregationChannel;
