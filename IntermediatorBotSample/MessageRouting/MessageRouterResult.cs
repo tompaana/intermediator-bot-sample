@@ -5,10 +5,11 @@ namespace MessageRouting
 {
     public enum MessageRouterResultType
     {
-        NoActionTaken,
-        OK,
+        NoActionTaken, // The result handler should ignore results with this type
+        OK, // The result handler should ignore results with this type
         EngagementInitiated,
         EngagementAlreadyInitiated,
+        EngagementRejected,
         EngagementAdded,
         EngagementRemoved,
         NoAggregationChannel,

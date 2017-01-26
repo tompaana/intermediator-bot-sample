@@ -74,14 +74,16 @@ namespace MessageRouting
 
                     wasHandled = true;
                 }
-                else if (messageInLowerCase.StartsWith(Commands.CommandAcceptRequest))
+                else if (messageInLowerCase.StartsWith(Commands.CommandAcceptRequest)
+                    || messageInLowerCase.StartsWith(Commands.CommandRejectRequest))
                 {
-                    // Accept conversation request
+                    // Accept/reject conversation request
+                    bool doAccept = messageInLowerCase.StartsWith(Commands.CommandAcceptRequest);
                     Party senderParty = MessagingUtils.CreateSenderParty(activity);
 
                     if (_routingDataManager.IsAssociatedWithAggregation(senderParty))
                     {
-                        // The party is associated with the aggregation and has the right to accept
+                        // The party is associated with the aggregation and has the right to accept/reject
                         Party senderInConversation =
                             _routingDataManager.FindEngagedPartyByChannel(senderParty.ChannelId, senderParty.ChannelAccount);
 
@@ -94,13 +96,13 @@ namespace MessageRouting
 
                                 if (splitMessage.Count() > 1 && !string.IsNullOrEmpty(splitMessage[1]))
                                 {
-                                    Party partyToAccept = null;
+                                    Party partyToAcceptOrReject = null;
                                     string errorMessage = "";
 
                                     try
                                     {
                                         // TODO: Name alone is not enough to ID the right pending request!
-                                        partyToAccept = _routingDataManager.GetPendingRequests().Single(
+                                        partyToAcceptOrReject = _routingDataManager.GetPendingRequests().Single(
                                               party => (party.ChannelAccount != null
                                                   && !string.IsNullOrEmpty(party.ChannelAccount.Name)
                                                   && party.ChannelAccount.Name.Equals(splitMessage[1])));
@@ -110,10 +112,18 @@ namespace MessageRouting
                                         errorMessage = e.Message;
                                     }
 
-                                    if (partyToAccept != null)
+                                    if (partyToAcceptOrReject != null)
                                     {
-                                        MessageRouterResult messageRouterResult =
-                                            await MessageRouterManager.Instance.AddEngagementAsync(senderParty, partyToAccept);
+                                        MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+
+                                        if (doAccept)
+                                        {
+                                            await messageRouterManager.AddEngagementAsync(senderParty, partyToAcceptOrReject);
+                                        }
+                                        else
+                                        {
+                                            await messageRouterManager.RejectPendingRequest(partyToAcceptOrReject, senderParty);
+                                        }
                                     }
                                     else
                                     {

@@ -8,8 +8,11 @@ namespace MessageRouting
         public const string CommandKeyword = "command"; // Used if the channel does not support mentions
         public const string CommandAddAggregationChannel = "add aggregation";
         public const string CommandAcceptRequest = "accept";
+        public const string CommandRejectRequest = "reject";
         public const string CommandCloseEngagement = "close";
         public const string CommandDeleteAllRoutingData = "reset";
+
+        // For debugging
         public const string CommandEnableAggregation = "enable aggregation";
         public const string CommandDisableAggregation = "disable aggregation";
         public const string CommandListAllParties = "list parties";

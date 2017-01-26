@@ -213,7 +213,6 @@ namespace MessageRouting
         {
             MessageRouterResult result = new MessageRouterResult();
             result.Type = MessageRouterResultType.NoActionTaken;
-            bool initiateEngagementWasCalled = false;
 
             // Make sure we have the details of the sender and the receiver (bot) stored
             MakeSurePartiesAreTracked(activity);
@@ -235,21 +234,8 @@ namespace MessageRouting
                     if (tryToInitiateEngagementIfNotEngaged)
                     {
                         result = InitiateEngagement(activity);
-                        initiateEngagementWasCalled = true;
                     }
                 }
-            }
-
-            if (result.Type != MessageRouterResultType.NoActionTaken)
-            {
-                // Let the result handler handle the result
-                // The result handler should send messages to users about the result as necessary
-                await ResultHandler.HandleResultAsync(result);
-            }
-
-            if (!initiateEngagementWasCalled)
-            {
-                AddMessageRouterResultToLog(result);
             }
 
             return result;
@@ -277,7 +263,40 @@ namespace MessageRouting
                 result.Type = MessageRouterResultType.NoAggregationChannel;
             }
 
-            AddMessageRouterResultToLog(result);
+            HandleAndLogMessageRouterResultAsync(result);
+            return result;
+        }
+
+        /// <summary>
+        /// Tries to reject the pending engagement request of the given party.
+        /// </summary>
+        /// <param name="partyToReject">The party whose request to reject.</param>
+        /// <param name="rejecterParty">The party rejecting the request (optional).</param>
+        /// <returns>The result of the operation.</returns>
+        public async Task<MessageRouterResult> RejectPendingRequest(Party partyToReject, Party rejecterParty = null)
+        {
+            if (partyToReject == null)
+            {
+                throw new ArgumentNullException($"The party to reject ({nameof(partyToReject)} cannot be null");
+            }
+
+            MessageRouterResult result = new MessageRouterResult()
+            {
+                ConversationOwnerParty = rejecterParty,
+                ConversationClientParty = partyToReject
+            };
+
+            if (RoutingDataManager.RemovePendingRequest(partyToReject))
+            {
+                result.Type = MessageRouterResultType.EngagementRejected;
+            }
+            else
+            {
+                result.Type = MessageRouterResultType.Error;
+                result.ErrorMessage = $"Failed to remove the pending request of user \"{partyToReject.ChannelAccount?.Name}\"";
+            }
+
+            await HandleAndLogMessageRouterResultAsync(result);
             return result;
         }
 
@@ -341,8 +360,7 @@ namespace MessageRouting
                 result.ErrorMessage = "Failed to find the bot instance";
             }
 
-            await ResultHandler.HandleResultAsync(result);
-            AddMessageRouterResultToLog(result);
+            await HandleAndLogMessageRouterResultAsync(result);
             return result;
         }
 
@@ -423,6 +441,7 @@ namespace MessageRouting
                 result.ErrorMessage = "Failed to handle the message";
             }
 
+            await HandleAndLogMessageRouterResultAsync(result);
             return result;
         }
 
@@ -444,6 +463,20 @@ namespace MessageRouting
                 System.Diagnostics.Debug.WriteLine($"Message router result: {messageRouterResult.ToString()}");
             }
 #endif
+        }
+
+        /// <summary>
+        /// Handles and logs the given message router result.
+        /// </summary>
+        /// <param name="messageRouterResult">The result to handle.</param>
+        /// <returns></returns>
+        private async Task HandleAndLogMessageRouterResultAsync(MessageRouterResult messageRouterResult)
+        {
+            if (messageRouterResult != null)
+            {
+                await ResultHandler.HandleResultAsync(messageRouterResult);
+                AddMessageRouterResultToLog(messageRouterResult);
+            }
         }
     }
 }

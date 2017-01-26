@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace MessageRouting
@@ -17,12 +18,14 @@ namespace MessageRouting
                 throw new ArgumentNullException($"The given result ({nameof(messageRouterResult)}) is null");
             }
 
-            if (messageRouterResult.Type == MessageRouterResultType.OK)
+            if (messageRouterResult.Type == MessageRouterResultType.NoActionTaken
+                || messageRouterResult.Type == MessageRouterResultType.OK)
             {
                 // No need to do anything
             }
             if (messageRouterResult.Type == MessageRouterResultType.EngagementInitiated
                 || messageRouterResult.Type == MessageRouterResultType.EngagementAlreadyInitiated
+                || messageRouterResult.Type == MessageRouterResultType.EngagementRejected
                 || messageRouterResult.Type == MessageRouterResultType.EngagementAdded
                 || messageRouterResult.Type == MessageRouterResultType.EngagementRemoved)
             {
@@ -56,7 +59,26 @@ namespace MessageRouting
             }
             else if (messageRouterResult.Type == MessageRouterResultType.Error)
             {
-                System.Diagnostics.Debug.WriteLine($"{(string.IsNullOrEmpty(messageRouterResult.ErrorMessage) ? "An error occured" : messageRouterResult.ErrorMessage)}");
+                if (string.IsNullOrEmpty(messageRouterResult.ErrorMessage))
+                {
+                    System.Diagnostics.Debug.WriteLine("An error occured");
+                }
+                else
+                {
+                    MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+
+                    if (messageRouterManager.IsInitialized)
+                    {
+                        IList<Party> aggregationChannels = messageRouterManager.RoutingDataManager.GetAggregationParties();
+
+                        foreach (Party aggregationChannel in aggregationChannels)
+                        {
+                            await messageRouterManager.SendMessageToPartyByBotAsync(aggregationChannel, messageRouterResult.ErrorMessage);
+                        }
+                    }
+
+                    System.Diagnostics.Debug.WriteLine(messageRouterResult.ErrorMessage);
+                }
             }
         }
 
@@ -92,7 +114,7 @@ namespace MessageRouting
                         // TODO: The user experience here can be greatly improved by instead of sending
                         // a message displaying a card with buttons "accept" and "reject" on it
                         await messageRouterManager.SendMessageToPartyByBotAsync(aggregationParty,
-                            $"User \"{conversationClientName}\" requests a chat; type \"{commandKeyword} {Commands.CommandAcceptRequest} {conversationClientName}\" to accept");
+                            $"User \"{conversationClientName}\" requests a chat; type \"{commandKeyword} {Commands.CommandAcceptRequest} {conversationClientName}\" to accept or \"{commandKeyword} {Commands.CommandRejectRequest} {conversationClientName}\" to reject");
                     }
                 }
 
@@ -101,6 +123,11 @@ namespace MessageRouting
             else if (messageRouterResult.Type == MessageRouterResultType.EngagementAlreadyInitiated)
             {
                 messageToConversationClient = "Please wait for your request to be accepted";
+            }
+            else if (messageRouterResult.Type == MessageRouterResultType.EngagementRejected)
+            {
+                messageToConversationOwner = $"Request from user \"{conversationClientName}\" rejected";
+                messageToConversationClient = "Unfortunately your request could not be processed";
             }
             else if (messageRouterResult.Type == MessageRouterResultType.EngagementAdded)
             {
