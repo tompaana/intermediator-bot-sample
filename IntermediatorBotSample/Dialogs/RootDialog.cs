@@ -35,7 +35,7 @@ namespace IntermediatorBot.Dialogs
             {
                 if (message.ToLower().Contains("help"))
                 {
-                    await MessageRouterManager.Instance.InitiateEngagement((messageActivity as Activity));
+                    await MessageRouterManager.Instance.InitiateEngagementAsync((messageActivity as Activity));
                 }
                 else
                 {

@@ -200,7 +200,7 @@ namespace MessageRouting
                     // The message was not handled, because the sender is not engaged in a conversation
                     if (tryToInitiateEngagementIfNotEngaged)
                     {
-                        result = await InitiateEngagement(activity);
+                        result = await InitiateEngagementAsync(activity);
                     }
                 }
             }
@@ -264,7 +264,7 @@ namespace MessageRouting
         /// </summary>
         /// <param name="activity">The activity.</param>
         /// <returns>The result of the operation.</returns>
-        public async Task<MessageRouterResult> InitiateEngagement(Activity activity)
+        public async Task<MessageRouterResult> InitiateEngagementAsync(Activity activity)
         {
             MessageRouterResult result = new MessageRouterResult()
             {
@@ -290,7 +290,7 @@ namespace MessageRouting
         /// <param name="partyToReject">The party whose request to reject.</param>
         /// <param name="rejecterParty">The party rejecting the request (optional).</param>
         /// <returns>The result of the operation.</returns>
-        public async Task<MessageRouterResult> RejectPendingRequest(Party partyToReject, Party rejecterParty = null)
+        public async Task<MessageRouterResult> RejectPendingRequestAsync(Party partyToReject, Party rejecterParty = null)
         {
             if (partyToReject == null)
             {

@@ -41,7 +41,7 @@ namespace IntermediatorBotSample
                     // Here's an example:
                     if (!string.IsNullOrEmpty(activity.Text) && activity.Text.ToLower().Contains("human"))
                     {
-                        await MessageRouterManager.Instance.InitiateEngagement(activity);
+                        await MessageRouterManager.Instance.InitiateEngagementAsync(activity);
                     }
                     else
                     {

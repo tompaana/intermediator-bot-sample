@@ -122,7 +122,7 @@ namespace MessageRouting
                                         }
                                         else
                                         {
-                                            await messageRouterManager.RejectPendingRequest(partyToAcceptOrReject, senderParty);
+                                            await messageRouterManager.RejectPendingRequestAsync(partyToAcceptOrReject, senderParty);
                                         }
                                     }
                                     else

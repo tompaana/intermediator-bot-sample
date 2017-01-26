@@ -93,7 +93,7 @@ public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
     if (activity.Type == ActivityTypes.Message)
     {
         // Get the message router manager instance and let it handle the activity
-        MessageRouterResult result = await MessageRouterManager.Instance.HandleActivityAsync(activity, true);
+        MessageRouterResult result = await MessageRouterManager.Instance.HandleActivityAsync(activity, false);
 
         if (result.Type == MessageRouterResultType.NoActionTaken)
         {
