@@ -10,17 +10,6 @@ namespace MessageRouting
     /// </summary>
     public class DefaultBotCommandHandler : IBotCommandHandler
     {
-        private const string CommandKeyword = "command";
-        private const string CommandInitialize = "init";
-        private const string CommandAcceptRequest = "accept";
-        private const string CommandCloseEngagement = "close";
-        private const string CommandDeleteAllRoutingData = "reset";
-        private const string CommandEnableAggregation = "enable aggregation";
-        private const string CommandDisableAggregation = "disable aggregation";
-        private const string CommandListAllParties = "list parties";
-        private const string CommandListPendingRequests = "list requests";
-        private const string CommandListEngagements = "list conversations";
-
         private IRoutingDataManager _routingDataManager;
 
         /// <summary>
@@ -31,34 +20,29 @@ namespace MessageRouting
         {
             _routingDataManager = routingDataManager;
         }
-        
-        public virtual string GetCommandKeyword()
-        {
-            return CommandKeyword;
-        }
 
         /// <summary>
         /// All messages where the bot was mentioned ("@<bot name>) are checked for possible commands.
         /// See IBotCommandHandler.cs for more information.
         /// </summary>
-        public async virtual Task<bool> HandleBotCommandAsync(Activity activity)
+        public async virtual Task<bool> HandleCommandAsync(Activity activity)
         {
             bool wasHandled = false;
             Activity replyActivity = null;
 
             if (WasBotAddressedDirectly(activity)
-                || (!string.IsNullOrEmpty(activity.Text) && activity.Text.StartsWith($"{GetCommandKeyword()} ")))
+                || (!string.IsNullOrEmpty(activity.Text) && activity.Text.StartsWith($"{Commands.CommandKeyword} ")))
             {
                 string message = MessagingUtils.StripMentionsFromMessage(activity);
 
-                if (message.StartsWith($"{CommandKeyword} "))
+                if (message.StartsWith($"{Commands.CommandKeyword} "))
                 {
-                    message = message.Remove(0, CommandKeyword.Length + 1);
+                    message = message.Remove(0, Commands.CommandKeyword.Length + 1);
                 }
 
                 string messageInLowerCase = message?.ToLower();
 
-                if (messageInLowerCase.StartsWith(CommandInitialize))
+                if (messageInLowerCase.StartsWith(Commands.CommandAddAggregationChannel))
                 {
                     if (MessageRouterManager.Instance.AggregationRequired)
                     {
@@ -90,7 +74,7 @@ namespace MessageRouting
 
                     wasHandled = true;
                 }
-                else if (messageInLowerCase.StartsWith(CommandAcceptRequest))
+                else if (messageInLowerCase.StartsWith(Commands.CommandAcceptRequest))
                 {
                     // Accept conversation request
                     Party senderParty = MessagingUtils.CreateSenderParty(activity);
@@ -128,10 +112,8 @@ namespace MessageRouting
 
                                     if (partyToAccept != null)
                                     {
-                                        if (await MessageRouterManager.Instance.HandleAcceptedRequestAsync(senderParty, partyToAccept) == false)
-                                        {
-                                            replyActivity = activity.CreateReply("Failed to accept the request");
-                                        }
+                                        MessageRouterResult messageRouterResult =
+                                            await MessageRouterManager.Instance.AddEngagementAsync(senderParty, partyToAccept);
                                     }
                                     else
                                     {
@@ -166,7 +148,7 @@ namespace MessageRouting
                         wasHandled = true;
                     }
                 }
-                else if (messageInLowerCase.StartsWith(CommandCloseEngagement))
+                else if (messageInLowerCase.StartsWith(Commands.CommandCloseEngagement))
                 {
                     // Close the 1:1 conversation
                     Party senderParty = MessagingUtils.CreateSenderParty(activity);
@@ -177,25 +159,7 @@ namespace MessageRouting
                     {
                         Party otherParty = _routingDataManager.GetEngagedCounterpart(senderInConversation);
 
-                        if (_routingDataManager.RemoveEngagement(senderInConversation, EngagementProfile.Owner) > 0)
-                        {
-                            replyActivity = activity.CreateReply("You are now disengaged from the conversation");
-
-                            // Notify the other party
-                            Party botParty = _routingDataManager.FindBotPartyByChannelAndConversation(
-                                otherParty.ChannelId, otherParty.ConversationAccount);
-                            IMessageActivity messageActivity = Activity.CreateMessageActivity();
-                            messageActivity.From = botParty.ChannelAccount;
-                            messageActivity.Recipient = otherParty.ChannelAccount;
-                            messageActivity.Conversation = new ConversationAccount(id: otherParty.ConversationAccount.Id);
-                            messageActivity.Text = $"{senderInConversation.ChannelAccount.Name} left the conversation";
-
-                            ConnectorClient connectorClientForOther = new ConnectorClient(new Uri(otherParty.ServiceUrl));
-
-                            ResourceResponse resourceResponse =
-                                await connectorClientForOther.Conversations.SendToConversationAsync((Activity)messageActivity);
-                        }
-                        else
+                        if (await _routingDataManager.RemoveEngagementAsync(senderInConversation, EngagementProfile.Owner) == 0)
                         {
                             replyActivity = activity.CreateReply("An error occured");
                         }
@@ -213,17 +177,17 @@ namespace MessageRouting
                  * code in production!
                  */
                 #region Commands for debugging
-                else if (messageInLowerCase.StartsWith(CommandEnableAggregation))
+                else if (messageInLowerCase.StartsWith(Commands.CommandEnableAggregation))
                 {
                     MessageRouterManager.Instance.AggregationRequired = true;
                     wasHandled = true;
                 }
-                else if (messageInLowerCase.StartsWith(CommandDisableAggregation))
+                else if (messageInLowerCase.StartsWith(Commands.CommandDisableAggregation))
                 {
                     MessageRouterManager.Instance.AggregationRequired = false;
                     wasHandled = true;
                 }
-                else if (messageInLowerCase.StartsWith(CommandDeleteAllRoutingData))
+                else if (messageInLowerCase.StartsWith(Commands.CommandDeleteAllRoutingData))
                 {
                     ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
                     await connector.Conversations.ReplyToActivityAsync(activity.CreateReply("Deleting all data..."));
@@ -232,7 +196,7 @@ namespace MessageRouting
 
                     wasHandled = true;
                 }
-                else if (messageInLowerCase.StartsWith(CommandListAllParties))
+                else if (messageInLowerCase.StartsWith(Commands.CommandListAllParties))
                 {
                     string replyMessage = string.Empty;
                     string parties = string.Empty;
@@ -270,7 +234,7 @@ namespace MessageRouting
                     replyActivity = activity.CreateReply(replyMessage);
                     wasHandled = true;
                 }
-                else if (messageInLowerCase.StartsWith(CommandListPendingRequests))
+                else if (messageInLowerCase.StartsWith(Commands.CommandListPendingRequests))
                 {
                     string parties = string.Empty;
 
@@ -287,7 +251,7 @@ namespace MessageRouting
                     replyActivity = activity.CreateReply(parties);
                     wasHandled = true;
                 }
-                else if (messageInLowerCase.StartsWith(CommandListEngagements))
+                else if (messageInLowerCase.StartsWith(Commands.CommandListEngagements))
                 {
                     string parties = _routingDataManager.EngagementsAsString();
 
@@ -302,6 +266,20 @@ namespace MessageRouting
 
                     wasHandled = true;
                 }
+#if DEBUG
+                else if (messageInLowerCase.StartsWith(Commands.CommandListLastMessageRouterResults))
+                {
+                    LocalRoutingDataManager routingDataManager =
+                        (MessageRouterManager.Instance.RoutingDataManager as LocalRoutingDataManager);
+
+                    if (routingDataManager != null)
+                    {
+                        string resultsAsString = routingDataManager.GetLastMessageRouterResults();
+                        replyActivity = activity.CreateReply($"{(string.IsNullOrEmpty(resultsAsString) ? "No results" : resultsAsString)}");
+                        wasHandled = true;
+                    }
+                }
+#endif
                 #endregion Commands for debugging
 
                 else

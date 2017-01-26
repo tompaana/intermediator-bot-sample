@@ -3,20 +3,30 @@ using System.Threading.Tasks;
 
 namespace MessageRouting
 {
+    public class Commands
+    {
+        public const string CommandKeyword = "command"; // Used if the channel does not support mentions
+        public const string CommandAddAggregationChannel = "add aggregation";
+        public const string CommandAcceptRequest = "accept";
+        public const string CommandCloseEngagement = "close";
+        public const string CommandDeleteAllRoutingData = "reset";
+        public const string CommandEnableAggregation = "enable aggregation";
+        public const string CommandDisableAggregation = "disable aggregation";
+        public const string CommandListAllParties = "list parties";
+        public const string CommandListPendingRequests = "list requests";
+        public const string CommandListEngagements = "list conversations";
+#if DEBUG
+        public const string CommandListLastMessageRouterResults = "list results";
+#endif
+    }
+
     public interface IBotCommandHandler
     {
-        /// <summary>
-        /// Some channels do not support mentions (@botname) and this method will return an
-        /// alternative keyword for starting commands with.
-        /// </summary>
-        /// <returns>A special keyword to start commands with.</returns>
-        string GetCommandKeyword();
-
         /// <summary>
         /// Handles the direct commands to the bot.
         /// </summary>
         /// <param name="activity">The activity containing a possible command.</param>
         /// <returns>True, if a command was detected and handled. False otherwise.</returns>
-        Task<bool> HandleBotCommandAsync(Activity activity);
+        Task<bool> HandleCommandAsync(Activity activity);
     }
 }

@@ -88,40 +88,17 @@ instance, if no action is taken by the manager, you can forward the `Activity`
 to a `Dialog`:
 
 ```cs
-private DefaultMessageRouterEventHandler _messageRouterEventHander = new DefaultMessageRouterEventHandler(true);
-
-...
-
 public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
 {
     if (activity.Type == ActivityTypes.Message)
     {
-        // Get the message router manager instance
-        MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+        // Get the message router manager instance and let it handle the activity
+        MessageRouterResult result = await MessageRouterManager.Instance.HandleActivityAsync(activity, true);
 
-        // Make sure we have the details of the sender and the receiver (bot) stored
-        messageRouterManager.MakeSurePartiesAreTracked(activity);
-
-        // Check for possible commands first
-        if (await messageRouterManager.BotCommandHandler.HandleBotCommandAsync(activity) == false)
+        if (result.Type == MessageRouterResultType.NoActionTaken)
         {
-            // No command to the bot was issued so it must be a message then
-            if (await messageRouterManager.HandleMessageAsync(activity) == false)
-            {
-                // The message router manager failed to handle the message. This is likely
-                // due to the sender not being engaged in a conversation. Another reason
-                // could be that the manager has not been initialized.
-                //
-                // If you get here and you are sure that the manager has been initialized
-                // (note that initialization is only needed if there is an aggregation
-                // channel), you should either (depending on your use case):
-                //  1) Let the bot handle the message in the usual manner (e.g. let dialog
-                //     handle the message) or
-                //  2) automatically initiate the engagement, if the only thing this bot
-                //     does is forwards messages.
-
-                messageRouterManager.InitiateEngagement(activity);
-            }
+            // No action was taken
+            // You can forward the activity to e.g. a dialog here
         }
     }
     else

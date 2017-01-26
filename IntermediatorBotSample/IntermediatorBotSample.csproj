@@ -124,12 +124,13 @@
     </Compile>
     <Compile Include="MessageRouting\AzureTableStorageRoutingDataManager.cs" />
     <Compile Include="MessageRouting\DefaultBotCommandHandler.cs" />
-    <Compile Include="MessageRouting\DefaultMessageRouterEventHandler.cs" />
+    <Compile Include="MessageRouting\DefaultMessageRouterResultHandler.cs" />
     <Compile Include="MessageRouting\IBotCommandHandler.cs" />
+    <Compile Include="MessageRouting\IMessageRouterResultHandler.cs" />
     <Compile Include="MessageRouting\IRoutingDataManager.cs" />
     <Compile Include="MessageRouting\LocalRoutingDataManager.cs" />
-    <Compile Include="MessageRouting\MessageRouterEventArgs.cs" />
     <Compile Include="MessageRouting\MessageRouterManager.cs" />
+    <Compile Include="MessageRouting\MessageRouterResult.cs" />
     <Compile Include="MessageRouting\MessagingUtils.cs" />
     <Compile Include="MessageRouting\Party.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

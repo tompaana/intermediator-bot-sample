@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace MessageRouting
 {
@@ -16,8 +17,6 @@ namespace MessageRouting
     [Serializable]
     public class LocalRoutingDataManager : IRoutingDataManager
     {
-        public event EventHandler<EngagementChangedEventArgs> EngagementChanged;
-
         /// <summary>
         /// Parties that are users (not this bot).
         /// </summary>
@@ -68,6 +67,14 @@ namespace MessageRouting
             set;
         }
 
+#if DEBUG
+        protected IList<MessageRouterResult> LastMessageRouterResults
+        {
+            get;
+            set;
+        }
+#endif
+
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -78,6 +85,9 @@ namespace MessageRouting
             BotParties = new List<Party>();
             PendingRequests = new List<Party>();
             EngagedParties = new Dictionary<Party, Party>();
+#if DEBUG
+            LastMessageRouterResults = new List<MessageRouterResult>();
+#endif
         }
 
         public virtual IList<Party> GetUserParties()
@@ -124,7 +134,7 @@ namespace MessageRouting
             return AddParty(newParty, isUser);
         }
 
-        public virtual bool RemoveParty(Party partyToRemove)
+        public virtual async Task<bool> RemovePartyAsync(Party partyToRemove)
         {
             IList<Party>[] partyLists = new IList<Party>[]
             {
@@ -166,7 +176,7 @@ namespace MessageRouting
 
                 foreach (Party key in keys)
                 {
-                    RemoveEngagement(key, EngagementProfile.Owner);
+                    await RemoveEngagementAsync(key, EngagementProfile.Owner);
                 }
             }
 
@@ -209,23 +219,32 @@ namespace MessageRouting
             return pendingRequestsAsList?.AsReadOnly();
         }
 
-        public virtual bool AddPendingRequest(Party party)
+        public virtual MessageRouterResult AddPendingRequest(Party party)
         {
-            if (party != null && !PendingRequests.Contains(party))
+            MessageRouterResult result = new MessageRouterResult()
             {
-                PendingRequests.Add(party);
+                ConversationClientParty = party
+            };
 
-                EngagementChanged?.Invoke(this, new EngagementChangedEventArgs()
+            if (party != null)
+            {
+                if (PendingRequests.Contains(party))
                 {
-                    ChangeType = ChangeTypes.Initiated,
-                    ConversationOwnerParty = null, // No owner until the request has been accepted
-                    ConversationClientParty = party
-                });
-
-                return true;
+                    result.Type = MessageRouterResultType.EngagementAlreadyInitiated;
+                }
+                else
+                {
+                    PendingRequests.Add(party);
+                    result.Type = MessageRouterResultType.EngagementInitiated;
+                }
+            }
+            else
+            {
+                result.Type = MessageRouterResultType.Error;
+                result.ErrorMessage = "The given party instance is null";
             }
 
-            return false;
+            return result;
         }
 
         public virtual bool RemovePendingRequest(Party party)
@@ -281,9 +300,13 @@ namespace MessageRouting
             return counterparty;
         }
 
-        public virtual bool AddEngagementAndClearPendingRequest(Party conversationOwnerParty, Party conversationClientParty)
+        public virtual MessageRouterResult AddEngagementAndClearPendingRequest(Party conversationOwnerParty, Party conversationClientParty)
         {
-            bool success = false;
+            MessageRouterResult result = new MessageRouterResult()
+            {
+                ConversationOwnerParty = conversationOwnerParty,
+                ConversationClientParty = conversationClientParty
+            };
 
             if (conversationOwnerParty != null && conversationClientParty != null)
             {
@@ -291,28 +314,25 @@ namespace MessageRouting
                 {
                     EngagedParties.Add(conversationOwnerParty, conversationClientParty);
                     PendingRequests.Remove(conversationClientParty);
-                    success = true;
+                    result.Type = MessageRouterResultType.EngagementAdded;
                 }
                 catch (ArgumentException e)
                 {
+                    result.Type = MessageRouterResultType.Error;
+                    result.ErrorMessage = e.Message;
                     System.Diagnostics.Debug.WriteLine($"Failed to add engagement between parties {conversationOwnerParty} and {conversationClientParty}: {e.Message}");
                 }
             }
-
-            if (success)
+            else
             {
-                EngagementChanged?.Invoke(this, new EngagementChangedEventArgs()
-                {
-                    ChangeType = ChangeTypes.Added,
-                    ConversationOwnerParty = conversationOwnerParty,
-                    ConversationClientParty = conversationClientParty
-                });
+                result.Type = MessageRouterResultType.Error;
+                result.ErrorMessage = "Either the owner or the client is missing";
             }
 
-            return success;
+            return result;
         }
 
-        public virtual int RemoveEngagement(Party party, EngagementProfile engagementProfile)
+        public virtual async Task<int> RemoveEngagementAsync(Party party, EngagementProfile engagementProfile)
         {
             int engagementsRemoved = 0;
 
@@ -351,24 +371,7 @@ namespace MessageRouting
                     }
                 }
 
-                foreach (Party key in keysToRemove)
-                {
-                    Party conversationClientParty = null;
-                    EngagedParties.TryGetValue(key, out conversationClientParty);
-
-                    if (EngagedParties.Remove(key))
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Removed engagements where {key.ToString()} was the owner of the conversation");
-                        engagementsRemoved++;
-
-                        EngagementChanged?.Invoke(this, new EngagementChangedEventArgs()
-                        {
-                            ChangeType = ChangeTypes.Removed,
-                            ConversationOwnerParty = key,
-                            ConversationClientParty = conversationClientParty
-                        });
-                    }
-                }
+                engagementsRemoved = await RemoveEngagementsAsync(keysToRemove);
             }
 
             return engagementsRemoved;
@@ -381,6 +384,9 @@ namespace MessageRouting
             BotParties.Clear();
             PendingRequests.Clear();
             EngagedParties.Clear();
+#if DEBUG
+            LastMessageRouterResults.Clear();
+#endif
         }
 
         public virtual bool IsAssociatedWithAggregation(Party party)
@@ -524,5 +530,67 @@ namespace MessageRouting
 
             return parties;
         }
+
+        /// <summary>
+        /// Removes the engagements of the given conversation owners.
+        /// </summary>
+        /// <param name="conversationOwnerParties">The conversation owners whose engagements to remove.</param>
+        /// <returns>The number of engagements removed.</returns>
+        protected virtual async Task<int> RemoveEngagementsAsync(IList<Party> conversationOwnerParties)
+        {
+            int engagementsRemoved = 0;
+
+            foreach (Party conversationOwnerParty in conversationOwnerParties)
+            {
+                Party conversationClientParty = null;
+                EngagedParties.TryGetValue(conversationOwnerParty, out conversationClientParty);
+
+                if (EngagedParties.Remove(conversationOwnerParty))
+                {
+                    System.Diagnostics.Debug.WriteLine($"Removed engagements where {conversationOwnerParty.ToString()} was the owner of the conversation");
+                    engagementsRemoved++;
+
+                    // The following solution is not pretty, but we need to allow the result
+                    // handler to handle each case in case we want to notify the users
+                    MessageRouterResult result = new MessageRouterResult()
+                    {
+                        Type = MessageRouterResultType.EngagementRemoved,
+                        ConversationOwnerParty = conversationOwnerParty,
+                        ConversationClientParty = conversationClientParty
+                    };
+                    await MessageRouterManager.Instance.ResultHandler.HandleResultAsync(result);
+                    MessageRouterManager.Instance.AddMessageRouterResultToLog(result);
+                }
+            }
+
+            return engagementsRemoved;
+        }
+
+#if DEBUG
+        public string GetLastMessageRouterResults()
+        {
+            string lastResultsAsString = string.Empty;
+
+            foreach (MessageRouterResult result in LastMessageRouterResults)
+            {
+                lastResultsAsString += $"{result.ToString()}\n";
+            }
+
+            return lastResultsAsString;
+        }
+
+        public void AddMessageRouterResult(MessageRouterResult result)
+        {
+            if (result != null)
+            {
+                if (LastMessageRouterResults.Count > 4)
+                {
+                    LastMessageRouterResults.Remove(LastMessageRouterResults.ElementAt(0));
+                }
+
+                LastMessageRouterResults.Add(result);
+            }
+        }
+#endif
     }
 }

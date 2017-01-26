@@ -1,6 +1,7 @@
 ﻿using Microsoft.Bot.Connector;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace MessageRouting
 {
@@ -24,11 +25,6 @@ namespace MessageRouting
     /// </summary>
     public interface IRoutingDataManager
     {
-        /// <summary>
-        /// Invoked when an engagement is initiated, established (added) or ended (removed).
-        /// </summary>
-        event EventHandler<EngagementChangedEventArgs> EngagementChanged;
-
         #region CRUD methods
         /// <returns>The user parties as a readonly list.</returns>
         IList<Party> GetUserParties();
@@ -65,7 +61,7 @@ namespace MessageRouting
         /// </summary>
         /// <param name="partyToRemove">The party to remove.</param>
         /// <returns>True, if the given party was removed. False otherwise.</returns>
-        bool RemoveParty(Party partyToRemove);
+        Task<bool> RemovePartyAsync(Party partyToRemove);
 
         /// <returns>The aggregation parties as a readonly list.</returns>
         IList<Party> GetAggregationParties();
@@ -91,8 +87,8 @@ namespace MessageRouting
         /// Adds the pending request for the given party.
         /// </summary>
         /// <param name="party">The party whose pending request to add.</param>
-        /// <returns>True, if added. False otherwise (e.g. matching request already exists).</returns>
-        bool AddPendingRequest(Party party);
+        /// <returns>The result of the operation.</returns>
+        MessageRouterResult AddPendingRequest(Party party);
 
         /// <summary>
         /// Removes the pending request of the given party.
@@ -124,8 +120,8 @@ namespace MessageRouting
         /// </summary>
         /// <param name="conversationOwnerParty">The conversation owner party.</param>
         /// <param name="conversationClientParty">The conversation client (customer) party.</param>
-        /// <returns>True, if successful. False otherwise.</returns>
-        bool AddEngagementAndClearPendingRequest(Party conversationOwnerParty, Party conversationClientParty);
+        /// <returns>The result of the operation.</returns>
+        MessageRouterResult AddEngagementAndClearPendingRequest(Party conversationOwnerParty, Party conversationClientParty);
 
         /// <summary>
         /// Removes an engagement(s) of the given party i.e. ends the 1:1 conversations.
@@ -133,7 +129,7 @@ namespace MessageRouting
         /// <param name="party">The party whose engagements to remove.</param>
         /// <param name="engagementProfile">The engagement profile of the party (owner/client/either).</param>
         /// <returns>The number of engagements removed.</returns>
-        int RemoveEngagement(Party party, EngagementProfile engagementProfile);
+        Task<int> RemoveEngagementAsync(Party party, EngagementProfile engagementProfile);
 
         /// <summary>
         /// Deletes all existing routing data permanently.

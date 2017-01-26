@@ -1,5 +1,6 @@
 ﻿using Microsoft.Bot.Connector;
 using System;
+using System.Threading.Tasks;
 
 namespace MessageRouting
 {
@@ -32,6 +33,25 @@ namespace MessageRouting
         public static Party CreateRecipientParty(IActivity activity)
         {
             return new Party(activity.ServiceUrl, activity.ChannelId, activity.Recipient, activity.Conversation);
+        }
+
+        /// <summary>
+        /// Replies to the given activity with the given message.
+        /// </summary>
+        /// <param name="activity">The activity to reply to.</param>
+        /// <param name="message">The message.</param>
+        public static async Task ReplyToActivityAsync(Activity activity, string message)
+        {
+            if (activity != null && !string.IsNullOrEmpty(message))
+            {
+                Activity replyActivity = activity.CreateReply(message);
+                ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
+                await connector.Conversations.ReplyToActivityAsync(replyActivity);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"Either the activity is null or the message is empty - Activity: {activity}; message: {message}");
+            }
         }
 
         /// <summary>
