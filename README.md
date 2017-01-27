@@ -103,7 +103,8 @@ between the parties engaged in a conversation.
 * `Instance` is a static property providing the singleton instance of the class.
 * `AggregationRequired` is a boolean property defining whether an aggregation
   channel is required (see terminology above). The default value is true, but
-  you can change the value in `App_Start\WebApiConfig.cs`.
+  you can change the value in `App_Start\WebApiConfig.cs`. If you plan to use
+  a call center approach, you will probably want to set the value to false.
 * `RoutingDataManager`: The implementation of `IRoutingDataManager` interface
   in use. In case you want to replace the default implementation with your own,
   set it in `App_Start\WebApiConfig.cs`.
@@ -116,7 +117,7 @@ between the parties engaged in a conversation.
 * `IsAggregationSetIfRequired` is a boolean, read-only property. The value will
   be true, if aggregation is required and a valid aggregation channel exists
   or if aggregation is not required. Essentially this value will indicate
-  whether the manager instance is ready to function or not.
+  whether the manager instance is ready to serve requests or not.
 
 #### Methods ####
 
