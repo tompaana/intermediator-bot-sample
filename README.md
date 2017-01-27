@@ -29,7 +29,9 @@ can use [ngrok](https://ngrok.com/) tunneling software:
 
 See also: [Microsoft Bot Framework Emulator wiki](https://github.com/microsoft/botframework-emulator/wiki/Getting-Started)
 
-### The flow ###
+<!--
+
+## The flow ##
 
 | Emulator with ngrok | Slack |
 | ------------------- | ----- |
@@ -38,6 +40,7 @@ See also: [Microsoft Bot Framework Emulator wiki](https://github.com/microsoft/b
 | | ![Direct messaging channel created](/Documentation/Screenshots/DirectMessagingChannelCreated.png?raw=true) |
 | ![Conversation in emulator](/Documentation/Screenshots/ConversationInEmulator.png?raw=true) | ![Conversation in Slack](/Documentation/Screenshots/ConversationInSlack.png?raw=true) |
 
+-->
 
 ## Implementation ##
 
@@ -51,7 +54,98 @@ See also: [Microsoft Bot Framework Emulator wiki](https://github.com/microsoft/b
 | Conversation client | A reqular user e.g. a customer. |
 | Conversation owner | E.g. a customer service **agent**. |
 
-### Interfaces and classes ###
+### Interfaces ###
+
+#### [IRoutingDataManager](/IntermediatorBotSample/MessageRouting/IRoutingDataManager.cs) ####
+
+An interface for managing the parties (users/bot), aggregation channel details, the list of
+engaged parties and pending requests. **Note:** In production this data should be stored
+in e.g. a table storage!
+[LocalRoutingDataManager](/IntermediatorBotSample/MessageRouting/LocalRoutingDataManager.cs) is
+provided for testing, but it provides only an in-memory solution.
+
+#### [IMessageRouterResultHandler](/IntermediatorBotSample/MessageRouting/IMessageRouterResultHandler.cs) ####
+
+An interface for handling message router operation results. You can consider
+the result handler as an event handler, but since asynchronicity (that comes
+with an actual event handler in C#) may cause all kind of problems, it is more
+convenient to handle the results this way. The implementation of this interface
+defines the bot responses for specific events (results) so it is a natural
+place to have localization in should your bot application require it.
+
+A default result handler implementation is provided by
+[DefaultMessageRouterResultHandler](/IntermediatorBotSample/MessageRouting/DefaultMessageRouterResultHandler.cs),
+but you can easily replace this with your own (see `MessageRouterMananger`
+class documentation below).
+
+#### [IBotCommandHandler](/IntermediatorBotSample/MessageRouting/IBotCommandHandler.cs) ####
+
+An interface for handling commands to the bot. This project cares little what
+bot commands (if any) are defined and what they should do, although a default
+implementation
+([DefaultBotCommandHandler](/IntermediatorBotSample/MessageRouting/DefaultBotCommandHandler.cs))
+has been provided. Like with the result handler, you can implement and set your
+own command handler to the `MessageRouterManager` class instance.
+
+### [MessageRouterManager](/IntermediatorBotSample/MessageRouting/MessageRouterManager.cs) class ###
+
+**[MessageRouterManager](/IntermediatorBotSample/MessageRouting/MessageRouterManager.cs)**
+is the main class of the project. It manages the routing data (using the
+provided `IRoutingDataManager` implementation) and handles the commands to
+the bot (`IBotCommandHandler`) and executes the actual message mediation
+between the parties engaged in a conversation.
+
+#### Properties ####
+
+* `Instance` is a static property providing the singleton instance of the class.
+* `AggregationRequired` is a boolean property defining whether an aggregation
+  channel is required (see terminology above). The default value is true, but
+  you can change the value in `App_Start\WebApiConfig.cs`.
+* `RoutingDataManager`: The implementation of `IRoutingDataManager` interface
+  in use. In case you want to replace the default implementation with your own,
+  set it in `App_Start\WebApiConfig.cs`.
+* `ResultHandler`: The implementation of `IMessageRouterResultHandler` interface
+  in use. In case you want to replace the default implementation with your own,
+  set it in `App_Start\WebApiConfig.cs`.
+* `CommandHandler`: The implementation of `IBotCommandHandler` interface
+  in use. In case you want to replace the default implementation with your own,
+  set it in `App_Start\WebApiConfig.cs`.
+* `IsAggregationSetIfRequired` is a boolean read-only property. The value will
+  be true, if aggregation is required and a valid aggregation channel exists
+  or if aggregation is not required. Essentially this value will indicate
+  whether the manager instance is ready to function or not.
+
+#### Methods ####
+
+* **`HandleActivityAsync`**: In simple cases this is the only method you may
+  needs to call in your `MessagesController` class. It will track the users 
+  (stores their information), handle the commands,forward messages between
+  users engaged in a conversation and handle the results (by sending them to
+  the provided result handler) automatically. The return value
+  (`MessageRouterResult`) will indicate whether the message routing logic
+  consumed the activity or not. If the activity was ignored by the message
+  routing logic, you can e.g. forward it to your dialog.
+* `SendMessageToPartyByBotAsync`: Utility method to make the bot send a given
+  message to a given user.
+* `MakeSurePartiesAreTracked`: A convenient method for adding parties.
+  The given parties are added if they are new. This method is called by
+  `HandleActivityAsync` so you don't need to bother explicitly calling this
+  yourself.
+* `RemovePartyAsync`: Removes all the instances related to the given party from
+  the routing data (since there can be multiple - one for each conversation).
+  Will also remove any pending requests of the party in question as well end
+  all conversations of this specific user.
+* `IntiateEngagementAsync`: Creates a request on behalf of the sender of the
+  activity. The result handler forward the request to the owners
+  (e.g. customer service agents).
+* `RejectPendingRequestAsync`: Removes the pending request of the given user.
+  The result handler implementation should notify the user, if necessary.
+* `AddEngagementAsync`: Establishes an engagement between the given parties.
+  This method should be called when a chat request is accepted.
+* `HandleMessageAsync`: Handles the incoming messages: Relays the messages
+  between engaged parties.
+
+### Other classes ###
 
 **[Party](/IntermediatorBotSample/MessageRouting/Party.cs)** holds the details
 of specific user/bot in a specific conversation. Note that the bot collects
@@ -61,25 +155,13 @@ single user/bot). One can think of `Party` as a full address the bot needs in
 order to send a message to the user in a conversation. The `Party` instances are
 stored in routing data.
 
-**[IRoutingDataManager](/IntermediatorBotSample/MessageRouting/IRoutingDataManager.cs)**
-manages the parties (users/bot), aggregation channel details, the list of
-engaged parties and pending requests. **Note** that this data should be stored
-in e.g. a blob storage! For testing it is OK to have the data in memory.
+**[MessageRouterResult](/IntermediatorBotSample/MessageRouting/MessageRouterResult.cs)**
+is the return value for more complex operations of the `MessageRouterManager`
+class not unlike custom `EventArgs` implementations, but due to the problems
+that using actual event handlers can cause, these return values are handled
+by a dedicated `IMessageRouterResultHandler` implementation.
 
-**[MessageRouterManager](/IntermediatorBotSample/MessageRouting/MessageRouterManager.cs)**
-is the main class of the sample. It manages the routing data and handles
-commands to the bot and executes the actual message mediation between the
-parties engaged in a conversation. The most important methods in this class
-are as follows:
-
-* `AddParty`: Adds a new party to the routing data. It is recommended to use `MakeSurePartiesAreTracked` instead of this for adding parties.
-* `RemoveParty`: Removes all the instances related to the given party from the routing data (since there can be multiple - one for each conversation).
-* `MakeSurePartiesAreTracked`: A convenient method for adding parties. The given parties are added if they are new.
-* `IntiateEngagement`: Creates and posts a new chat request.
-* `AddEngagementAsync`: Establishes an engagement between the given parties. This method is called when a chat request is accepted.
-* `HandleMessageAsync`: Handles the incoming messages: Relays the messages between engaged parties.
-
-### Taking the classes into use ###
+### Taking the code into use ###
 
 The most convenient place to use the aforementioned classes is in the
 **[MessagesController](/IntermediatorBotSample/Controllers/MessagesController.cs)**

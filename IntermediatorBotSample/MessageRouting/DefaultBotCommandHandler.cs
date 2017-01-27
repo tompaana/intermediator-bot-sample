@@ -53,10 +53,9 @@ namespace MessageRouting
                             /* not a specific user, but a channel/conv */ null,
                             activity.Conversation);
 
+                        // Establish the sender's channel/conversation as an aggreated one
                         if (_routingDataManager.AddAggregationParty(aggregationParty))
                         {
-                            // Establish the sender's channel/conversation as an aggreated one
-                            _routingDataManager.AddAggregationParty(aggregationParty);
                             replyActivity = activity.CreateReply(
                                 "This channel/conversation is now where the requests are aggregated");
                         }
