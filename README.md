@@ -68,15 +68,18 @@ provided for testing, but it provides only an in-memory solution.
 
 An interface for handling message router operation results. You can consider
 the result handler as an event handler, but since asynchronicity (that comes
-with an actual event handler in C#) may cause all kind of problems, it is more
-convenient to handle the results this way. The implementation of this interface
-defines the bot responses for specific events (results) so it is a natural
-place to have localization in should your bot application require it.
+with an actual event handler in C#) may cause all kind of problems with the bot
+framework *(namely that the execution of the code that makes the bot send
+messages related to an incoming activity should not continue once
+`MessagesController.Post` is exited)*, it is more convenient to handle the
+results this way. The implementation of this interface defines the bot
+responses for specific events (results) so it is a natural place to have
+localization in (should your bot application require it).
 
 A default result handler implementation is provided by
-[DefaultMessageRouterResultHandler](/IntermediatorBotSample/MessageRouting/DefaultMessageRouterResultHandler.cs),
-but you can easily replace this with your own (see `MessageRouterMananger`
-class documentation below).
+[DefaultMessageRouterResultHandler](/IntermediatorBotSample/MessageRouting/DefaultMessageRouterResultHandler.cs)
+class, but you can easily replace this with your own
+(see `MessageRouterMananger` class documentation below).
 
 #### [IBotCommandHandler](/IntermediatorBotSample/MessageRouting/IBotCommandHandler.cs) ####
 
@@ -87,7 +90,7 @@ implementation
 has been provided. Like with the result handler, you can implement and set your
 own command handler to the `MessageRouterManager` class instance.
 
-### [MessageRouterManager](/IntermediatorBotSample/MessageRouting/MessageRouterManager.cs) class ###
+### MessageRouterManager class ###
 
 **[MessageRouterManager](/IntermediatorBotSample/MessageRouting/MessageRouterManager.cs)**
 is the main class of the project. It manages the routing data (using the
@@ -110,16 +113,16 @@ between the parties engaged in a conversation.
 * `CommandHandler`: The implementation of `IBotCommandHandler` interface
   in use. In case you want to replace the default implementation with your own,
   set it in `App_Start\WebApiConfig.cs`.
-* `IsAggregationSetIfRequired` is a boolean read-only property. The value will
+* `IsAggregationSetIfRequired` is a boolean, read-only property. The value will
   be true, if aggregation is required and a valid aggregation channel exists
   or if aggregation is not required. Essentially this value will indicate
   whether the manager instance is ready to function or not.
 
 #### Methods ####
 
-* **`HandleActivityAsync`**: In simple cases this is the only method you may
-  needs to call in your `MessagesController` class. It will track the users 
-  (stores their information), handle the commands,forward messages between
+* **`HandleActivityAsync`**: In simple cases this is the only method you need
+  to call in your `MessagesController` class. It will track the users 
+  (stores their information), handle the commands, forward messages between
   users engaged in a conversation and handle the results (by sending them to
   the provided result handler) automatically. The return value
   (`MessageRouterResult`) will indicate whether the message routing logic
@@ -129,11 +132,11 @@ between the parties engaged in a conversation.
   message to a given user.
 * `MakeSurePartiesAreTracked`: A convenient method for adding parties.
   The given parties are added if they are new. This method is called by
-  `HandleActivityAsync` so you don't need to bother explicitly calling this
+  `HandleActivityAsync` so you don't need to bother calling this explicitly
   yourself.
 * `RemovePartyAsync`: Removes all the instances related to the given party from
   the routing data (since there can be multiple - one for each conversation).
-  Will also remove any pending requests of the party in question as well end
+  Will also remove any pending requests of the party in question as well as end
   all conversations of this specific user.
 * `IntiateEngagementAsync`: Creates a request on behalf of the sender of the
   activity. The result handler forward the request to the owners
