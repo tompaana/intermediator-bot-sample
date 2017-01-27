@@ -252,5 +252,4 @@ paket-files/
 *.sln.iml
 
 # Web config
-EvaBot/Web.config
 *.config

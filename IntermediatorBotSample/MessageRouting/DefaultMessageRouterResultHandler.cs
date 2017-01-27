@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Bot.Connector;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -107,14 +108,8 @@ namespace MessageRouting
                 {
                     foreach (Party aggregationParty in messageRouterManager.RoutingDataManager.GetAggregationParties())
                     {
-                        string botName = routingDataManager.ResolveBotNameInConversation(aggregationParty);
-                        string commandKeyword = string.IsNullOrEmpty(botName)
-                            ? Commands.CommandKeyword : $"@{botName}";
-
-                        // TODO: The user experience here can be greatly improved by instead of sending
-                        // a message displaying a card with buttons "accept" and "reject" on it
-                        await messageRouterManager.SendMessageToPartyByBotAsync(aggregationParty,
-                            $"User \"{conversationClientName}\" requests a chat; type \"{commandKeyword} {Commands.CommandAcceptRequest} {conversationClientName}\" to accept or \"{commandKeyword} {Commands.CommandRejectRequest} {conversationClientName}\" to reject");
+                        IMessageActivity messageActivity = CreateRequestCard(conversationClientParty, aggregationParty);
+                        await messageRouterManager.SendMessageToPartyByBotAsync(aggregationParty, messageActivity);
                     }
                 }
 
@@ -157,6 +152,61 @@ namespace MessageRouting
             {
                 await messageRouterManager.SendMessageToPartyByBotAsync(conversationClientParty, messageToConversationClient);
             }
+        }
+
+        /// <summary>
+        /// Creates a new IMessageActivity containing the buttons (and additional information)
+        /// to either accept or reject a pending engagement request.
+        /// 
+        /// Note that the created IMessageActivity will not contain valid From property value!
+        /// However, if you use MessageRouterManager.SendMessageToPartyByBotAsync(),
+        /// it will set the from field.
+        /// </summary>
+        /// <param name="pendingRequest">The party with a pending request (i.e. customer/client).</param>
+        /// <param name="aggregationParty">The aggregation party to notify about the request.</param>
+        /// <returns>A newly created IMessageActivity instance.</returns>
+        protected virtual IMessageActivity CreateRequestCard(Party pendingRequest, Party aggregationParty)
+        {
+            if (pendingRequest == null || pendingRequest.ChannelAccount == null || aggregationParty == null)
+            {
+                throw new ArgumentNullException("The given arguments do not have the necessary details");
+            }
+
+            IMessageActivity messageActivity = Activity.CreateMessageActivity();
+            messageActivity.Conversation = aggregationParty.ConversationAccount;
+            messageActivity.Recipient = pendingRequest.ChannelAccount;
+
+            string requesterId = pendingRequest.ChannelAccount.Id;
+            string requesterName = pendingRequest.ChannelAccount.Name;
+            string botName = MessageRouterManager.Instance.RoutingDataManager.ResolveBotNameInConversation(aggregationParty);
+            string commandKeyword = string.IsNullOrEmpty(botName) ? Commands.CommandKeyword : $"@{botName}";
+            string acceptCommand = $"{commandKeyword} {Commands.CommandAcceptRequest} {requesterId}";
+            string rejectCommand = $"{commandKeyword} {Commands.CommandRejectRequest} {requesterId}";
+
+            ThumbnailCard thumbnailCard = new ThumbnailCard()
+            {
+                Title = "Human assistance request",
+                Subtitle = $"User name: {requesterName}",
+                Text = $"Use the buttons to accept or reject. You can also type \"{acceptCommand}\" to accept or \"{rejectCommand}\" to reject, if the buttons are not supported.",
+                Buttons = new List<CardAction>()
+                {
+                    new CardAction()
+                    {
+                        Title = "Accept",
+                        Type = ActionTypes.PostBack,
+                        Value = acceptCommand
+                    },
+                    new CardAction()
+                    {
+                        Title = "Reject",
+                        Type = ActionTypes.PostBack,
+                        Value = rejectCommand
+                    }
+                }
+            };
+
+            messageActivity.Attachments = new List<Attachment>() { thumbnailCard.ToAttachment() };
+            return messageActivity;
         }
     }
 }

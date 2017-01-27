@@ -124,6 +124,8 @@ namespace MessageRouting
 
             if (botParty != null)
             {
+                messageActivity.From = botParty.ChannelAccount;
+
                 MessagingUtils.ConnectorClientAndMessageBundle bundle =
                     MessagingUtils.CreateConnectorClientAndMessageActivity(
                         partyToMessage.ServiceUrl, messageActivity);

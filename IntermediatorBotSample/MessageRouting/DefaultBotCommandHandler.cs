@@ -101,11 +101,10 @@ namespace MessageRouting
 
                                     try
                                     {
-                                        // TODO: Name alone is not enough to ID the right pending request!
                                         partyToAcceptOrReject = _routingDataManager.GetPendingRequests().Single(
                                               party => (party.ChannelAccount != null
-                                                  && !string.IsNullOrEmpty(party.ChannelAccount.Name)
-                                                  && party.ChannelAccount.Name.Equals(splitMessage[1])));
+                                                  && !string.IsNullOrEmpty(party.ChannelAccount.Id)
+                                                  && party.ChannelAccount.Id.Equals(splitMessage[1])));
                                     }
                                     catch (InvalidOperationException e)
                                     {
