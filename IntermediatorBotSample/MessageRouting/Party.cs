@@ -124,6 +124,11 @@ namespace MessageRouting
                 + ConversationAccount.Name;
         }
 
+        public string GetConversationId()
+        {
+            return ConversationAccount.Id;
+        }
+
         public static Party FromIdString(string idString)
         {
             Party party = null;
