@@ -219,6 +219,9 @@ class not unlike custom `EventArgs` implementations, but due to the problems
 that using actual event handlers can cause, these return values are handled
 by a dedicated `IMessageRouterResultHandler` implementation.
 
+**[AgentController](/IntermediatorBotSample/Controllers/AgentController.cs)**
+provides the pending requests from customers to the agent UI webchat component.
+
 ### Taking the code into use ###
 
 The most convenient place to use the aforementioned classes is in the
