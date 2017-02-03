@@ -275,7 +275,7 @@ namespace MessageRouting
 
             if (IsAggregationSetIfRequired)
             {
-                result = RoutingDataManager.AddPendingRequest(MessagingUtils.CreateSenderParty(activity));                
+                result = RoutingDataManager.AddPendingRequest(MessagingUtils.CreateSenderParty(activity));
             }
             else
             {
