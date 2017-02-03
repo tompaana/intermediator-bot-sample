@@ -1,7 +1,7 @@
 ﻿using Microsoft.Bot.Connector;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace MessageRouting
@@ -26,18 +26,6 @@ namespace MessageRouting
 
                 return _instance;
             }
-        }
-
-        /// <summary>
-        /// If true, the router needs an aggregation channel/conversation to be set before any
-        /// routing can take place. True by default.
-        /// 
-        /// It is recommended to set this value in App_Start/WebApiConfig.cs
-        /// </summary>
-        public bool AggregationRequired
-        {
-            get;
-            set;
         }
 
         /// <summary>
@@ -73,18 +61,8 @@ namespace MessageRouting
             set;
         }
 
-        /// <summary>
-        /// True, if this router manager instance is ready to serve customers. False otherwise.
-        /// Note that if the aggregation is not required, this method will always return true.
-        /// </summary>
-        public bool IsAggregationSetIfRequired
-        {
-            get
-            {
-                IList<Party> aggregationParties = RoutingDataManager.GetAggregationParties();
-                return (!AggregationRequired || (aggregationParties != null && aggregationParties.Count() > 0));
-            }
-        }
+        private const string BackChannelId = "backchannel";
+        private const string PartyIdPropertyId = "conversationId";
 
         /// <summary>
         /// Constructor.
@@ -97,7 +75,6 @@ namespace MessageRouting
             // Do not change the following values here!
             // If you want to replace the aggregation value/handlers with your own, do it in
             // App_Start/WebApiConfig.cs
-            AggregationRequired = true; // Do not change the value here!
             ResultHandler = new DefaultMessageRouterResultHandler();
             CommandHandler = new DefaultBotCommandHandler(RoutingDataManager);
         }
@@ -168,6 +145,19 @@ namespace MessageRouting
         }
 
         /// <summary>
+        /// Sends the given message to all the aggregation channels, if any exist.
+        /// </summary>
+        /// <param name="messageText">The message to broadcast.</param>
+        /// <returns></returns>
+        public async Task BroadcastMessageToAggregationChannels(string messageText)
+        {
+            foreach (Party aggregationChannel in RoutingDataManager.GetAggregationParties())
+            {
+                await SendMessageToPartyByBotAsync(aggregationChannel, messageText);
+            }
+        }
+
+        /// <summary>
         /// Handles the new activity.
         /// </summary>
         /// <param name="activity">The activity to handle.</param>
@@ -186,8 +176,15 @@ namespace MessageRouting
             // Make sure we have the details of the sender and the receiver (bot) stored
             MakeSurePartiesAreTracked(activity);
 
-            // Check for possible commands first
-            if (await CommandHandler.HandleCommandAsync(activity))
+            // Check for back channel messages
+            // If agent UI is in use, conversation requests are accepted by these messages
+            if (await HandleBackChannelMessageAsync(activity))
+            {
+                // A back channel message was detected and handled
+                result.Type = MessageRouterResultType.OK;
+            }
+            // Check for possible commands
+            else if (await CommandHandler.HandleCommandAsync(activity))
             {
                 // The message contained a command that was handled
                 result.Type = MessageRouterResultType.OK;
@@ -268,22 +265,11 @@ namespace MessageRouting
         /// <returns>The result of the operation.</returns>
         public async Task<MessageRouterResult> InitiateEngagementAsync(Activity activity)
         {
-            MessageRouterResult result = new MessageRouterResult()
-            {
-                Activity = activity
-            };
-
-            if (IsAggregationSetIfRequired)
-            {
-                result = RoutingDataManager.AddPendingRequest(MessagingUtils.CreateSenderParty(activity));
-            }
-            else
-            {
-                result.Type = MessageRouterResultType.NoAggregationChannel;
-            }
-
-            await HandleAndLogMessageRouterResultAsync(result);
-            return result;
+            MessageRouterResult messageRouterResult =
+                RoutingDataManager.AddPendingRequest(MessagingUtils.CreateSenderParty(activity));
+            messageRouterResult.Activity = activity;
+            await HandleAndLogMessageRouterResultAsync(messageRouterResult);
+            return messageRouterResult;
         }
 
         /// <summary>
@@ -363,7 +349,9 @@ namespace MessageRouting
                         conversationOwnerParty.ChannelAccount, directConversationAccount);
 
                     RoutingDataManager.AddParty(acceptorPartyEngaged);
-                    RoutingDataManager.AddParty(new Party(botParty.ServiceUrl, botParty.ChannelId, botParty.ChannelAccount, directConversationAccount), false);
+                    RoutingDataManager.AddParty(
+                        new Party(botParty.ServiceUrl, botParty.ChannelId, botParty.ChannelAccount, directConversationAccount), false);
+
                     result = RoutingDataManager.AddEngagementAndClearPendingRequest(acceptorPartyEngaged, conversationClientParty);
                     result.ConversationResourceResponse = response;
                 }
@@ -418,6 +406,45 @@ namespace MessageRouting
             }
 
             return (messageRouterResults.Count > 0);    
+        }
+
+        /// <summary>
+        /// Checks the given activity for back channel messages and handles them, if detected.
+        /// Currently the only back channel message supported is for adding engagements
+        /// (establishing 1:1 conversations).
+        /// </summary>
+        /// <param name="activity">The activity to check for back channel messages.</param>
+        /// <returns>True, if a back channel message was detected and handled. False otherwise.</returns>
+        public async Task<bool> HandleBackChannelMessageAsync(Activity activity)
+        {
+            MessageRouterResult messageRouterResult = new MessageRouterResult();
+
+            if (activity == null || string.IsNullOrEmpty(activity.Text))
+            {
+                messageRouterResult.Type = MessageRouterResultType.Error;
+                messageRouterResult.ErrorMessage = $"The given activity ({nameof(activity)}) is either null or the message is missing";
+            }
+            else if (activity.Text.StartsWith(BackChannelId) && activity.ChannelData != null)
+            {
+                // Handle accepted request and start 1:1 conversation
+                string partyId = ((JObject)activity.ChannelData)[BackChannelId][PartyIdPropertyId].ToString();
+                Party conversationClientParty = Party.FromIdString(partyId);
+
+                Party conversationOwnerParty = MessagingUtils.CreateSenderParty(activity);
+
+                messageRouterResult = RoutingDataManager.AddEngagementAndClearPendingRequest(
+                    conversationOwnerParty, conversationClientParty);
+                messageRouterResult.Activity = activity;
+            }
+            else
+            {
+                // No back channel message detected
+                messageRouterResult.Type = MessageRouterResultType.NoActionTaken;
+                messageRouterResult.ErrorMessage = $"Couldn't handle: \"{activity.Text}\"";
+            }
+
+            await HandleAndLogMessageRouterResultAsync(messageRouterResult);
+            return (messageRouterResult.Type == MessageRouterResultType.EngagementAdded);
         }
 
         /// <summary>
@@ -489,12 +516,6 @@ namespace MessageRouting
                     result.Type = MessageRouterResultType.FailedToForwardMessage;
                     result.ErrorMessage = "Failed to find the party to forward the message to";
                 }
-            }
-            else if (!IsAggregationSetIfRequired)
-            {
-                // No aggregation channel set up
-                result.Type = MessageRouterResultType.NoAggregationChannel;
-                result.ErrorMessage = "Failed to handle the message";
             }
 
             await HandleAndLogMessageRouterResultAsync(result);

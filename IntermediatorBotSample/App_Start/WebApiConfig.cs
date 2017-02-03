@@ -37,9 +37,8 @@ namespace IntermediatorBotSample
             );
 
             // Message router manager settings:
-            MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
-            messageRouterManager.AggregationRequired = false;
-            //messageRouterManager.ResultHandler = new MyCustomMessageRouterResultHandler();
+            //MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+            //messageRouterManager.ResultHandler = new MyDebugMessageRouterResultHandler();
         }
     }
 }

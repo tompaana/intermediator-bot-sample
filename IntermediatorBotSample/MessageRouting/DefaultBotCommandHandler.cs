@@ -44,31 +44,24 @@ namespace MessageRouting
 
                 if (messageInLowerCase.StartsWith(Commands.CommandAddAggregationChannel))
                 {
-                    if (MessageRouterManager.Instance.AggregationRequired)
-                    {
-                        // Check if the Aggregation Party already exists
-                        Party aggregationParty = new Party(
-                            activity.ServiceUrl,
-                            activity.ChannelId,
-                            /* not a specific user, but a channel/conv */ null,
-                            activity.Conversation);
+                    // Check if the Aggregation Party already exists
+                    Party aggregationParty = new Party(
+                        activity.ServiceUrl,
+                        activity.ChannelId,
+                        /* not a specific user, but a channel/conv */ null,
+                        activity.Conversation);
 
-                        // Establish the sender's channel/conversation as an aggreated one
-                        if (_routingDataManager.AddAggregationParty(aggregationParty))
-                        {
-                            replyActivity = activity.CreateReply(
-                                "This channel/conversation is now where the requests are aggregated");
-                        }
-                        else
-                        {
-                            // Aggregation already exists
-                            replyActivity = activity.CreateReply(
-                                "This channel/conversation is already receiving requests");
-                        }
+                    // Establish the sender's channel/conversation as an aggreated one
+                    if (_routingDataManager.AddAggregationParty(aggregationParty))
+                    {
+                        replyActivity = activity.CreateReply(
+                            "This channel/conversation is now where the requests are aggregated");
                     }
                     else
                     {
-                        replyActivity = activity.CreateReply("No aggregation in use");
+                        // Aggregation already exists
+                        replyActivity = activity.CreateReply(
+                            "This channel/conversation is already receiving requests");
                     }
 
                     wasHandled = true;
@@ -174,16 +167,6 @@ namespace MessageRouting
                  * code in production!
                  */
                 #region Commands for debugging
-                else if (messageInLowerCase.StartsWith(Commands.CommandEnableAggregation))
-                {
-                    MessageRouterManager.Instance.AggregationRequired = true;
-                    wasHandled = true;
-                }
-                else if (messageInLowerCase.StartsWith(Commands.CommandDisableAggregation))
-                {
-                    MessageRouterManager.Instance.AggregationRequired = false;
-                    wasHandled = true;
-                }
                 else if (messageInLowerCase.StartsWith(Commands.CommandDeleteAllRoutingData))
                 {
                     ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));

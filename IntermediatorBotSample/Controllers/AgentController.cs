@@ -16,9 +16,9 @@ namespace IntermediatorBot.Controllers
 
             if (messageRouterManager.RoutingDataManager.GetPendingRequests().Count > 0)
             {
-                Party party = messageRouterManager.RoutingDataManager.GetPendingRequests().Last();
-                messageRouterManager.RoutingDataManager.RemovePendingRequest(party);
-                return party.GetConversationId();
+                Party partyWithPendingRequest = messageRouterManager.RoutingDataManager.GetPendingRequests().Last();
+                messageRouterManager.RoutingDataManager.RemovePendingRequest(partyWithPendingRequest);
+                return partyWithPendingRequest.ToIdString();
             }
 
             return ResponseNone;

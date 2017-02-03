@@ -68,14 +68,9 @@ namespace MessageRouting
                 {
                     MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
 
-                    if (messageRouterManager.IsAggregationSetIfRequired)
+                    foreach (Party aggregationChannel in messageRouterManager.RoutingDataManager.GetAggregationParties())
                     {
-                        IList<Party> aggregationChannels = messageRouterManager.RoutingDataManager.GetAggregationParties();
-
-                        foreach (Party aggregationChannel in aggregationChannels)
-                        {
-                            await messageRouterManager.SendMessageToPartyByBotAsync(aggregationChannel, messageRouterResult.ErrorMessage);
-                        }
+                        await messageRouterManager.SendMessageToPartyByBotAsync(aggregationChannel, messageRouterResult.ErrorMessage);
                     }
 
                     System.Diagnostics.Debug.WriteLine(messageRouterResult.ErrorMessage);
@@ -104,13 +99,10 @@ namespace MessageRouting
 
             if (messageRouterResult.Type == MessageRouterResultType.EngagementInitiated)
             {
-                if (messageRouterManager.AggregationRequired)
+                foreach (Party aggregationParty in messageRouterManager.RoutingDataManager.GetAggregationParties())
                 {
-                    foreach (Party aggregationParty in messageRouterManager.RoutingDataManager.GetAggregationParties())
-                    {
-                        IMessageActivity messageActivity = CreateRequestCard(conversationClientParty, aggregationParty);
-                        await messageRouterManager.SendMessageToPartyByBotAsync(aggregationParty, messageActivity);
-                    }
+                    IMessageActivity messageActivity = CreateRequestCard(conversationClientParty, aggregationParty);
+                    await messageRouterManager.SendMessageToPartyByBotAsync(aggregationParty, messageActivity);
                 }
 
                 messageToConversationClient = "Please wait for your request to be accepted";
@@ -126,16 +118,8 @@ namespace MessageRouting
             }
             else if (messageRouterResult.Type == MessageRouterResultType.EngagementAdded)
             {
-                if (messageRouterManager.AggregationRequired)
-                {
-                    messageToConversationOwner = $"Request from user \"{conversationClientName}\" accepted, feel free to start the chat";
-                    messageToConversationClient = $"Your request has been accepted by {conversationOwnerName}, feel free to start the chat";
-                }
-                else
-                {
-                    messageToConversationOwner = $"You are now connected to user \"{conversationClientName}\"";
-                    messageToConversationClient = $"You are now chatting with {conversationOwnerName}";
-                }
+                messageToConversationOwner = $"You are now connected to user \"{conversationClientName}\"";
+                messageToConversationClient = $"Your request was accepted and you are now chatting with {conversationOwnerName}";
             }
             else if (messageRouterResult.Type == MessageRouterResultType.EngagementRemoved)
             {
