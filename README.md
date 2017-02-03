@@ -40,11 +40,15 @@ Once you have published the bot, go to the channel you want to receive the
 requests and issue the following command to the bot (given that you haven't
 changed the default bot command handler or the command itself):
 
-    `@BOT_NAME add aggregation`
+```
+@BOT_NAME add aggregation
+```
     
 In case mentions are not supported, you can also use the command keyword:
 
-    `command add aggregation`
+```
+command add aggregation
+```
     
 Now all the requests from another channels are forwarded to this channel.
 
@@ -61,10 +65,10 @@ Now all the requests from another channels are forwarded to this channel.
 
 -->
 
-### Scenario 2: Call center (agent UI) <-> channel ###
+### Scenario 2: Channel <-> call center (agent UI) ###
 
 In this scenario the conversation owners (e.g. customer service agents) access
-the bot via a webchat component, [Agent UI](https://github.com/billba/agent),
+the bot via the webchat component, [Agent UI](https://github.com/billba/agent),
 implemented by [Bill Barnes](https://github.com/billba). Each customer request
 (for human assistance) automatically opens a new chat window in the agent UI.
 To set this up, follow these steps:
