@@ -29,6 +29,29 @@ can use [ngrok](https://ngrok.com/) tunneling software:
 
 See also: [Microsoft Bot Framework Emulator wiki](https://github.com/microsoft/botframework-emulator/wiki/Getting-Started)
 
+### Running the Agent UI Sample ###
+Make sure you have [Node.js](https://nodejs.org/en/) 
+
+1. Go to [this repository](https://github.com/billba/agent)
+2. Clone or download the repository
+3. Inside *index.ts*, update the line below with your bot's endpoint:
+
+  `fetch("https://YOUR_BOT_ENDPOINT/api/agent/1")`
+
+3. Inside *index.ts*, update the line below with your webchat secret ID 
+    - The secret ID can be found in your bot's profile in the [portal](https://dev.botframework.com/bots)
+    - Click on the *Edit* button next to the *Web Chat* channel to locate the ID
+
+  `iframe.src = 'botchat?s=YOUR_WEBCHAT_SECRET_ID';`
+
+4. Run `npm install` to get the npm packages 
+    - You only need to run this command once, unless you add other node packages to the project
+5. Run `npm run build` to build the app 
+    - You need to run this every time you make changes to the code before you start the application
+6. Run `npm run start` to start the app
+7. Go to `http://localhost:8080` to see the Agent UI
+
+
 <!--
 
 ## The flow ##
