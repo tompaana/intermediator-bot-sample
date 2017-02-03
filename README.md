@@ -9,15 +9,15 @@ where the bot relays the messages between a customer and a customer service agen
 See also [Chatbots as Middlemen blog post](http://tomipaananen.azurewebsites.net/?p=1851) related to
 this sample.
 
-## Running and testing ##
+## Getting started ##
 
-To test the bot, publish it and connect it to the channels of your choice.
-If you are new to bots, please familiarize yourself first with the basics
-[here](https://dev.botframework.com/).
-
-I used [Microsoft Bot Framework Emulator](https://docs.botframework.com/en-us/tools/bot-framework-emulator/)
-and Slack for testing the bot. To communicate with a remotely hosted bot, you
-can use [ngrok](https://ngrok.com/) tunneling software:
+To test the bot, publish it in
+[Microsoft Bot Framework portal](https://dev.botframework.com) and connect it to
+the channels of your choice. If you are new to bots, please familiarize yourself
+first with the basics [here](https://dev.botframework.com/).
+[Microsoft Bot Framework Emulator](https://docs.botframework.com/en-us/tools/bot-framework-emulator/)
+is a great tool for testing and debugging. To communicate with a remotely hosted
+bot, you should use [ngrok](https://ngrok.com/) tunneling software:
 
 1. In emulator open **App Settings**
 2. Make sure ngrok path is set
@@ -29,28 +29,24 @@ can use [ngrok](https://ngrok.com/) tunneling software:
 
 See also: [Microsoft Bot Framework Emulator wiki](https://github.com/microsoft/botframework-emulator/wiki/Getting-Started)
 
-### Running the Agent UI Sample ###
-Make sure you have [Node.js](https://nodejs.org/en/) 
+### Scenario 1: Channel <-> channel ###
 
-1. Go to [this repository](https://github.com/billba/agent)
-2. Clone or download the repository
-3. Inside *index.ts*, update the line below with your bot's endpoint:
+This scenario utilizes an aggregation concept (see the terminology table in this
+document). One or more channels act as aggregated channels where the customer
+requests (for human assistance) are sent. The conversation owners (e.g. customer
+service agents) then accept or reject the requests.
 
-  `fetch("https://YOUR_BOT_ENDPOINT/api/agent/1")`
+Once you have published the bot, go to the channel you want to receive the
+requests and issue the following command to the bot (given that you haven't
+changed the default bot command handler or the command itself):
 
-3. Inside *index.ts*, update the line below with your webchat secret ID 
-    - The secret ID can be found in your bot's profile in the [portal](https://dev.botframework.com/bots)
-    - Click on the *Edit* button next to the *Web Chat* channel to locate the ID
+    `@BOT_NAME add aggregation`
+    
+In case mentions are not supported, you can also use the command keyword:
 
-  `iframe.src = 'botchat?s=YOUR_WEBCHAT_SECRET_ID';`
-
-4. Run `npm install` to get the npm packages 
-    - You only need to run this command once, unless you add other node packages to the project
-5. Run `npm run build` to build the app 
-    - You need to run this every time you make changes to the code before you start the application
-6. Run `npm run start` to start the app
-7. Go to `http://localhost:8080` to see the Agent UI
-
+    `command add aggregation`
+    
+Now all the requests from another channels are forwarded to this channel.
 
 <!--
 
@@ -65,13 +61,48 @@ Make sure you have [Node.js](https://nodejs.org/en/)
 
 -->
 
+### Scenario 2: Call center (agent UI) <-> channel ###
+
+In this scenario the conversation owners (e.g. customer service agents) access
+the bot via a webchat component, [Agent UI](https://github.com/billba/agent),
+implemented by [Bill Barnes](https://github.com/billba). Each customer request
+(for human assistance) automatically opens a new chat window in the agent UI.
+To set this up, follow these steps:
+
+0. Make sure you have [Node.js](https://nodejs.org) installed
+1. Clone or download [the Agent UI repository](https://github.com/billba/agent)
+2. Inside `index.ts`, update the line below with your bot's endpoint:
+
+    `fetch("https://YOUR_BOT_ENDPOINT/api/agent/1")`
+
+3. Inside `index.ts`, update the line below with your bot secret
+
+    * The bot secret can be found in your bot's profile in [the portal](https://dev.botframework.com/bots)
+    * Click on the **Edit** button next to the **Web Chat** channel to locate the secret
+
+    `iframe.src = 'botchat?s=YOUR_WEBCHAT_SECRET_ID';`
+
+4. Run `npm install` to get the npm packages 
+
+    * You only need to run this command once, unless you add other node packages
+      to the project
+
+5. Run `npm run build` to build the app 
+
+    * You need to run this every time you make changes to the code before you
+      start the application
+
+6. Run `npm run start` to start the app
+7. Go to `http://localhost:8080` to see the Agent UI
+
+
 ## Implementation ##
 
 ### Terminology ###
 
 | Term | Description |
 | ---- | ----------- |
-| Aggregation (channel) | A channel where the chat requests are sent. The users in the aggregation channel can accept the requests. |
+| Aggregation (channel) | A channel where the chat requests are sent. The users in the aggregation channel can accept the requests. **If you went with the agent UI approach, aggregation concept is not used.** |
 | Engagement | Is created when a request is accepted - the acceptor and the one accepted form an engagement (1:1 chat where the bot relays the messages between the users). |
 | Party | A user/bot in a specific conversation. |
 | Conversation client | A reqular user e.g. a customer. |
@@ -124,10 +155,6 @@ between the parties engaged in a conversation.
 #### Properties ####
 
 * `Instance` is a static property providing the singleton instance of the class.
-* `AggregationRequired` is a boolean property defining whether an aggregation
-  channel is required (see terminology above). The default value is true, but
-  you can change the value in `App_Start\WebApiConfig.cs`. If you plan to use
-  a call center approach, you will probably want to set the value to false.
 * `RoutingDataManager`: The implementation of `IRoutingDataManager` interface
   in use. In case you want to replace the default implementation with your own,
   set it in `App_Start\WebApiConfig.cs`.
@@ -137,10 +164,6 @@ between the parties engaged in a conversation.
 * `CommandHandler`: The implementation of `IBotCommandHandler` interface
   in use. In case you want to replace the default implementation with your own,
   set it in `App_Start\WebApiConfig.cs`.
-* `IsAggregationSetIfRequired` is a boolean, read-only property. The value will
-  be true, if aggregation is required and a valid aggregation channel exists
-  or if aggregation is not required. Essentially this value will indicate
-  whether the manager instance is ready to serve requests or not.
 
 #### Methods ####
 
@@ -154,6 +177,8 @@ between the parties engaged in a conversation.
   routing logic, you can e.g. forward it to your dialog.
 * `SendMessageToPartyByBotAsync`: Utility method to make the bot send a given
   message to a given user.
+* `BroadcastMessageToAggregationChannels`: Sends the given message to all the
+  aggregation channels.
 * `MakeSurePartiesAreTracked`: A convenient method for adding parties.
   The given parties are added if they are new. This method is called by
   `HandleActivityAsync` so you don't need to bother calling this explicitly
@@ -169,6 +194,8 @@ between the parties engaged in a conversation.
   The result handler implementation should notify the user, if necessary.
 * `AddEngagementAsync`: Establishes an engagement between the given parties.
   This method should be called when a chat request is accepted.
+* `HandleBackChannelMessageAsync`: Handles (hidden) messages from the agent UI
+  component.
 * `HandleMessageAsync`: Handles the incoming messages: Relays the messages
   between engaged parties.
 
@@ -238,7 +265,10 @@ public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
 
 ## Acknowledgements ##
 
-Although you can't see it in the change history,
-[Edouard Mathon](https://github.com/edouard-mathon) added
-multi-aggregation-channel support (many thanks!), which in human talk means that
-the chat requests can be received by multiple channels/conversations.
+* [Lilian Kasem](https://github.com/liliankasem) implemented and documented the
+  agent UI support. She also had a significant role in the making of this
+  sample.
+* Although you can't see it in the change history,
+  [Edouard Mathon](https://github.com/edouard-mathon) added
+  multi-aggregation-channel support (many thanks!), which in human talk means
+  that the chat requests can be received by multiple channels/conversations.
