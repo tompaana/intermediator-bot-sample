@@ -1,27 +1,49 @@
 ﻿using MessageRouting;
+using System;
 using System.Linq;
 using System.Web.Http;
 using System.Web.Http.Cors;
 
 namespace IntermediatorBot.Controllers
 {
+    /// <summary>
+    /// This class handles the direct requests made by the Agent UI component.
+    /// </summary>
     public class AgentController : ApiController
     {
         private const string ResponseNone = "None";
 
+        /// <summary>
+        /// Handles requests sent by the Agent UI.
+        /// If there are no aggregation channels set and one or more pending requests exist,
+        /// the oldest request is processed and sent to the Agent UI.
+        /// </summary>
+        /// <param name="id">Not used.</param>
+        /// <returns>The details of the user who made the request or "None", if no pending requests
+        /// or if one or more aggregation channels are set up.</returns>
         [EnableCors("*", "*", "*")]
-        public string GetAgentById(int Id)
+        public string GetAgentById(int id)
         {
+            string response = ResponseNone;
             MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+            IRoutingDataManager routingDataManager = messageRouterManager.RoutingDataManager;
 
-            if (messageRouterManager.RoutingDataManager.GetPendingRequests().Count > 0)
+            if (routingDataManager.GetAggregationParties().Count == 0
+                && routingDataManager.GetPendingRequests().Count > 0)
             {
-                Party conversationClientParty = messageRouterManager.RoutingDataManager.GetPendingRequests().Last();
-                messageRouterManager.RoutingDataManager.RemovePendingRequest(conversationClientParty);
-                return conversationClientParty.ToIdString();
+                try
+                {
+                    Party conversationClientParty = messageRouterManager.RoutingDataManager.GetPendingRequests().First();
+                    messageRouterManager.RoutingDataManager.RemovePendingRequest(conversationClientParty);
+                    response = conversationClientParty.ToIdString();
+                }
+                catch (InvalidOperationException e)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to handle a pending request: {e.Message}");
+                }
             }
 
-            return ResponseNone;
+            return response;
         }
     }
 }
