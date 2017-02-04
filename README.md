@@ -12,7 +12,6 @@ See also [Chatbots as Middlemen blog post](http://tomipaananen.azurewebsites.net
 related to this sample.
 
 
-
 ## Getting started ##
 
 To test the bot, publish it in
@@ -75,6 +74,11 @@ In this scenario the conversation owners (e.g. customer service agents) access
 the bot via the webchat component, [Agent UI](https://github.com/billba/agent),
 implemented by [Bill Barnes](https://github.com/billba). Each customer request
 (for human assistance) automatically opens a new chat window in the agent UI.
+
+| Emulator | Agent UI |
+| -------- | -------- |
+| ![Emulator](Documentation/Screenshots/ConversationInEmulatorWithAgentUI.png?raw=true) | ![Agent UI](Documentation/Screenshots/AgentUI.png?raw=true) |
+
 To set this up, follow these steps:
 
 0. Make sure you have [Node.js](https://nodejs.org) installed
