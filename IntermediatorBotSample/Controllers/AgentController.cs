@@ -16,18 +16,12 @@ namespace IntermediatorBot.Controllers
 
             if (messageRouterManager.RoutingDataManager.GetPendingRequests().Count > 0)
             {
-                Party partyWithPendingRequest = messageRouterManager.RoutingDataManager.GetPendingRequests().Last();
-                messageRouterManager.RoutingDataManager.RemovePendingRequest(partyWithPendingRequest);
-                return partyWithPendingRequest.ToIdString();
+                Party conversationClientParty = messageRouterManager.RoutingDataManager.GetPendingRequests().Last();
+                messageRouterManager.RoutingDataManager.RemovePendingRequest(conversationClientParty);
+                return conversationClientParty.ToIdString();
             }
 
             return ResponseNone;
-        }
-
-        [HttpGet]
-        public string GetNextConvForConsult()
-        {
-            return "hello";
         }
     }
 }

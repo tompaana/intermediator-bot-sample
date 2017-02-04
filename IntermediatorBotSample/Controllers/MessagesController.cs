@@ -107,11 +107,5 @@ namespace IntermediatorBotSample
 
             return null;
         }
-
-        /*public new void Dispose()
-        {
-            base.Dispose();
-            _messageRouterEventHander.Dispose();
-        }*/
     }
 }

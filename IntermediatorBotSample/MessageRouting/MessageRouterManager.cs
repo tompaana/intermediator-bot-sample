@@ -424,17 +424,25 @@ namespace MessageRouting
                 messageRouterResult.Type = MessageRouterResultType.Error;
                 messageRouterResult.ErrorMessage = $"The given activity ({nameof(activity)}) is either null or the message is missing";
             }
-            else if (activity.Text.StartsWith(BackChannelId) && activity.ChannelData != null)
+            else if (activity.Text.StartsWith(BackChannelId))
             {
-                // Handle accepted request and start 1:1 conversation
-                string partyId = ((JObject)activity.ChannelData)[BackChannelId][PartyIdPropertyId].ToString();
-                Party conversationClientParty = Party.FromIdString(partyId);
+                if (activity.ChannelData == null)
+                {
+                    messageRouterResult.Type = MessageRouterResultType.Error;
+                    messageRouterResult.ErrorMessage = "No channel data";
+                }
+                else
+                {
+                    // Handle accepted request and start 1:1 conversation
+                    string partyId = ((JObject)activity.ChannelData)[BackChannelId][PartyIdPropertyId].ToString();
+                    Party conversationClientParty = Party.FromIdString(partyId);
 
-                Party conversationOwnerParty = MessagingUtils.CreateSenderParty(activity);
+                    Party conversationOwnerParty = MessagingUtils.CreateSenderParty(activity);
 
-                messageRouterResult = RoutingDataManager.AddEngagementAndClearPendingRequest(
-                    conversationOwnerParty, conversationClientParty);
-                messageRouterResult.Activity = activity;
+                    messageRouterResult = RoutingDataManager.AddEngagementAndClearPendingRequest(
+                        conversationOwnerParty, conversationClientParty);
+                    messageRouterResult.Activity = activity;
+                }
             }
             else
             {
