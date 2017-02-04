@@ -97,7 +97,7 @@ To set this up, follow these steps:
     * If your **Configure Direct Line** page is blank, create a new site by
       clicking **Add new site** and two bot secret keys will be generated for you:
     
-    ![Bot secret on Configure Web Chat page](Documentation/Screenshots/RetrievingBotSecret2.png?raw=true)
+    ![Bot secret on Configure Direct Line page](Documentation/Screenshots/RetrievingBotSecret2.png?raw=true)
 
 4. Run `npm install` to get the npm packages 
 
