@@ -37,14 +37,7 @@ See also: [Microsoft Bot Framework Emulator wiki](https://github.com/microsoft/b
 This scenario utilizes an aggregation concept (see the terminology table in this
 document). One or more channels act as aggregated channels where the customer
 requests (for human assistance) are sent. The conversation owners (e.g. customer
-service agents) then accept or reject the requests. See the default flow below:
-
-| Emulator with ngrok | Slack |
-| ------------------- | ----- |
-| | ![Initialization](Documentation/Screenshots/Initialization.png?raw=true) |
-| ![Request sent](/Documentation/Screenshots/RequestSent.png?raw=true) | ![Request accepted](/Documentation/Screenshots/RequestAccepted.png?raw=true) |
-| | ![Direct messaging channel created](/Documentation/Screenshots/DirectMessagingChannelCreated.png?raw=true) |
-| ![Conversation in emulator](/Documentation/Screenshots/ConversationInEmulator.png?raw=true) | ![Conversation in Slack](/Documentation/Screenshots/ConversationInSlack.png?raw=true) |
+service agents) then accept or reject the requests.
 
 Once you have published the bot, go to the channel you want to receive the
 requests and issue the following command to the bot (given that you haven't
@@ -61,6 +54,14 @@ command add aggregation
 ```
     
 Now all the requests from another channels are forwarded to this channel.
+See the default flow below:
+
+| Emulator with ngrok | Slack |
+| ------------------- | ----- |
+| | ![Initialization](Documentation/Screenshots/Initialization.png?raw=true) |
+| ![Request sent](/Documentation/Screenshots/RequestSent.png?raw=true) | ![Request accepted](/Documentation/Screenshots/RequestAccepted.png?raw=true) |
+| | ![Direct messaging channel created](/Documentation/Screenshots/DirectMessagingChannelCreated.png?raw=true) |
+| ![Conversation in emulator](/Documentation/Screenshots/ConversationInEmulator.png?raw=true) | ![Conversation in Slack](/Documentation/Screenshots/ConversationInSlack.png?raw=true) |
 
 ### Scenario 2: Channel <-> call center (agent UI) ###
 
