@@ -81,19 +81,21 @@ To set this up, follow these steps:
     
     Example: `fetch("https://intermediatorbotsample.azurewebsites.net/api/agent/1")`
 
-3. Inside `index.ts`, update the line below with your bot secret
+3. Inside `index.ts`, update the line below with your bot secret key
 
     ```js
     iframe.src = 'botchat?s=YOUR_WEBCHAT_SECRET_ID';
     ```
     
-    * The bot secret can be found in your bot's profile in [the portal](https://dev.botframework.com/bots)
-    * Click on the **Edit** button next to the **Web Chat** channel to locate the secret
+    * The bot secret key can be found in your bot's profile in
+      [the portal](https://dev.botframework.com/bots)
+    * Click on the **Edit** button next to the **Web Chat** channel to locate
+      the secret key
     
     ![Edit button in the portal](Documentation/Screenshots/RetrievingBotSecret1.png?raw=true)
     
     * If your **Configure Web Chat** page is blank, create a new site by
-      clicking **Add new site**
+      clicking **Add new site** and two bot secret keys will be generated for you:
     
     ![Bot secret on Configure Web Chat page](Documentation/Screenshots/RetrievingBotSecret2.png?raw=true)
 
