@@ -78,6 +78,8 @@ To set this up, follow these steps:
 2. Inside `index.ts`, update the line below with your bot's endpoint:
 
     `fetch("https://YOUR_BOT_ENDPOINT/api/agent/1")`
+    
+    Example: `fetch("https://intermediatorbotsample.azurewebsites.net/api/agent/1")`
 
 3. Inside `index.ts`, update the line below with your bot secret
 

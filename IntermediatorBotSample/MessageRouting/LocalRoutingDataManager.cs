@@ -594,7 +594,7 @@ namespace MessageRouting
         {
             if (result != null)
             {
-                if (LastMessageRouterResults.Count > 4)
+                if (LastMessageRouterResults.Count > 9)
                 {
                     LastMessageRouterResults.Remove(LastMessageRouterResults.ElementAt(0));
                 }

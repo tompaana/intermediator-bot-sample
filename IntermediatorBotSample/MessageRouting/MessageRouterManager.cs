@@ -73,7 +73,7 @@ namespace MessageRouting
             RoutingDataManager = new LocalRoutingDataManager();
 
             // Do not change the following values here!
-            // If you want to replace the aggregation value/handlers with your own, do it in
+            // If you want to replace the handlers with your own, do it in
             // App_Start/WebApiConfig.cs
             ResultHandler = new DefaultMessageRouterResultHandler();
             CommandHandler = new DefaultBotCommandHandler(RoutingDataManager);
@@ -448,7 +448,6 @@ namespace MessageRouting
             {
                 // No back channel message detected
                 messageRouterResult.Type = MessageRouterResultType.NoActionTaken;
-                messageRouterResult.ErrorMessage = $"Couldn't handle: \"{activity.Text}\"";
             }
 
             await HandleAndLogMessageRouterResultAsync(messageRouterResult);
