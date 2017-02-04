@@ -1,13 +1,17 @@
 # Intermediator Bot Sample #
 
 A bot build on [Microsoft Bot Framework](https://dev.botframework.com/) that
-routes messages between two users on different channels.
+routes messages between two users on different channels. This is a C# sample -
+if you're looking to do this with Node, see
+[this sample](https://github.com/palindromed/Bot-HandOff).
 
 A possible use case for this type of a bot would be a customer service scenario
 where the bot relays the messages between a customer and a customer service agent.
 
-See also [Chatbots as Middlemen blog post](http://tomipaananen.azurewebsites.net/?p=1851) related to
-this sample.
+See also [Chatbots as Middlemen blog post](http://tomipaananen.azurewebsites.net/?p=1851)
+related to this sample.
+
+
 
 ## Getting started ##
 
