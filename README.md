@@ -83,10 +83,19 @@ To set this up, follow these steps:
 
 3. Inside `index.ts`, update the line below with your bot secret
 
+    ```js
+    iframe.src = 'botchat?s=YOUR_WEBCHAT_SECRET_ID';
+    ```
+    
     * The bot secret can be found in your bot's profile in [the portal](https://dev.botframework.com/bots)
     * Click on the **Edit** button next to the **Web Chat** channel to locate the secret
-
-    `iframe.src = 'botchat?s=YOUR_WEBCHAT_SECRET_ID';`
+    
+    ![Edit button in the portal](Documentation/Screenshots/RetrievingBotSecret1.png?raw=true)
+    
+    * If your **Configure Web Chat** page is blank, create a new site by
+      clicking **Add new site**
+    
+    ![Bot secret on Configure Web Chat page](Documentation/Screenshots/RetrievingBotSecret2.png?raw=true)
 
 4. Run `npm install` to get the npm packages 
 
