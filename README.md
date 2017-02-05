@@ -23,10 +23,12 @@ is a great tool for testing and debugging. To communicate with a remotely hosted
 bot, you should use [ngrok](https://ngrok.com/) tunneling software:
 
 1. In emulator open **App Settings**
-2. Make sure ngrok path is set
+2. Make sure ngrok path is set:
     ![Setting ngrok path in emulator settings](Documentation/Screenshots/SettingNgrokPathInEmulatorSettings.png?raw=true)
-3. Set the bot end point in emulator (`https://<bot URL>/api/messages`)
-4. Set **Microsoft App ID** and **Microsoft App Password**
+3. See the emulator log to verify the path was set correctly:
+    ![ngrok info in emulator log](Documentation/Screenshots/NgrokLocalhostPortInEmulatorLog.png?raw=true)
+4. Set the bot end point in emulator (`https://<bot URL>/api/messages`)
+5. Set **Microsoft App ID** and **Microsoft App Password**
 
 See also: [Microsoft Bot Framework Emulator wiki](https://github.com/microsoft/botframework-emulator/wiki/Getting-Started)
 
