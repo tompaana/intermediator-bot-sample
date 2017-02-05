@@ -30,8 +30,8 @@ bot, you should use [ngrok](https://ngrok.com/) tunneling software:
 4. Set the bot end point in emulator (`https://<bot URL>/api/messages`)
 5. Set **Microsoft App ID** and **Microsoft App Password**
     * **Note:** It is easy to forget to add the app ID and password to the
-      `Web.config` file. Make sure you have the values set when before you
-      publish the bot:
+      `Web.config` file. Make sure you have the values set before you publish
+      the bot:
     ![Setting app ID and password in Web.config](Documentation/Screenshots/AppSettingsInWebConfig.png?raw=true)
 6. Click **CONNECT** to start a new conversation
     ![Setting end point, app ID and password in emulator](Documentation/Screenshots/SettingBotEndpointAppIdAndPasswordInEmulator.png?raw=true)
