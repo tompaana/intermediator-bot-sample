@@ -29,6 +29,8 @@ bot, you should use [ngrok](https://ngrok.com/) tunneling software:
     ![ngrok info in emulator log](Documentation/Screenshots/NgrokLocalhostPortInEmulatorLog.png?raw=true)
 4. Set the bot end point in emulator (`https://<bot URL>/api/messages`)
 5. Set **Microsoft App ID** and **Microsoft App Password**
+6. Click **CONNECT** to start a new conversation
+    ![Setting end point, app ID and password in emulator](Documentation/Screenshots/SettingBotEndpointAppIdAndPasswordInEmulator.png?raw=true)
 
 See also: [Microsoft Bot Framework Emulator wiki](https://github.com/microsoft/botframework-emulator/wiki/Getting-Started)
 
