@@ -13,8 +13,6 @@ namespace MessageRouting
         public const string CommandDeleteAllRoutingData = "reset";
 
         // For debugging
-        public const string CommandEnableAggregation = "enable aggregation";
-        public const string CommandDisableAggregation = "disable aggregation";
         public const string CommandListAllParties = "list parties";
         public const string CommandListPendingRequests = "list requests";
         public const string CommandListEngagements = "list conversations";
