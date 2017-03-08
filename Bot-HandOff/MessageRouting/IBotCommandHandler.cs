@@ -15,8 +15,6 @@ namespace MessageRouting
         public const string CommandListOptions = "options";
 
         // For debugging
-        public const string CommandEnableAggregation = "enable aggregation";
-        public const string CommandDisableAggregation = "disable aggregation";
         public const string CommandListAllParties = "list parties";
         public const string CommandListPendingRequests = "waiting";
         public const string CommandListEngagements = "list";
