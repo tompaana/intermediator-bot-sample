@@ -1,10 +1,10 @@
-﻿using MessageRouting;
-using System;
+﻿using System;
 using System.Linq;
 using System.Web.Http;
 using System.Web.Http.Cors;
+using Underscore.Bot.MessageRouting;
 
-namespace IntermediatorBot.Controllers
+namespace IntermediatorBotSample.Controllers
 {
     /// <summary>
     /// This class handles the direct requests made by the Agent UI component.
@@ -25,7 +25,7 @@ namespace IntermediatorBot.Controllers
         public string GetAgentById(int id)
         {
             string response = ResponseNone;
-            MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+            MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
             IRoutingDataManager routingDataManager = messageRouterManager.RoutingDataManager;
 
             if (routingDataManager.GetAggregationParties().Count == 0
@@ -35,7 +35,7 @@ namespace IntermediatorBot.Controllers
                 {
                     Party conversationClientParty = messageRouterManager.RoutingDataManager.GetPendingRequests().First();
                     messageRouterManager.RoutingDataManager.RemovePendingRequest(conversationClientParty);
-                    response = conversationClientParty.ToIdString();
+                    response = conversationClientParty.ToJsonString();
                 }
                 catch (InvalidOperationException e)
                 {

@@ -1,14 +1,35 @@
-﻿using Microsoft.Bot.Connector;
+﻿using IntermediatorBotSample;
+using Microsoft.Bot.Connector;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Underscore.Bot.MessageRouting;
 
-namespace MessageRouting
+namespace IntermediatorBotSample.CommandHandling
 {
+    public class Commands
+    {
+        public const string CommandKeyword = "command"; // Used if the channel does not support mentions
+        public const string CommandAddAggregationChannel = "add aggregation";
+        public const string CommandAcceptRequest = "accept";
+        public const string CommandRejectRequest = "reject";
+        public const string CommandEndEngagement = "end";
+        public const string CommandDeleteAllRoutingData = "reset";
+
+        // For debugging
+        public const string CommandListAllParties = "list parties";
+        public const string CommandListPendingRequests = "list requests";
+        public const string CommandListEngagements = "list conversations";
+#if DEBUG
+        public const string CommandListLastMessageRouterResults = "list results";
+#endif
+    }
+
     /// <summary>
     /// The default handler for bot commands related to message routing.
     /// </summary>
-    public class DefaultBotCommandHandler : IBotCommandHandler
+    public class BotCommandHandler
     {
         private IRoutingDataManager _routingDataManager;
 
@@ -16,7 +37,7 @@ namespace MessageRouting
         /// Constructor.
         /// </summary>
         /// <param name="routingDataManager">The routing data manager.</param>
-        public DefaultBotCommandHandler(IRoutingDataManager routingDataManager)
+        public BotCommandHandler(IRoutingDataManager routingDataManager)
         {
             _routingDataManager = routingDataManager;
         }
@@ -105,7 +126,7 @@ namespace MessageRouting
 
                                     if (partyToAcceptOrReject != null)
                                     {
-                                        MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+                                        MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
 
                                         if (doAccept)
                                         {
@@ -113,7 +134,7 @@ namespace MessageRouting
                                         }
                                         else
                                         {
-                                            await messageRouterManager.RejectPendingRequestAsync(partyToAcceptOrReject, senderParty);
+                                            messageRouterManager.RejectPendingRequest(partyToAcceptOrReject, senderParty);
                                         }
                                     }
                                     else
@@ -153,8 +174,9 @@ namespace MessageRouting
                 {
                     // End the 1:1 conversation
                     Party senderParty = MessagingUtils.CreateSenderParty(activity);
+                    IList<MessageRouterResult> messageRouterResults = WebApiConfig.MessageRouterManager.EndEngagement(senderParty);
 
-                    if (await MessageRouterManager.Instance.EndEngagementAsync(senderParty) == false)
+                    if (messageRouterResults == null || messageRouterResults.Count == 0)
                     {
                         replyActivity = activity.CreateReply("Failed to end the engagement");
                     }
@@ -250,7 +272,7 @@ namespace MessageRouting
                 else if (messageInLowerCase.StartsWith(Commands.CommandListLastMessageRouterResults))
                 {
                     LocalRoutingDataManager routingDataManager =
-                        (MessageRouterManager.Instance.RoutingDataManager as LocalRoutingDataManager);
+                        (WebApiConfig.MessageRouterManager.RoutingDataManager as LocalRoutingDataManager);
 
                     if (routingDataManager != null)
                     {

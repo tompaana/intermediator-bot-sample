@@ -251,5 +251,5 @@ paket-files/
 .idea/
 *.sln.iml
 
-# Web config
-*.config
+# Package and web configs
+#*.config

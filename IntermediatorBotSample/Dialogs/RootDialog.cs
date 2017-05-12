@@ -2,9 +2,9 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Bot.Connector;
-using MessageRouting;
+using IntermediatorBotSample;
 
-namespace IntermediatorBot.Dialogs
+namespace IntermediatorBotSample.Dialogs
 {
     /// <summary>
     /// Simple echo dialog that initiates an engagement, if the message contains a certain keyword.
@@ -35,7 +35,7 @@ namespace IntermediatorBot.Dialogs
             {
                 if (message.ToLower().Contains("help"))
                 {
-                    await MessageRouterManager.Instance.InitiateEngagementAsync((messageActivity as Activity));
+                    WebApiConfig.MessageRouterManager.InitiateEngagement((messageActivity as Activity));
                 }
                 else
                 {

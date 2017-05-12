@@ -1,11 +1,13 @@
-﻿using Microsoft.Bot.Connector;
+﻿using IntermediatorBotSample.CommandHandling;
+using Microsoft.Bot.Connector;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Underscore.Bot.MessageRouting;
 
-namespace MessageRouting
+namespace IntermediatorBotSample.MessageRouting
 {
-    public class DefaultMessageRouterResultHandler : IMessageRouterResultHandler
+    public class MessageRouterResultHandler : IMessageRouterResultHandler
     {
         /// <summary>
         /// From IMessageRouterResultHandler.
@@ -36,7 +38,7 @@ namespace MessageRouting
             {
                 if (messageRouterResult.Activity != null)
                 {
-                    MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+                    MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
 
                     string botName = messageRouterManager.RoutingDataManager.ResolveBotNameInConversation(
                         MessagingUtils.CreateSenderParty(messageRouterResult.Activity));
@@ -54,7 +56,7 @@ namespace MessageRouting
             }
             else if (messageRouterResult.Type == MessageRouterResultType.FailedToForwardMessage)
             {
-                MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+                MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
                 string message = $"{(string.IsNullOrEmpty(messageRouterResult.ErrorMessage) ? "Failed to forward the message" : messageRouterResult.ErrorMessage)}";
                 await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
             }
@@ -66,7 +68,7 @@ namespace MessageRouting
                 }
                 else
                 {
-                    MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+                    MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
 
                     foreach (Party aggregationChannel in messageRouterManager.RoutingDataManager.GetAggregationParties())
                     {
@@ -85,7 +87,7 @@ namespace MessageRouting
         /// <param name="messageRouterResult">The result to handle.</param>
         protected virtual async Task HandleEngagementChangedResultAsync(MessageRouterResult messageRouterResult)
         {
-            MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+            MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
             IRoutingDataManager routingDataManager = messageRouterManager.RoutingDataManager;
 
             Party conversationOwnerParty = messageRouterResult.ConversationOwnerParty;
@@ -162,7 +164,7 @@ namespace MessageRouting
 
             string requesterId = pendingRequest.ChannelAccount.Id;
             string requesterName = pendingRequest.ChannelAccount.Name;
-            string botName = MessageRouterManager.Instance.RoutingDataManager.ResolveBotNameInConversation(aggregationParty);
+            string botName = WebApiConfig.MessageRouterManager.RoutingDataManager.ResolveBotNameInConversation(aggregationParty);
             string commandKeyword = string.IsNullOrEmpty(botName) ? Commands.CommandKeyword : $"@{botName}";
             string acceptCommand = $"{commandKeyword} {Commands.CommandAcceptRequest} {requesterId}";
             string rejectCommand = $"{commandKeyword} {Commands.CommandRejectRequest} {requesterId}";

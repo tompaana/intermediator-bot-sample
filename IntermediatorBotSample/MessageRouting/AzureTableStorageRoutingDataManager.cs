@@ -6,7 +6,7 @@ using Microsoft.Bot.Connector;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.Azure;
 
-namespace MessageRouting
+namespace IntermediatorBotSample.MessageRouting
 {
     /// <summary>
     /// Routing data manager that stores the data in Azure Table storage services.
