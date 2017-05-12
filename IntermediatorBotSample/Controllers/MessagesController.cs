@@ -4,11 +4,12 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web.Http;
 using Microsoft.Bot.Connector;
-using MessageRouting;
-using IntermediatorBot.Dialogs;
+using IntermediatorBotSample.Dialogs;
 using Microsoft.Bot.Builder.Dialogs;
+using Underscore.Bot.MessageRouting;
+using IntermediatorBotSample.MessageRouting;
 
-namespace IntermediatorBotSample
+namespace IntermediatorBotSample.Controllers
 {
     [BotAuthentication]
     public class MessagesController : ApiController
@@ -25,27 +26,40 @@ namespace IntermediatorBotSample
         {
             if (activity.Type == ActivityTypes.Message)
             {
-                // Get the message router manager instance and let it handle the activity
-                MessageRouterResult result = await MessageRouterManager.Instance.HandleActivityAsync(activity, false);
-
-                if (result.Type == MessageRouterResultType.NoActionTaken)
+                // First check for commands
+                if (await WebApiConfig.BotCommandHandler.HandleCommandAsync(activity) == false)
                 {
-                    // No action was taken by the message router manager. This means that the user
-                    // is not engaged in a 1:1 conversation with a human (e.g. customer service
-                    // agent) yet.
-                    //
-                    // You can, for example, check if the user (customer) needs human assistance
-                    // here or forward the activity to a dialog. You could also do the check in
-                    // the dialog too...
-                    //
-                    // Here's an example:
-                    if (!string.IsNullOrEmpty(activity.Text) && activity.Text.ToLower().Contains("human"))
+                    // No command detected
+
+                    MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
+
+                    // Get the message router manager instance and let it handle the activity
+                    MessageRouterResult messageRouterResult = await messageRouterManager.HandleActivityAsync(activity, false);
+
+                    if (messageRouterResult.Type == MessageRouterResultType.NoActionTaken)
                     {
-                        await MessageRouterManager.Instance.InitiateEngagementAsync(activity);
+                        // No action was taken by the message router manager. This means that the user
+                        // is not engaged in a 1:1 conversation with a human (e.g. customer service
+                        // agent) yet.
+                        //
+                        // You can, for example, check if the user (customer) needs human assistance
+                        // here or forward the activity to a dialog. You could also do the check in
+                        // the dialog too...
+                        //
+                        // Here's an example:
+                        if (!string.IsNullOrEmpty(activity.Text) && activity.Text.ToLower().Contains("human"))
+                        {
+                            messageRouterManager.InitiateEngagement(activity);
+                        }
+                        else
+                        {
+                            await Conversation.SendAsync(activity, () => new RootDialog());
+                        }
                     }
                     else
                     {
-                        await Conversation.SendAsync(activity, () => new RootDialog());
+                        IMessageRouterResultHandler messageRouterResultHandler = new MessageRouterResultHandler();
+                        await messageRouterResultHandler.HandleResultAsync(messageRouterResult);
                     }
                 }
             }
@@ -60,7 +74,7 @@ namespace IntermediatorBotSample
 
         private async Task<Activity> HandleSystemMessageAsync(Activity message)
         {
-            MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+            MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
 
             if (message.Type == ActivityTypes.DeleteUserData)
             {
@@ -68,7 +82,7 @@ namespace IntermediatorBotSample
                 // If we handle user deletion, return a real message
                 Party senderParty = MessagingUtils.CreateSenderParty(message);
 
-                if (await messageRouterManager.RemovePartyAsync(senderParty))
+                if (messageRouterManager.RemoveParty(senderParty)?.Count > 0)
                 {
                     return message.CreateReply($"Data of user {senderParty.ChannelAccount?.Name} removed");
                 }
@@ -85,7 +99,7 @@ namespace IntermediatorBotSample
                         Party party = new Party(
                             message.ServiceUrl, message.ChannelId, channelAccount, message.Conversation);
 
-                        if (await messageRouterManager.RemovePartyAsync(party))
+                        if (messageRouterManager.RemoveParty(party)?.Count > 0)
                         {
                             System.Diagnostics.Debug.WriteLine($"Party {party.ToString()} removed");
                         }
