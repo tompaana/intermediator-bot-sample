@@ -491,7 +491,7 @@ namespace MessageRouting
 
             try
             {
-                foundParty = EngagedParties.Keys.Single(party =>
+                foundParty = EngagedParties.Keys.FirstOrDefault(party =>
                         (party.ChannelId.Equals(channelId)
                          && party.ChannelAccount != null
                          && party.ChannelAccount.Id.Equals(channelAccount.Id)));
@@ -499,7 +499,7 @@ namespace MessageRouting
                 if (foundParty == null)
                 {
                     // Not found in keys, try the values
-                    foundParty = EngagedParties.Values.First(party =>
+                    foundParty = EngagedParties.Values.FirstOrDefault(party =>
                             (party.ChannelId.Equals(channelId)
                              && party.ChannelAccount != null
                              && party.ChannelAccount.Id.Equals(channelAccount.Id)));
