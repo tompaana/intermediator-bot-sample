@@ -65,7 +65,7 @@ public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
 You'll also want to ensure you handle system messages correctly - to ensure that conversations between agents/users aren't left in an unknown state eg:
 
 ```
- private async Task<Activity> HandleSystemMessage(Activity message)
+private async Task<Activity> HandleSystemMessage(Activity message)
 {
     MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
 
@@ -112,6 +112,50 @@ You'll also want to ensure you handle system messages correctly - to ensure that
     }
 
     return null;
+}
+```
+## Scenario 2: Channel <-> call center (agent UI)
+
+For the scenario where you want to have a single call agent managing multiple conversations you can use the additional Agent UI described in the github repo.  You will also need to add an additional APIController to your bot for the Agent UI to call back on.
+
+Add an AgentController.cs file to your bot eg:
+```
+public class AgentController : ApiController
+{
+    private const string ResponseNone = "None";
+
+    /// <summary>
+    /// Handles requests sent by the Agent UI.
+    /// If there are no aggregation channels set and one or more pending requests exist,
+    /// the oldest request is processed and sent to the Agent UI.
+    /// </summary>
+    /// <param name="id">Not used.</param>
+    /// <returns>The details of the user who made the request or "None", if no pending requests
+    /// or if one or more aggregation channels are set up.</returns>
+    [EnableCors("*", "*", "*")]
+    public string GetAgentById(int id)
+    {
+        string response = ResponseNone;
+        MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+        IRoutingDataManager routingDataManager = messageRouterManager.RoutingDataManager;
+
+        if (routingDataManager.GetAggregationParties().Count == 0
+            && routingDataManager.GetPendingRequests().Count > 0)
+        {
+            try
+            {
+                Party conversationClientParty = messageRouterManager.RoutingDataManager.GetPendingRequests().First();
+                messageRouterManager.RoutingDataManager.RemovePendingRequest(conversationClientParty);
+                response = conversationClientParty.ToIdString();
+            }
+            catch (InvalidOperationException e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to handle a pending request: {e.Message}");
+            }
+        }
+
+        return response;
+    }
 }
 ```
 
