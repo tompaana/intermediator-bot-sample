@@ -116,7 +116,45 @@ private async Task<Activity> HandleSystemMessage(Activity message)
 ```
 ## Scenario 2: Channel <-> call center (agent UI)
 
-For the scenario where you want to have a single call agent managing multiple conversations you can use the additional Agent UI described in the github repo.  You will also need to add an additional APIController to your bot for the Agent UI to call back on.
+For the scenario where you want to have a single call agent managing multiple conversations you can use the additional Agent UI described in the github repo.  You will also need to add an additional APIController to your bot for the Agent UI to call back on.  This relies on CORs being enabled within your bot project, hence the Microsoft.AspNet.WebApi.Cors package will automatically be added to your project.  If you are not using this scenario you can remove this.
+
+### WebApiConfig.cs
+
+Ensure that CORs is enabled within your App_Start/WebApiConfig.cs eg:
+
+```
+public static void Register(HttpConfiguration config)
+{
+    // Json settings
+    config.Formatters.JsonFormatter.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+    config.Formatters.JsonFormatter.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+    config.Formatters.JsonFormatter.SerializerSettings.Formatting = Formatting.Indented;
+    JsonConvert.DefaultSettings = () => new JsonSerializerSettings()
+    {
+        ContractResolver = new CamelCasePropertyNamesContractResolver(),
+        Formatting = Newtonsoft.Json.Formatting.Indented,
+        NullValueHandling = NullValueHandling.Ignore,
+    };
+
+    // Web API configuration and services
+    config.EnableCors();
+
+    // Web API routes
+    config.MapHttpAttributeRoutes();
+
+    config.Routes.MapHttpRoute(
+        name: "DefaultApi",
+        routeTemplate: "api/{controller}/{id}",
+        defaults: new { id = RouteParameter.Optional }
+    );
+
+    // Message router manager settings:
+    //MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+    //messageRouterManager.ResultHandler = new MyDebugMessageRouterResultHandler();
+}
+```
+
+### AgentController.cs
 
 Add an AgentController.cs file to your bot eg:
 ```
@@ -174,5 +212,6 @@ These are discreet commands that the bot will listen out for and action on behal
 | Disconnect | This will "hang-up" the agent from the conversation and leave the end user conversing directly with the bot |
 | List       | This will show any requests for human assistance that have been requested by all users |
 | Reset      | This clears the in-memory state of all active conversation management for bot handoffs
+| Options    | Display a list of agent commands available
 
 
