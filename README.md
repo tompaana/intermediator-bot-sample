@@ -50,13 +50,13 @@ requests and issue the following command to the bot (given that you haven't
 changed the default bot command handler or the command itself):
 
 ```
-@BOT_NAME add aggregation
+@BOT_NAME watch
 ```
     
 In case mentions are not supported, you can also use the command keyword:
 
 ```
-command add aggregation
+command watch
 ```
     
 Now all the requests from another channels are forwarded to this channel.
@@ -112,6 +112,8 @@ To set this up, follow these steps:
 
     * You only need to run this command once, unless you add other node packages
       to the project
+    * if you see error: error TS2300
+    run `npm install typescript@2.0.10`
 
 5. Run `npm run build` to build the app 
 
@@ -120,6 +122,9 @@ To set this up, follow these steps:
 
 6. Run `npm run start` to start the app
 7. Go to `http://localhost:8080` to see the Agent UI
+
+    * The http server also serves up the UI on other local addresses eg: http://127.0.0.1:8080
+    However, ensure you use `http://localhost:8080` within a browser
 
 
 ## Implementation ##

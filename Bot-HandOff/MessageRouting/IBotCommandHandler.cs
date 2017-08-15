@@ -5,19 +5,21 @@ namespace MessageRouting
 {
     public class Commands
     {
-        public const string CommandKeyword = "command"; // Used if the channel does not support mentions
-        public const string CommandAddAggregationChannel = "add aggregation";
-        public const string CommandAcceptRequest = "accept";
+        // Using nomenclature from Node.js: https://github.com/palindromed/Bot-HandOff/blob/master/commands.ts
+        public const string CommandKeyword = "agent"; // Used if the channel does not support mentions
+        public const string CommandAddAggregationChannel = "watch";
+        public const string CommandAcceptRequest = "connect";
         public const string CommandRejectRequest = "reject";
-        public const string CommandEndEngagement = "end";
+        public const string CommandEndEngagement = "disconnect";
         public const string CommandDeleteAllRoutingData = "reset";
+        public const string CommandListOptions = "options";
 
         // For debugging
         public const string CommandEnableAggregation = "enable aggregation";
         public const string CommandDisableAggregation = "disable aggregation";
         public const string CommandListAllParties = "list parties";
-        public const string CommandListPendingRequests = "list requests";
-        public const string CommandListEngagements = "list conversations";
+        public const string CommandListPendingRequests = "waiting";
+        public const string CommandListEngagements = "list";
 #if DEBUG
         public const string CommandListLastMessageRouterResults = "list results";
 #endif

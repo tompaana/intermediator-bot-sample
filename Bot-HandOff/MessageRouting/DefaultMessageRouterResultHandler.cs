@@ -19,62 +19,66 @@ namespace MessageRouting
                 throw new ArgumentNullException($"The given result ({nameof(messageRouterResult)}) is null");
             }
 
-            if (messageRouterResult.Type == MessageRouterResultType.NoActionTaken
-                || messageRouterResult.Type == MessageRouterResultType.OK)
-            {
-                // No need to do anything
-            }
-            if (messageRouterResult.Type == MessageRouterResultType.EngagementInitiated
-                || messageRouterResult.Type == MessageRouterResultType.EngagementAlreadyInitiated
-                || messageRouterResult.Type == MessageRouterResultType.EngagementRejected
-                || messageRouterResult.Type == MessageRouterResultType.EngagementAdded
-                || messageRouterResult.Type == MessageRouterResultType.EngagementRemoved)
-            {
-                await HandleEngagementChangedResultAsync(messageRouterResult);
-            }
-            else if (messageRouterResult.Type == MessageRouterResultType.NoAggregationChannel)
-            {
-                if (messageRouterResult.Activity != null)
-                {
-                    MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+            string message = "";
+            MessageRouterManager messageRouterManager;
 
-                    string botName = messageRouterManager.RoutingDataManager.ResolveBotNameInConversation(
-                        MessagingUtils.CreateSenderParty(messageRouterResult.Activity));
-
-                    string message = $"{(string.IsNullOrEmpty(messageRouterResult.ErrorMessage)? "" : $"{messageRouterResult.ErrorMessage}: ")}The message router manager is not initialized; type \"";
-                    message += string.IsNullOrEmpty(botName) ? $"{Commands.CommandKeyword} " : $"@{botName} ";
-                    message += $"{Commands.CommandAddAggregationChannel}\" to setup the aggregation channel";
-
-                    await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("The activity of the result is null");
-                }
-            }
-            else if (messageRouterResult.Type == MessageRouterResultType.FailedToForwardMessage)
+            switch (messageRouterResult.Type)
             {
-                MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
-                string message = $"{(string.IsNullOrEmpty(messageRouterResult.ErrorMessage) ? "Failed to forward the message" : messageRouterResult.ErrorMessage)}";
-                await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
-            }
-            else if (messageRouterResult.Type == MessageRouterResultType.Error)
-            {
-                if (string.IsNullOrEmpty(messageRouterResult.ErrorMessage))
-                {
-                    System.Diagnostics.Debug.WriteLine("An error occured");
-                }
-                else
-                {
-                    MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
-
-                    foreach (Party aggregationChannel in messageRouterManager.RoutingDataManager.GetAggregationParties())
+                case MessageRouterResultType.NoActionTaken:
+                case MessageRouterResultType.OK:
+                    // No need to do anything
+                    break;
+                case MessageRouterResultType.EngagementInitiated:
+                case MessageRouterResultType.EngagementAlreadyInitiated:
+                case MessageRouterResultType.EngagementRejected:
+                case MessageRouterResultType.EngagementAdded:
+                case MessageRouterResultType.EngagementRemoved:
+                    await HandleEngagementChangedResultAsync(messageRouterResult);
+                    break;
+                case MessageRouterResultType.NoAggregationChannel:
+                    if (messageRouterResult.Activity != null)
                     {
-                        await messageRouterManager.SendMessageToPartyByBotAsync(aggregationChannel, messageRouterResult.ErrorMessage);
+                        messageRouterManager = MessageRouterManager.Instance;
+
+                        string botName = messageRouterManager.RoutingDataManager.ResolveBotNameInConversation(
+                            MessagingUtils.CreateSenderParty(messageRouterResult.Activity));
+
+                        message = $"{(string.IsNullOrEmpty(messageRouterResult.ErrorMessage) ? "" : $"{messageRouterResult.ErrorMessage}: ")}The message router manager is not initialized; type \"";
+                        message += string.IsNullOrEmpty(botName) ? $"{Commands.CommandKeyword} " : $"@{botName} ";
+                        message += $"{Commands.CommandAddAggregationChannel}\" to setup the aggregation channel";
+
+                        await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("The activity of the result is null");
+                    }
+                    break;
+                case MessageRouterResultType.FailedToForwardMessage:
+                    messageRouterManager = MessageRouterManager.Instance;
+                    message = $"{(string.IsNullOrEmpty(messageRouterResult.ErrorMessage) ? "Failed to forward the message" : messageRouterResult.ErrorMessage)}";
+                    await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
+                    break;
+                case MessageRouterResultType.Error:
+                    if (string.IsNullOrEmpty(messageRouterResult.ErrorMessage))
+                    {
+                        System.Diagnostics.Debug.WriteLine("An error occured");
+                    }
+                    else
+                    {
+                        messageRouterManager = MessageRouterManager.Instance;
+
+                        foreach (Party aggregationChannel in messageRouterManager.RoutingDataManager.GetAggregationParties())
+                        {
+                            await messageRouterManager.SendMessageToPartyByBotAsync(aggregationChannel, messageRouterResult.ErrorMessage);
+                        }
+
+                        System.Diagnostics.Debug.WriteLine(messageRouterResult.ErrorMessage);
                     }
 
-                    System.Diagnostics.Debug.WriteLine(messageRouterResult.ErrorMessage);
-                }
+                    break;
+                default:
+                    break;
             }
         }
 
@@ -114,7 +118,7 @@ namespace MessageRouting
             else if (messageRouterResult.Type == MessageRouterResultType.EngagementRejected)
             {
                 messageToConversationOwner = $"Request from user \"{conversationClientName}\" rejected";
-                messageToConversationClient = "Unfortunately your request could not be processed";
+                messageToConversationClient = "Unfortunately your request could not be accepted right now";
             }
             else if (messageRouterResult.Type == MessageRouterResultType.EngagementAdded)
             {
@@ -167,10 +171,10 @@ namespace MessageRouting
             string acceptCommand = $"{commandKeyword} {Commands.CommandAcceptRequest} {requesterId}";
             string rejectCommand = $"{commandKeyword} {Commands.CommandRejectRequest} {requesterId}";
 
-            ThumbnailCard thumbnailCard = new ThumbnailCard()
+            HeroCard thumbnailCard = new HeroCard()
             {
                 Title = "Human assistance request",
-                Subtitle = $"User name: {requesterName}",
+                Subtitle = $"User name: {requesterName} ({pendingRequest.ChannelId})",
                 Text = $"Use the buttons to accept or reject. You can also type \"{acceptCommand}\" to accept or \"{rejectCommand}\" to reject, if the buttons are not supported.",
                 Buttons = new List<CardAction>()
                 {

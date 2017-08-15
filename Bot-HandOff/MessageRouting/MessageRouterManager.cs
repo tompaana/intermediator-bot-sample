@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace MessageRouting
@@ -338,11 +339,18 @@ namespace MessageRouting
                     await connectorClient.Conversations.CreateDirectConversationAsync(
                         botParty.ChannelAccount, conversationOwnerParty.ChannelAccount);
 
-                if (response != null && !string.IsNullOrEmpty(response.Id))
+                // ResponseId conversationOwnerParty.ConversationAccount.Id not consistent with each other across channels 
+                // Here we need the ConversationAccountId to route messages correctly across channels eg:
+                // Slack they are the same:
+                // response.Id: B6JJQ7939: T6HKNHCP7: D6H04L58R
+                // conversationOwnerParty.ConversationAccount.Id: B6JJQ7939: T6HKNHCP7: D6H04L58R
+                // Skype they are not:
+                // response.Id: 8:daltskin
+                // conversationOwnerParty.ConversationAccount.Id: 29:11MZyI5R2Eak3t7bFjDwXmjQYnSl7aTBEB8zaSMDIEpA
+                if (response != null && !string.IsNullOrEmpty(conversationOwnerParty.ConversationAccount.Id))
                 {
-                    // The conversation account of the conversation owner for this 1:1 chat is different -
-                    // thus, we need to create a new party instance
-                    ConversationAccount directConversationAccount = new ConversationAccount(id: response.Id);
+                    // The conversation account of the conversation owner for this 1:1 chat is different - so create a new party instance
+                    ConversationAccount directConversationAccount = new ConversationAccount(id: conversationOwnerParty.ConversationAccount.Id);
 
                     Party acceptorPartyEngaged = new Party(
                         conversationOwnerParty.ServiceUrl, conversationOwnerParty.ChannelId,
