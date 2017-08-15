@@ -122,7 +122,7 @@ namespace MessageRouting
             }
             else if (messageRouterResult.Type == MessageRouterResultType.EngagementAdded)
             {
-                messageToConversationOwner = $"You are now connected to user \"{conversationClientName}\"";
+                messageToConversationOwner = $"You are now connected to user \"{conversationClientName}\" ({conversationClientParty.ChannelId})";
                 messageToConversationClient = $"Your request was accepted and you are now chatting with {conversationOwnerName}";
             }
             else if (messageRouterResult.Type == MessageRouterResultType.EngagementRemoved)
@@ -164,36 +164,9 @@ namespace MessageRouting
             messageActivity.Conversation = aggregationParty.ConversationAccount;
             messageActivity.Recipient = pendingRequest.ChannelAccount;
 
-            string requesterId = pendingRequest.ChannelAccount.Id;
-            string requesterName = pendingRequest.ChannelAccount.Name;
-            string botName = MessageRouterManager.Instance.RoutingDataManager.ResolveBotNameInConversation(aggregationParty);
-            string commandKeyword = string.IsNullOrEmpty(botName) ? Commands.CommandKeyword : $"@{botName}";
-            string acceptCommand = $"{commandKeyword} {Commands.CommandAcceptRequest} {requesterId}";
-            string rejectCommand = $"{commandKeyword} {Commands.CommandRejectRequest} {requesterId}";
+            var requestCard = MessagingUtils.GetAgentRequestHeroCard(pendingRequest.ChannelAccount.Name, pendingRequest.ChannelId, pendingRequest.ChannelAccount.Id, aggregationParty);
 
-            HeroCard thumbnailCard = new HeroCard()
-            {
-                Title = "Human assistance request",
-                Subtitle = $"User name: {requesterName} ({pendingRequest.ChannelId})",
-                Text = $"Use the buttons to accept or reject. You can also type \"{acceptCommand}\" to accept or \"{rejectCommand}\" to reject, if the buttons are not supported.",
-                Buttons = new List<CardAction>()
-                {
-                    new CardAction()
-                    {
-                        Title = "Accept",
-                        Type = ActionTypes.PostBack,
-                        Value = acceptCommand
-                    },
-                    new CardAction()
-                    {
-                        Title = "Reject",
-                        Type = ActionTypes.PostBack,
-                        Value = rejectCommand
-                    }
-                }
-            };
-
-            messageActivity.Attachments = new List<Attachment>() { thumbnailCard.ToAttachment() };
+            messageActivity.Attachments = new List<Attachment>() { requestCard };
             return messageActivity;
         }
     }

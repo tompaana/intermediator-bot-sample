@@ -152,19 +152,20 @@ namespace MessageRouting
                         }
                     case string s when (s.StartsWith(Commands.CommandListPendingRequests)):
                         {
-                            string parties = string.Empty;
-
+                            var attachments = new List<Attachment>();
+                            
                             foreach (Party party in _routingDataManager.GetPendingRequests())
                             {
-                                parties += party.ToString() + "\n";
+                                attachments.Add(MessagingUtils.GetAgentRequestHeroCard(party.ChannelAccount.Name, party.ChannelId, party.ChannelAccount.Id, party));
                             }
 
-                            if (parties.Length == 0)
+                            replyActivity = activity.CreateReply("No pending requests");
+                            if (attachments.Count > 0)
                             {
-                                parties = "No pending requests";
+                                replyActivity.Text = $"{attachments.Count} Pending requests found:";
+                                replyActivity.AttachmentLayout = AttachmentLayoutTypes.Carousel;
+                                replyActivity.Attachments = attachments;
                             }
-
-                            replyActivity = activity.CreateReply(parties);
                             wasHandled = true;
                             break;
                         }
@@ -329,7 +330,7 @@ namespace MessageRouting
             {
                 Title = "Agent menu",
                 Subtitle = "Agent/supervisor options for controlling end user bot conversations",
-                Text = $"Use the buttons or type \"{commandKeyword}\" followed by the keyword, eg. \"{acceptCommand}\"",
+                Text = $"Select from the buttons below.\n\nOr type \"{commandKeyword}\" followed by the keyword, eg. \"{acceptCommand}\"",
                 Buttons = new List<CardAction>()
                 {
                     new CardAction()
@@ -358,10 +359,23 @@ namespace MessageRouting
                     //},
                     new CardAction()
                     {
-                        Title = "List",
+                        Title = "List active",
                         Type = ActionTypes.PostBack,
                         Value =  $"{Commands.CommandKeyword} {Commands.CommandListEngagements}"
                     },
+                    new CardAction()
+                    {
+                        Title = "List waiting",
+                        Type = ActionTypes.PostBack,
+                        Value =  $"{Commands.CommandKeyword} {Commands.CommandListPendingRequests}"
+                    },
+                    new CardAction()
+                    {
+                        Title = "List all",
+                        Type = ActionTypes.PostBack,
+                        Value =  $"{Commands.CommandKeyword} {Commands.CommandListAllParties}"
+                    },
+
                     new CardAction()
                     {
                         Title = "Reset",
@@ -374,5 +388,6 @@ namespace MessageRouting
             messageActivity.Attachments = new List<Attachment>() { thumbnailCard.ToAttachment() };
             return messageActivity;
         }
+
     }
 }
