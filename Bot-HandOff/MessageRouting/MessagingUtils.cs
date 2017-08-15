@@ -1,5 +1,7 @@
 ﻿using Microsoft.Bot.Connector;
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
 
 namespace MessageRouting
@@ -149,5 +151,54 @@ namespace MessageRouting
             // TODO Check the ID too once we've fixed the gateway error that occurs in message relaying
             return (resourceResponse != null /*&& resourceResponse.Id != null*/);
         }
+
+        public static Attachment GetHeroCard(string title, string subtitle, string text, CardImage cardImage, CardAction cardAction)
+        {
+            var heroCard = new HeroCard
+            {
+                Title = title,
+                Subtitle = subtitle,
+                Text = text,
+                Images = new List<CardImage>() { cardImage },
+                Buttons = new List<CardAction>() { cardAction },
+            };
+
+            return heroCard.ToAttachment();
+        }
+
+        public static Attachment GetAgentRequestHeroCard(string userName, string channelName, string requesterId, Party party)
+        {
+            string botName = MessageRouterManager.Instance.RoutingDataManager.ResolveBotNameInConversation(party);
+            string commandKeyword = string.IsNullOrEmpty(botName) ? Commands.CommandKeyword : $"@{botName}";
+            string acceptCommand = $"{commandKeyword} {Commands.CommandAcceptRequest} {requesterId}";
+            string rejectCommand = $"{commandKeyword} {Commands.CommandRejectRequest} {requesterId}";
+
+            HeroCard acceptanceCard = new HeroCard()
+            {
+                Title = "Human assistance request",
+                Subtitle = $"User name: {CultureInfo.CurrentCulture.TextInfo.ToTitleCase(userName)} ({CultureInfo.CurrentCulture.TextInfo.ToTitleCase(channelName)})",
+                Text = $"Accept or reject the request.\n\nYou can type \"{acceptCommand}\" to accept or \"{rejectCommand}\" to reject, if the buttons are not supported.",
+
+                // Use command keyword as some channels support buttons but not @mentions eg. Webchat
+                Buttons = new List<CardAction>()
+                {
+                    new CardAction()
+                    {
+                        Title = "Accept",
+                        Type = ActionTypes.PostBack,
+                        Value = $"{Commands.CommandKeyword} {Commands.CommandAcceptRequest} {requesterId}"
+                    },
+                    new CardAction()
+                    {
+                        Title = "Reject",
+                        Type = ActionTypes.PostBack,
+                        Value = $"{Commands.CommandKeyword} {Commands.CommandRejectRequest} {requesterId}"
+                    }
+                }
+            };
+
+            return acceptanceCard.ToAttachment();
+        }
+
     }
 }

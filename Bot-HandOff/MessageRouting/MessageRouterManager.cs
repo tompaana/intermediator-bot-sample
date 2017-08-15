@@ -334,39 +334,46 @@ namespace MessageRouting
             if (botParty != null)
             {
                 ConnectorClient connectorClient = new ConnectorClient(new Uri(conversationOwnerParty.ServiceUrl));
+                ConversationResourceResponse response = null;
 
-                ConversationResourceResponse response =
-                    await connectorClient.Conversations.CreateDirectConversationAsync(
-                        botParty.ChannelAccount, conversationOwnerParty.ChannelAccount);
-
-                // ResponseId conversationOwnerParty.ConversationAccount.Id not consistent with each other across channels 
-                // Here we need the ConversationAccountId to route messages correctly across channels eg:
-                // Slack they are the same:
-                // response.Id: B6JJQ7939: T6HKNHCP7: D6H04L58R
-                // conversationOwnerParty.ConversationAccount.Id: B6JJQ7939: T6HKNHCP7: D6H04L58R
-                // Skype they are not:
-                // response.Id: 8:daltskin
-                // conversationOwnerParty.ConversationAccount.Id: 29:11MZyI5R2Eak3t7bFjDwXmjQYnSl7aTBEB8zaSMDIEpA
-                if (response != null && !string.IsNullOrEmpty(conversationOwnerParty.ConversationAccount.Id))
+                try
                 {
-                    // The conversation account of the conversation owner for this 1:1 chat is different - so create a new party instance
-                    ConversationAccount directConversationAccount = new ConversationAccount(id: conversationOwnerParty.ConversationAccount.Id);
+                    response = await connectorClient.Conversations.CreateDirectConversationAsync(botParty.ChannelAccount, conversationOwnerParty.ChannelAccount);
 
-                    Party acceptorPartyEngaged = new Party(
-                        conversationOwnerParty.ServiceUrl, conversationOwnerParty.ChannelId,
-                        conversationOwnerParty.ChannelAccount, directConversationAccount);
+                    // ResponseId conversationOwnerParty.ConversationAccount.Id not consistent with each other across channels 
+                    // Here we need the ConversationAccountId to route messages correctly across channels eg:
+                    // Slack they are the same:
+                    // response.Id: B6JJQ7939: T6HKNHCP7: D6H04L58R
+                    // conversationOwnerParty.ConversationAccount.Id: B6JJQ7939: T6HKNHCP7: D6H04L58R
+                    // Skype they are not:
+                    // response.Id: 8:daltskin
+                    // conversationOwnerParty.ConversationAccount.Id: 29:11MZyI5R2Eak3t7bFjDwXmjQYnSl7aTBEB8zaSMDIEpA
+                    if (response != null && !string.IsNullOrEmpty(conversationOwnerParty.ConversationAccount.Id))
+                    {
+                        // The conversation account of the conversation owner for this 1:1 chat is different - so create a new party instance
+                        ConversationAccount directConversationAccount = new ConversationAccount(id: conversationOwnerParty.ConversationAccount.Id);
 
-                    RoutingDataManager.AddParty(acceptorPartyEngaged);
-                    RoutingDataManager.AddParty(
-                        new Party(botParty.ServiceUrl, botParty.ChannelId, botParty.ChannelAccount, directConversationAccount), false);
+                        Party acceptorPartyEngaged = new Party(
+                            conversationOwnerParty.ServiceUrl, conversationOwnerParty.ChannelId,
+                            conversationOwnerParty.ChannelAccount, directConversationAccount);
 
-                    result = RoutingDataManager.AddEngagementAndClearPendingRequest(acceptorPartyEngaged, conversationClientParty);
-                    result.ConversationResourceResponse = response;
+                        RoutingDataManager.AddParty(acceptorPartyEngaged);
+                        RoutingDataManager.AddParty(
+                            new Party(botParty.ServiceUrl, botParty.ChannelId, botParty.ChannelAccount, directConversationAccount), false);
+
+                        result = RoutingDataManager.AddEngagementAndClearPendingRequest(acceptorPartyEngaged, conversationClientParty);
+                        result.ConversationResourceResponse = response;
+                    }
+                    else
+                    {
+                        result.Type = MessageRouterResultType.Error;
+                        result.ErrorMessage = "Failed to create a direct conversation";
+                    }
                 }
-                else
+                catch (Exception exp)
                 {
                     result.Type = MessageRouterResultType.Error;
-                    result.ErrorMessage = "Failed to create a direct conversation";
+                    result.ErrorMessage = exp.Message;
                 }
             }
             else
