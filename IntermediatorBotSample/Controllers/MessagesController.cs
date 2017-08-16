@@ -53,7 +53,7 @@ namespace IntermediatorBotSample.Controllers
                         }
                         else
                         {
-                            await Conversation.SendAsync(activity, () => new RootDialog());
+                            //await Conversation.SendAsync(activity, () => new RootDialog());
                         }
                     }
                     else

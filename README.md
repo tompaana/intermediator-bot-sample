@@ -11,6 +11,14 @@ where the bot relays the messages between a customer and a customer service agen
 See also [Chatbots as Middlemen blog post](http://tomipaananen.azurewebsites.net/?p=1851)
 related to this sample.
 
+## Development branch notes ##
+
+Clone [the Bot Message Routing project}(https://github.com/tompaana/bot-message-routing/)
+to the same folder where you have this project (same root folder for both
+project). The reference to the Bot Message Routing project is already added to.
+this project's solution.
+
+**Note:** The documentation in this README file is **not** up-to-date!
 
 ## Getting started ##
 
