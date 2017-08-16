@@ -56,7 +56,7 @@ changed the default bot command handler or the command itself):
 In case mentions are not supported, you can also use the command keyword:
 
 ```
-command watch
+agent watch
 ```
     
 Now all the requests from another channels are forwarded to this channel.
