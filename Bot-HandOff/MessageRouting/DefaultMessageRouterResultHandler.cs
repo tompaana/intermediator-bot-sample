@@ -35,6 +35,17 @@ namespace MessageRouting
                 case MessageRouterResultType.EngagementRemoved:
                     await HandleEngagementChangedResultAsync(messageRouterResult);
                     break;
+                case MessageRouterResultType.NoAgentsAvailable:
+                    if (messageRouterResult.Activity != null)
+                    {
+                        message = $"Sorry. There are no agents available right now.";
+                        await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("The activity of the result is null");
+                    }
+                    break;
                 case MessageRouterResultType.NoAggregationChannel:
                     if (messageRouterResult.Activity != null)
                     {
@@ -113,7 +124,7 @@ namespace MessageRouting
             }
             else if (messageRouterResult.Type == MessageRouterResultType.EngagementAlreadyInitiated)
             {
-                messageToConversationClient = "Please wait for your request to be accepted";
+                messageToConversationClient = "Your request has already been receieved and we are waiting for an agent to respond";
             }
             else if (messageRouterResult.Type == MessageRouterResultType.EngagementRejected)
             {

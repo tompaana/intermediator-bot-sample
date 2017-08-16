@@ -15,6 +15,8 @@ namespace MessageRouting
         NoAggregationChannel,
         FailedToForwardMessage,
         Error // Generic error including e.g. null arguments
+        ,
+        NoAgentsAvailable
     }
 
     /// <summary>
