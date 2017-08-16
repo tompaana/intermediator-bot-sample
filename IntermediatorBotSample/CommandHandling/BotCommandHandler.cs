@@ -1,5 +1,4 @@
-﻿using IntermediatorBotSample;
-using Microsoft.Bot.Connector;
+﻿using Microsoft.Bot.Connector;
 using System;
 using System.Collections.Generic;
 using System.Linq;
