@@ -1,7 +1,9 @@
 ﻿using Microsoft.Bot.Connector;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
+using Microsoft.IdentityModel.Protocols;
 
 namespace MessageRouting
 {
@@ -252,8 +254,15 @@ namespace MessageRouting
                 }
                 else
                 {
-                    PendingRequests.Add(party);
-                    result.Type = MessageRouterResultType.EngagementInitiated;
+                    if (!AggregationParties.Any() && Convert.ToBoolean(ConfigurationManager.AppSettings["PreventAddPendingRequestIfNoAggregationChannelExists"]))
+                    {
+                        result.Type = MessageRouterResultType.NoAgentsAvailable;
+                    }
+                    else
+                    {
+                        PendingRequests.Add(party);
+                        result.Type = MessageRouterResultType.EngagementInitiated;
+                    }
                 }
             }
             else
