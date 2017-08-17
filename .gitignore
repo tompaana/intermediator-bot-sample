@@ -251,11 +251,6 @@ paket-files/
 .idea/
 *.sln.iml
 
-<<<<<<< HEAD
-# Web config
-*.config
-/Bot-HandOff/nuget.exe
-=======
 # Package and web configs
 #*.config
->>>>>>> First step in migrating the message routing component into its own project/Nuget package.
+/Bot-HandOff/nuget.exe
