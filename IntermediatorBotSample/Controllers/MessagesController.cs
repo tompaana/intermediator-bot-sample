@@ -26,12 +26,14 @@ namespace IntermediatorBotSample.Controllers
         {
             if (activity.Type == ActivityTypes.Message)
             {
+                MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
+                IMessageRouterResultHandler messageRouterResultHandler = WebApiConfig.MessageRouterResultHandler;
+
                 // First check for commands
-                if (await WebApiConfig.BotCommandHandler.HandleCommandAsync(activity) == false)
+                if (await WebApiConfig.BotCommandHandler.HandleCommandAsync(
+                        activity, messageRouterManager, messageRouterResultHandler) == false)
                 {
                     // No command detected
-
-                    MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
 
                     // Get the message router manager instance and let it handle the activity
                     MessageRouterResult messageRouterResult = await messageRouterManager.HandleActivityAsync(activity, false);
@@ -49,18 +51,15 @@ namespace IntermediatorBotSample.Controllers
                         // Here's an example:
                         if (!string.IsNullOrEmpty(activity.Text) && activity.Text.ToLower().Contains("human"))
                         {
-                            messageRouterManager.InitiateEngagement(activity);
+                            messageRouterResult = messageRouterManager.InitiateEngagement(activity);
                         }
                         else
                         {
-                            //await Conversation.SendAsync(activity, () => new RootDialog());
+                            await Conversation.SendAsync(activity, () => new RootDialog());
                         }
                     }
-                    else
-                    {
-                        IMessageRouterResultHandler messageRouterResultHandler = new MessageRouterResultHandler();
-                        await messageRouterResultHandler.HandleResultAsync(messageRouterResult);
-                    }
+
+                    await messageRouterResultHandler.HandleResultAsync(messageRouterResult);
                 }
             }
             else

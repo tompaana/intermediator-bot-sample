@@ -2,7 +2,6 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Bot.Connector;
-using IntermediatorBotSample;
 
 namespace IntermediatorBotSample.Dialogs
 {

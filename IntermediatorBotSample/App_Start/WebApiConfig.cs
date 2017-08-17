@@ -1,4 +1,5 @@
 ﻿using IntermediatorBotSample.CommandHandling;
+using IntermediatorBotSample.MessageRouting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
@@ -9,30 +10,22 @@ namespace IntermediatorBotSample
 {
     public static class WebApiConfig
     {
-        private static MessageRouterManager _messageRouterManager;
         public static MessageRouterManager MessageRouterManager
         {
-            get
-            {
-                return _messageRouterManager;
-            }
-            private set
-            {
-                _messageRouterManager = value;
-            }
+            get;
+            private set;
         }
 
-        private static BotCommandHandler _botCommandHandler;
+        public static IMessageRouterResultHandler MessageRouterResultHandler
+        {
+            get;
+            private set;
+        }
+
         public static BotCommandHandler BotCommandHandler
         {
-            get
-            {
-                return _botCommandHandler;
-            }
-            private set
-            {
-                _botCommandHandler = value;
-            }
+            get;
+            private set;
         }
 
         public static void Register(HttpConfiguration config)
@@ -62,6 +55,7 @@ namespace IntermediatorBotSample
 
             // Message routing
             MessageRouterManager = new MessageRouterManager(new LocalRoutingDataManager());
+            MessageRouterResultHandler = new MessageRouterResultHandler();
             BotCommandHandler = new BotCommandHandler(MessageRouterManager.RoutingDataManager);
         }
     }

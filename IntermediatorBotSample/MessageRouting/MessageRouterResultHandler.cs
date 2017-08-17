@@ -14,17 +14,16 @@ namespace IntermediatorBotSample.MessageRouting
         /// </summary>
         /// <param name="messageRouterResult">The result to handle.</param>
         /// <returns></returns>
-        /// <summary>
-        /// From IMessageRouterResultHandler.
-        /// </summary>
-        /// <param name="messageRouterResult">The result to handle.</param>
-        /// <returns></returns>
         public virtual async Task HandleResultAsync(MessageRouterResult messageRouterResult)
         {
             if (messageRouterResult == null)
             {
                 throw new ArgumentNullException($"The given result ({nameof(messageRouterResult)}) is null");
             }
+
+#if DEBUG
+            WebApiConfig.MessageRouterManager.RoutingDataManager.AddMessageRouterResult(messageRouterResult);
+#endif
 
             string message = string.Empty;
 

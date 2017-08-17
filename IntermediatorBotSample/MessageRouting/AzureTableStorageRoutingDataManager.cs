@@ -150,5 +150,17 @@ namespace IntermediatorBotSample.MessageRouting
         {
             throw new NotImplementedException();
         }
+
+#if DEBUG
+        public string GetLastMessageRouterResults()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void AddMessageRouterResult(MessageRouterResult result)
+        {
+            throw new NotImplementedException();
+        }
+#endif
     }
 }

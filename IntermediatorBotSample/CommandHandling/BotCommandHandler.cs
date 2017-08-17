@@ -10,7 +10,7 @@ namespace IntermediatorBotSample.CommandHandling
     public class Commands
     {
         public const string CommandKeyword = "command"; // Used if the channel does not support mentions
-        public const string CommandAddAggregationChannel = "add aggregation";
+        public const string CommandAddAggregationChannel = "watch";
         public const string CommandAcceptRequest = "accept";
         public const string CommandRejectRequest = "reject";
         public const string CommandEndEngagement = "disconnect";
@@ -43,9 +43,14 @@ namespace IntermediatorBotSample.CommandHandling
 
         /// <summary>
         /// All messages where the bot was mentioned ("@<bot name>) are checked for possible commands.
-        /// See IBotCommandHandler.cs for more information.
         /// </summary>
-        public async virtual Task<bool> HandleCommandAsync(Activity activity)
+        /// <param name="activity">An Activity instance containing a possible command.</param>
+        /// <param name="messageRouterManager">The MessageRouterManager instance.</param>
+        /// <param name="messageRouterResultHandler"/>A MessageRouterResultHandler instance for
+        /// handling possible routing actions such as accepting a 1:1 conversation engagement.</param>
+        /// <returns>True, if a command was detected and handled. False otherwise.</returns>
+        public async virtual Task<bool> HandleCommandAsync(
+            Activity activity, MessageRouterManager messageRouterManager, IMessageRouterResultHandler messageRouterResultHandler)
         {
             bool wasHandled = false;
             Activity replyActivity = null;
@@ -125,16 +130,18 @@ namespace IntermediatorBotSample.CommandHandling
 
                                     if (partyToAcceptOrReject != null)
                                     {
-                                        MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
+                                        MessageRouterResult messageRouterResult = null;
 
                                         if (doAccept)
                                         {
-                                            await messageRouterManager.AddEngagementAsync(senderParty, partyToAcceptOrReject);
+                                            messageRouterResult = await messageRouterManager.AddEngagementAsync(senderParty, partyToAcceptOrReject);
                                         }
                                         else
                                         {
-                                            messageRouterManager.RejectPendingRequest(partyToAcceptOrReject, senderParty);
+                                            messageRouterResult = messageRouterManager.RejectPendingRequest(partyToAcceptOrReject, senderParty);
                                         }
+
+                                        await messageRouterResultHandler.HandleResultAsync(messageRouterResult);
                                     }
                                     else
                                     {
@@ -173,11 +180,18 @@ namespace IntermediatorBotSample.CommandHandling
                 {
                     // End the 1:1 conversation
                     Party senderParty = MessagingUtils.CreateSenderParty(activity);
-                    IList<MessageRouterResult> messageRouterResults = WebApiConfig.MessageRouterManager.EndEngagement(senderParty);
+                    IList<MessageRouterResult> messageRouterResults = messageRouterManager.EndEngagement(senderParty);
 
                     if (messageRouterResults == null || messageRouterResults.Count == 0)
                     {
                         replyActivity = activity.CreateReply("Failed to end the engagement");
+                    }
+                    else
+                    {
+                        foreach (MessageRouterResult messageRouterResult in messageRouterResults)
+                        {
+                            await messageRouterResultHandler.HandleResultAsync(messageRouterResult);
+                        }
                     }
 
                     wasHandled = true;
@@ -270,15 +284,9 @@ namespace IntermediatorBotSample.CommandHandling
 #if DEBUG
                 else if (messageInLowerCase.StartsWith(Commands.CommandListLastMessageRouterResults))
                 {
-                    LocalRoutingDataManager routingDataManager =
-                        (WebApiConfig.MessageRouterManager.RoutingDataManager as LocalRoutingDataManager);
-
-                    if (routingDataManager != null)
-                    {
-                        string resultsAsString = routingDataManager.GetLastMessageRouterResults();
-                        replyActivity = activity.CreateReply($"{(string.IsNullOrEmpty(resultsAsString) ? "No results" : resultsAsString)}");
-                        wasHandled = true;
-                    }
+                    string resultsAsString = messageRouterManager.RoutingDataManager.GetLastMessageRouterResults();
+                    replyActivity = activity.CreateReply($"{(string.IsNullOrEmpty(resultsAsString) ? "No results" : resultsAsString)}");
+                    wasHandled = true;
                 }
 #endif
                 #endregion Commands for debugging
