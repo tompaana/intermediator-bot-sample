@@ -14,6 +14,11 @@ namespace IntermediatorBotSample.MessageRouting
         /// </summary>
         /// <param name="messageRouterResult">The result to handle.</param>
         /// <returns></returns>
+        /// <summary>
+        /// From IMessageRouterResultHandler.
+        /// </summary>
+        /// <param name="messageRouterResult">The result to handle.</param>
+        /// <returns></returns>
         public virtual async Task HandleResultAsync(MessageRouterResult messageRouterResult)
         {
             if (messageRouterResult == null)
@@ -21,62 +26,76 @@ namespace IntermediatorBotSample.MessageRouting
                 throw new ArgumentNullException($"The given result ({nameof(messageRouterResult)}) is null");
             }
 
-            if (messageRouterResult.Type == MessageRouterResultType.NoActionTaken
-                || messageRouterResult.Type == MessageRouterResultType.OK)
-            {
-                // No need to do anything
-            }
-            if (messageRouterResult.Type == MessageRouterResultType.EngagementInitiated
-                || messageRouterResult.Type == MessageRouterResultType.EngagementAlreadyInitiated
-                || messageRouterResult.Type == MessageRouterResultType.EngagementRejected
-                || messageRouterResult.Type == MessageRouterResultType.EngagementAdded
-                || messageRouterResult.Type == MessageRouterResultType.EngagementRemoved)
-            {
-                await HandleEngagementChangedResultAsync(messageRouterResult);
-            }
-            else if (messageRouterResult.Type == MessageRouterResultType.NoAggregationChannel)
-            {
-                if (messageRouterResult.Activity != null)
-                {
-                    MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
+            string message = string.Empty;
 
-                    string botName = messageRouterManager.RoutingDataManager.ResolveBotNameInConversation(
-                        MessagingUtils.CreateSenderParty(messageRouterResult.Activity));
-
-                    string message = $"{(string.IsNullOrEmpty(messageRouterResult.ErrorMessage)? "" : $"{messageRouterResult.ErrorMessage}: ")}The message router manager is not initialized; type \"";
-                    message += string.IsNullOrEmpty(botName) ? $"{Commands.CommandKeyword} " : $"@{botName} ";
-                    message += $"{Commands.CommandAddAggregationChannel}\" to setup the aggregation channel";
-
-                    await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("The activity of the result is null");
-                }
-            }
-            else if (messageRouterResult.Type == MessageRouterResultType.FailedToForwardMessage)
+            switch (messageRouterResult.Type)
             {
-                MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
-                string message = $"{(string.IsNullOrEmpty(messageRouterResult.ErrorMessage) ? "Failed to forward the message" : messageRouterResult.ErrorMessage)}";
-                await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
-            }
-            else if (messageRouterResult.Type == MessageRouterResultType.Error)
-            {
-                if (string.IsNullOrEmpty(messageRouterResult.ErrorMessage))
-                {
-                    System.Diagnostics.Debug.WriteLine("An error occured");
-                }
-                else
-                {
-                    MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
-
-                    foreach (Party aggregationChannel in messageRouterManager.RoutingDataManager.GetAggregationParties())
+                case MessageRouterResultType.NoActionTaken:
+                case MessageRouterResultType.OK:
+                    // No need to do anything
+                    break;
+                case MessageRouterResultType.EngagementInitiated:
+                case MessageRouterResultType.EngagementAlreadyInitiated:
+                case MessageRouterResultType.EngagementRejected:
+                case MessageRouterResultType.EngagementAdded:
+                case MessageRouterResultType.EngagementRemoved:
+                    await HandleEngagementChangedResultAsync(messageRouterResult);
+                    break;
+                case MessageRouterResultType.NoAgentsAvailable:
+                    if (messageRouterResult.Activity != null)
                     {
-                        await messageRouterManager.SendMessageToPartyByBotAsync(aggregationChannel, messageRouterResult.ErrorMessage);
+                        message = $"Sorry. There are no agents available right now.";
+                        await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("The activity of the result is null");
                     }
 
-                    System.Diagnostics.Debug.WriteLine(messageRouterResult.ErrorMessage);
-                }
+                    break;
+                case MessageRouterResultType.NoAggregationChannel:
+                    if (messageRouterResult.Activity != null)
+                    {
+                        MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
+                        string botName = messageRouterManager.RoutingDataManager.ResolveBotNameInConversation(
+                            MessagingUtils.CreateSenderParty(messageRouterResult.Activity));
+
+                        message = $"{(string.IsNullOrEmpty(messageRouterResult.ErrorMessage) ? "" : $"{messageRouterResult.ErrorMessage}: ")}The message router manager is not initialized; type \"";
+                        message += string.IsNullOrEmpty(botName) ? $"{Commands.CommandKeyword} " : $"@{botName} ";
+                        message += $"{Commands.CommandAddAggregationChannel}\" to setup the aggregation channel";
+
+                        await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("The activity of the result is null");
+                    }
+
+                    break;
+                case MessageRouterResultType.FailedToForwardMessage:
+                    message = $"{(string.IsNullOrEmpty(messageRouterResult.ErrorMessage) ? "Failed to forward the message" : messageRouterResult.ErrorMessage)}";
+                    await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
+                    break;
+                case MessageRouterResultType.Error:
+                    if (string.IsNullOrEmpty(messageRouterResult.ErrorMessage))
+                    {
+                        System.Diagnostics.Debug.WriteLine("An error occured");
+                    }
+                    else
+                    {
+                        MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
+
+                        foreach (Party aggregationChannel in messageRouterManager.RoutingDataManager.GetAggregationParties())
+                        {
+                            await messageRouterManager.SendMessageToPartyByBotAsync(aggregationChannel, messageRouterResult.ErrorMessage);
+                        }
+
+                        System.Diagnostics.Debug.WriteLine(messageRouterResult.ErrorMessage);
+                    }
+
+                    break;
+                default:
+                    break;
             }
         }
 
@@ -111,7 +130,7 @@ namespace IntermediatorBotSample.MessageRouting
             }
             else if (messageRouterResult.Type == MessageRouterResultType.EngagementAlreadyInitiated)
             {
-                messageToConversationClient = "Please wait for your request to be accepted";
+                messageToConversationClient = "Your request has already been receieved and we are waiting for an agent to respond";
             }
             else if (messageRouterResult.Type == MessageRouterResultType.EngagementRejected)
             {

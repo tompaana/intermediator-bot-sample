@@ -72,6 +72,7 @@ namespace IntermediatorBotSample.Controllers
             return response;
         }
 
+#pragma warning disable 1998
         private async Task<Activity> HandleSystemMessageAsync(Activity message)
         {
             MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
@@ -121,5 +122,6 @@ namespace IntermediatorBotSample.Controllers
 
             return null;
         }
+#pragma warning restore 1998
     }
 }

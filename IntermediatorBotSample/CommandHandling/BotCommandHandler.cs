@@ -13,7 +13,7 @@ namespace IntermediatorBotSample.CommandHandling
         public const string CommandAddAggregationChannel = "add aggregation";
         public const string CommandAcceptRequest = "accept";
         public const string CommandRejectRequest = "reject";
-        public const string CommandEndEngagement = "end";
+        public const string CommandEndEngagement = "disconnect";
         public const string CommandDeleteAllRoutingData = "reset";
 
         // For debugging
