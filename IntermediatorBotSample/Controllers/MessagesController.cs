@@ -1,5 +1,4 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web.Http;
@@ -7,7 +6,6 @@ using Microsoft.Bot.Connector;
 using IntermediatorBotSample.Dialogs;
 using Microsoft.Bot.Builder.Dialogs;
 using Underscore.Bot.MessageRouting;
-using IntermediatorBotSample.MessageRouting;
 
 namespace IntermediatorBotSample.Controllers
 {

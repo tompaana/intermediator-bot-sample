@@ -21,9 +21,9 @@ namespace IntermediatorBotSample.MessageRouting
                 throw new ArgumentNullException($"The given result ({nameof(messageRouterResult)}) is null");
             }
 
-#if DEBUG
+        #if DEBUG
             WebApiConfig.MessageRouterManager.RoutingDataManager.AddMessageRouterResult(messageRouterResult);
-#endif
+        #endif
 
             string message = string.Empty;
 
@@ -41,61 +41,106 @@ namespace IntermediatorBotSample.MessageRouting
                     await HandleEngagementChangedResultAsync(messageRouterResult);
                     break;
                 case MessageRouterResultType.NoAgentsAvailable:
-                    if (messageRouterResult.Activity != null)
-                    {
-                        message = $"Sorry. There are no agents available right now.";
-                        await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("The activity of the result is null");
-                    }
-
+                    await HandleNoAgentsAvailableResultAsync(messageRouterResult);
                     break;
                 case MessageRouterResultType.NoAggregationChannel:
-                    if (messageRouterResult.Activity != null)
-                    {
-                        MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
-                        string botName = messageRouterManager.RoutingDataManager.ResolveBotNameInConversation(
-                            MessagingUtils.CreateSenderParty(messageRouterResult.Activity));
-
-                        message = $"{(string.IsNullOrEmpty(messageRouterResult.ErrorMessage) ? "" : $"{messageRouterResult.ErrorMessage}: ")}The message router manager is not initialized; type \"";
-                        message += string.IsNullOrEmpty(botName) ? $"{Commands.CommandKeyword} " : $"@{botName} ";
-                        message += $"{Commands.CommandAddAggregationChannel}\" to setup the aggregation channel";
-
-                        await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("The activity of the result is null");
-                    }
-
+                    await HandleNoAggregationChannelResultAsync(messageRouterResult);
                     break;
                 case MessageRouterResultType.FailedToForwardMessage:
-                    message = $"{(string.IsNullOrEmpty(messageRouterResult.ErrorMessage) ? "Failed to forward the message" : messageRouterResult.ErrorMessage)}";
-                    await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
+                    await HandleFailedToForwardMessageAsync(messageRouterResult);
                     break;
                 case MessageRouterResultType.Error:
-                    if (string.IsNullOrEmpty(messageRouterResult.ErrorMessage))
-                    {
-                        System.Diagnostics.Debug.WriteLine("An error occured");
-                    }
-                    else
-                    {
-                        MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
-
-                        foreach (Party aggregationChannel in messageRouterManager.RoutingDataManager.GetAggregationParties())
-                        {
-                            await messageRouterManager.SendMessageToPartyByBotAsync(aggregationChannel, messageRouterResult.ErrorMessage);
-                        }
-
-                        System.Diagnostics.Debug.WriteLine(messageRouterResult.ErrorMessage);
-                    }
-
+                    await HandleErrorAsync(messageRouterResult);
                     break;
                 default:
                     break;
             }
+        }
+
+        /// <summary>
+        /// Notifies the conversation client (customer) or owner (agent) that an error has occured and
+        /// sends the error message
+        /// </summary>
+        /// <param name="messageRouterResult">The result to handle.</param>
+        private static async Task HandleErrorAsync(MessageRouterResult messageRouterResult)
+        {
+            if (string.IsNullOrEmpty(messageRouterResult.ErrorMessage))
+            {
+                System.Diagnostics.Debug.WriteLine("An error occured");
+            }
+            else
+            {
+                MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
+
+                foreach (Party aggregationChannel in messageRouterManager.RoutingDataManager.GetAggregationParties())
+                {
+                    await messageRouterManager.SendMessageToPartyByBotAsync(aggregationChannel, messageRouterResult.ErrorMessage);
+                }
+
+                System.Diagnostics.Debug.WriteLine(messageRouterResult.ErrorMessage);
+            }
+        }
+
+        /// <summary>
+        /// Notifies the conversation client (customer) or the conversation owner (agent) that there 
+        /// was a problem forwarding their message
+        /// </summary>
+        /// <param name="messageRouterResult">The result to handle.</param>
+        private static async Task<string> HandleFailedToForwardMessageAsync(MessageRouterResult messageRouterResult)
+        {
+            string message = $"{(string.IsNullOrEmpty(messageRouterResult.ErrorMessage) ? "Failed to forward the message" : messageRouterResult.ErrorMessage)}";
+            await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
+            return message;
+        }
+
+        /// <summary>
+        /// Notifies the user that there are no aggregation channels setup 
+        /// </summary>
+        /// <param name="messageRouterResult">The result to handle.</param>
+        private static async Task<string> HandleNoAggregationChannelResultAsync(MessageRouterResult messageRouterResult)
+        {
+            string message = string.Empty;
+
+            if (messageRouterResult.Activity != null)
+            {
+                MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
+                string botName = messageRouterManager.RoutingDataManager.ResolveBotNameInConversation(
+                    MessagingUtils.CreateSenderParty(messageRouterResult.Activity));
+
+                message = $"{(string.IsNullOrEmpty(messageRouterResult.ErrorMessage) ? "" : $"{messageRouterResult.ErrorMessage}: ")}The message router manager is not initialized; type \"";
+                message += string.IsNullOrEmpty(botName) ? $"{Commands.CommandKeyword} " : $"@{botName} ";
+                message += $"{Commands.CommandAddAggregationChannel}\" to setup the aggregation channel";
+
+                await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("The activity of the result is null");
+            }
+
+            return message;
+        }
+
+        /// <summary>
+        /// Notifies the conversation client (customer) that no agents are available 
+        /// (i.e. no agents are currently watching for requests
+        /// </summary>
+        /// <param name="messageRouterResult">The result to handle.</param>
+        private static async Task<string> HandleNoAgentsAvailableResultAsync(MessageRouterResult messageRouterResult)
+        {
+            string message = string.Empty;
+
+            if (messageRouterResult.Activity != null)
+            {
+                message = $"Sorry. There are no agents available right now.";
+                await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("The activity of the result is null");
+            }
+
+            return message;
         }
 
         /// <summary>
