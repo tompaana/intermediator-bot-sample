@@ -1,4 +1,5 @@
-﻿using Microsoft.Bot.Connector;
+﻿using IntermediatorBot.Extensions;
+using Microsoft.Bot.Connector;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -42,7 +43,9 @@ namespace IntermediatorBotSample.CommandHandling
         }
 
         /// <summary>
-        /// All messages where the bot was mentioned ("@<bot name>) are checked for possible commands.
+        /// All messages where the bot was mentioned ("@<bot name>) are checked for possible commands. If the PermittedAgentChannels
+        /// appSetting exists and is populated then commands will only be accepted on included channels in order to prevent normal 
+        /// users using commands.
         /// </summary>
         /// <param name="activity">An Activity instance containing a possible command.</param>
         /// <param name="messageRouterManager">The MessageRouterManager instance.</param>
@@ -55,8 +58,9 @@ namespace IntermediatorBotSample.CommandHandling
             bool wasHandled = false;
             Activity replyActivity = null;
 
-            if (WasBotAddressedDirectly(activity)
+            if ((WasBotAddressedDirectly(activity)
                 || (!string.IsNullOrEmpty(activity.Text) && activity.Text.StartsWith($"{Commands.CommandKeyword} ")))
+                && activity.IsFromPermittedAgentChannel())
             {
                 string message = MessagingUtils.StripMentionsFromMessage(activity);
 

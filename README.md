@@ -259,6 +259,24 @@ by a dedicated `IMessageRouterResultHandler` implementation.
 **[AgentController](/IntermediatorBotSample/Controllers/AgentController.cs)**
 provides the pending requests from customers to the agent UI webchat component.
 
+### App Settings ###
+
+A number of App Settings are available in the web.config of this sample which can be used to tailor the experience.
+
+**PermittedAgentChannels** If you wish to only allow conversation owners (i.e. customer service agenst) to use a 
+specific channel or channels, you can specify a comma seperated list of channel IDs here.  This will prevent agent 
+commands from being used on other channels and prevent users from accidentally or deliberately calling such commands.
+e.g. to allow agents to use the emulator and Skype channels you would use 
+
+```
+<add key="PermittedAgentChannels" value="emulator,skype" />
+```
+
+**RejectPendingRequestIfNoAggregationChannel** This setting, which is set to true by default, will cause the LocalRoutingDataManager 
+to return the NoAgentsAvailable result when no agents are watching for incoming requests. You can then send an appropriate response to 
+let the user know no agents are available within the implementation of IMessageRouterResultHandler. If this is set to false, then the
+LocalRoutingDataManager will process and add the users request to the pending requests list and return the EngagementInitiated result instead. 
+
 ### Taking the code into use ###
 
 The most convenient place to use the aforementioned classes is in the
