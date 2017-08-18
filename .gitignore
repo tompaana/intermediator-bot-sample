@@ -253,4 +253,3 @@ paket-files/
 
 # Package and web configs
 #*.config
-/Bot-HandOff/nuget.exe
