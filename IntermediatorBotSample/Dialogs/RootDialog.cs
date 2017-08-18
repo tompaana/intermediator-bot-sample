@@ -11,12 +11,12 @@ namespace IntermediatorBotSample.Dialogs
     [Serializable]
     public class RootDialog : IDialog<object>
     {
-#pragma warning disable 1998
+        #pragma warning disable 1998
         public async Task StartAsync(IDialogContext context)
         {
             context.Wait(OnMessageReceivedAsync);
         }
-#pragma warning restore 1998
+        #pragma warning restore 1998
 
         /// <summary>
         /// Responds back to the sender with the message received or in case the message contains

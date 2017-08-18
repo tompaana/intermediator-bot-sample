@@ -6,6 +6,13 @@ namespace IntermediatorBot.Extensions
 {
     public static class ActivityExtensions
     {
+        /// <summary>
+        /// Checks to see if the ChannelId property on the activity is contained within the list of allowed
+        /// channels for use by agents using the PermittedAgentsChannel setting in the web.config. If the app setting is empty
+        /// or missing then the method returns true
+        /// </summary>
+        /// <param name="activity">The activity to check</param>
+        /// <returns></returns>
         public static bool IsFromPermittedAgentChannel(this Activity activity)
         {
             var permittedAgentChannels = ConfigurationManager.AppSettings.AllKeys.Contains("PermittedAgentChannels") ? ConfigurationManager.AppSettings["PermittedAgentChannels"] : null;
