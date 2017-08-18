@@ -5,6 +5,7 @@ using Newtonsoft.Json.Serialization;
 using System;
 using System.Web.Http;
 using Underscore.Bot.MessageRouting;
+using Underscore.Bot.MessageRouting.DataStore;
 
 namespace IntermediatorBotSample
 {

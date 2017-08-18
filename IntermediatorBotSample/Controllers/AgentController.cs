@@ -3,6 +3,8 @@ using System.Linq;
 using System.Web.Http;
 using System.Web.Http.Cors;
 using Underscore.Bot.MessageRouting;
+using Underscore.Bot.MessageRouting.DataStore;
+using Underscore.Bot.Models;
 
 namespace IntermediatorBotSample.Controllers
 {

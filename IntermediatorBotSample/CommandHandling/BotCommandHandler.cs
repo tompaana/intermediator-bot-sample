@@ -5,6 +5,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting;
+using Underscore.Bot.MessageRouting.DataStore;
+using Underscore.Bot.Models;
+using Underscore.Bot.Utils;
 
 namespace IntermediatorBotSample.CommandHandling
 {
