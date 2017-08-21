@@ -2,7 +2,6 @@
 using IntermediatorBotSample.MessageRouting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-using System;
 using System.Web.Http;
 using Underscore.Bot.MessageRouting;
 using Underscore.Bot.MessageRouting.DataStore;

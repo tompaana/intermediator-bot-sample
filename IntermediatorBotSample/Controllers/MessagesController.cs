@@ -6,8 +6,8 @@ using Microsoft.Bot.Connector;
 using IntermediatorBotSample.Dialogs;
 using Microsoft.Bot.Builder.Dialogs;
 using Underscore.Bot.MessageRouting;
-using Underscore.Bot.Models;
 using Underscore.Bot.Utils;
+using Underscore.Bot.Models;
 
 namespace IntermediatorBotSample.Controllers
 {
