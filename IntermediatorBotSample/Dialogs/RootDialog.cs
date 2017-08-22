@@ -2,6 +2,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Bot.Connector;
+using IntermediatorBot.Strings;
 
 namespace IntermediatorBotSample.Dialogs
 {
@@ -39,7 +40,7 @@ namespace IntermediatorBotSample.Dialogs
                 else
                 {
                     messageActivity = context.MakeMessage();
-                    messageActivity.Text = $"You said: " + message;
+                    messageActivity.Text = $"{ConversationText.EchoMessage}: {message}";
                     await context.PostAsync(messageActivity);
                 }
             }

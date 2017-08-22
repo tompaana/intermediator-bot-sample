@@ -8,6 +8,8 @@ using Microsoft.Bot.Builder.Dialogs;
 using Underscore.Bot.MessageRouting;
 using Underscore.Bot.Utils;
 using Underscore.Bot.Models;
+using System.Globalization;
+using IntermediatorBot.Strings;
 
 namespace IntermediatorBotSample.Controllers
 {
@@ -24,6 +26,11 @@ namespace IntermediatorBotSample.Controllers
         /// </summary>
         public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
         {
+            if (activity.Locale != null)
+            {
+                ConversationText.Culture = new CultureInfo(activity.Locale);
+            }
+
             if (activity.Type == ActivityTypes.Message)
             {
                 MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;

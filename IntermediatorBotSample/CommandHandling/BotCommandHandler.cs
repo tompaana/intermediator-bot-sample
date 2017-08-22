@@ -1,4 +1,5 @@
 ﻿using IntermediatorBot.Extensions;
+using IntermediatorBot.Strings;
 using Microsoft.Bot.Connector;
 using System;
 using System.Collections.Generic;
@@ -87,7 +88,7 @@ namespace IntermediatorBotSample.CommandHandling
 
                             if (messageRouterResults == null || messageRouterResults.Count == 0)
                             {
-                                replyActivity = activity.CreateReply("Failed to end the engagement");
+                                replyActivity = activity.CreateReply(ConversationText.CommandEndEngagement);
                             }
                             else
                             {
