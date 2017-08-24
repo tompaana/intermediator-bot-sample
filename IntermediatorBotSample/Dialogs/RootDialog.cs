@@ -3,6 +3,8 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Bot.Connector;
 using IntermediatorBot.Strings;
+using IntermediatorBotSample.Controllers;
+using IntermediatorBotSample.CommandHandling;
 
 namespace IntermediatorBotSample.Dialogs
 {
@@ -33,14 +35,14 @@ namespace IntermediatorBotSample.Dialogs
 
             if (!string.IsNullOrEmpty(message))
             {
-                if (message.ToLower().Contains("help"))
+                if (message.ToLower().Contains(MessagesController.CommandInitiateEngagement))
                 {
                     WebApiConfig.MessageRouterManager.InitiateEngagement((messageActivity as Activity));
                 }
                 else
                 {
                     messageActivity = context.MakeMessage();
-                    messageActivity.Text = $"{ConversationText.EchoMessage}: {message}";
+                    messageActivity.Text = $"{ConversationText.EchoMessage}: {message}\n\rType \"{Commands.CommandKeyword} {Commands.CommandListOptions}\" to see all command options.\n\rType \"{MessagesController.CommandInitiateEngagement}\" to initiate conversation with human agent.";
                     await context.PostAsync(messageActivity);
                 }
             }

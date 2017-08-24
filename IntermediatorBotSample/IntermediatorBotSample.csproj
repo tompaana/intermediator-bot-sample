@@ -181,7 +181,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\bot-message-routing\BotMessageRouting\BotMessageRouting.csproj">
+    <ProjectReference Include="..\..\bot-message-routing\BotMessageRouting\BotMessageRouting.csproj">
       <Project>{4a90870f-6202-4025-baea-bd9ebde317c7}</Project>
       <Name>BotMessageRouting</Name>
     </ProjectReference>

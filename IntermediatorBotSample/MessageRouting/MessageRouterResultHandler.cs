@@ -167,10 +167,34 @@ namespace IntermediatorBotSample.MessageRouting
 
             if (messageRouterResult.Type == MessageRouterResultType.EngagementInitiated)
             {
+                if (conversationClientParty == null || conversationClientParty.ChannelAccount == null)
+                {
+                    await messageRouterManager.BroadcastMessageToAggregationChannelsAsync("Conversation request was made, but the requester party is null!");
+                    throw new NullReferenceException("Conversation request was made, but the requester party is null");
+                }
+
                 foreach (Party aggregationParty in messageRouterManager.RoutingDataManager.GetAggregationParties())
                 {
-                    IMessageActivity messageActivity = CreateRequestCard(conversationClientParty, aggregationParty);
-                    await messageRouterManager.SendMessageToPartyByBotAsync(aggregationParty, messageActivity);
+                    Party botParty = WebApiConfig.MessageRouterManager.RoutingDataManager
+                        .FindBotPartyByChannelAndConversation(aggregationParty.ChannelId, aggregationParty.ConversationAccount);
+
+                    if (botParty != null)
+                    {
+                        IMessageActivity messageActivity = Activity.CreateMessageActivity();
+                        messageActivity.Conversation = aggregationParty.ConversationAccount;
+                        messageActivity.Recipient = aggregationParty.ChannelAccount;
+                        messageActivity.Attachments = new List<Attachment>
+                        {
+                            BotCommandHandler.CreateEngagementRequestHeroCard(conversationClientParty, botParty.ChannelAccount?.Name)
+                        };
+
+                        await messageRouterManager.SendMessageToPartyByBotAsync(aggregationParty, messageActivity);
+                    }
+                    else
+                    {
+                        await messageRouterManager.BroadcastMessageToAggregationChannelsAsync(
+                            $"Could not find the bot party on aggregation channel \"{aggregationParty.ConversationAccount.Name}\"!");
+                    }
                 }
 
                 messageToConversationClient = "Please wait for your request to be accepted";
@@ -195,70 +219,15 @@ namespace IntermediatorBotSample.MessageRouting
                 messageToConversationClient = $"Your conversation with {conversationOwnerName} has ended";
             }
 
-            if (!string.IsNullOrEmpty(messageToConversationOwner))
+            if (!string.IsNullOrEmpty(messageToConversationOwner) && conversationOwnerParty != null)
             {
                 await messageRouterManager.SendMessageToPartyByBotAsync(conversationOwnerParty, messageToConversationOwner);
             }
 
-            if (!string.IsNullOrEmpty(messageToConversationClient))
+            if (!string.IsNullOrEmpty(messageToConversationClient) && conversationClientParty != null)
             {
                 await messageRouterManager.SendMessageToPartyByBotAsync(conversationClientParty, messageToConversationClient);
             }
-        }
-
-        /// <summary>
-        /// Creates a new IMessageActivity containing the buttons (and additional information)
-        /// to either accept or reject a pending engagement request.
-        /// 
-        /// Note that the created IMessageActivity will not contain valid From property value!
-        /// However, if you use MessageRouterManager.SendMessageToPartyByBotAsync(),
-        /// it will set the from field.
-        /// </summary>
-        /// <param name="pendingRequest">The party with a pending request (i.e. customer/client).</param>
-        /// <param name="aggregationParty">The aggregation party to notify about the request.</param>
-        /// <returns>A newly created IMessageActivity instance.</returns>
-        protected virtual IMessageActivity CreateRequestCard(Party pendingRequest, Party aggregationParty)
-        {
-            if (pendingRequest == null || pendingRequest.ChannelAccount == null || aggregationParty == null)
-            {
-                throw new ArgumentNullException("The given arguments do not have the necessary details");
-            }
-
-            IMessageActivity messageActivity = Activity.CreateMessageActivity();
-            messageActivity.Conversation = aggregationParty.ConversationAccount;
-            messageActivity.Recipient = pendingRequest.ChannelAccount;
-
-            string requesterId = pendingRequest.ChannelAccount.Id;
-            string requesterName = pendingRequest.ChannelAccount.Name;
-            string botName = WebApiConfig.MessageRouterManager.RoutingDataManager.ResolveBotNameInConversation(aggregationParty);
-            string commandKeyword = string.IsNullOrEmpty(botName) ? Commands.CommandKeyword : $"@{botName}";
-            string acceptCommand = $"{commandKeyword} {Commands.CommandAcceptRequest} {requesterId}";
-            string rejectCommand = $"{commandKeyword} {Commands.CommandRejectRequest} {requesterId}";
-
-            ThumbnailCard thumbnailCard = new ThumbnailCard()
-            {
-                Title = "Human assistance request",
-                Subtitle = $"User name: {requesterName}",
-                Text = $"Use the buttons to accept or reject. You can also type \"{acceptCommand}\" to accept or \"{rejectCommand}\" to reject, if the buttons are not supported.",
-                Buttons = new List<CardAction>()
-                {
-                    new CardAction()
-                    {
-                        Title = "Accept",
-                        Type = ActionTypes.PostBack,
-                        Value = acceptCommand
-                    },
-                    new CardAction()
-                    {
-                        Title = "Reject",
-                        Type = ActionTypes.PostBack,
-                        Value = rejectCommand
-                    }
-                }
-            };
-
-            messageActivity.Attachments = new List<Attachment>() { thumbnailCard.ToAttachment() };
-            return messageActivity;
         }
     }
 }

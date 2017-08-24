@@ -16,6 +16,8 @@ namespace IntermediatorBotSample.Controllers
     [BotAuthentication]
     public class MessagesController : ApiController
     {
+        public const string CommandInitiateEngagement = "human";
+
         public MessagesController()
         {
             // Note: This class is constructed every time there is a new activity (Post called).
@@ -37,8 +39,7 @@ namespace IntermediatorBotSample.Controllers
                 IMessageRouterResultHandler messageRouterResultHandler = WebApiConfig.MessageRouterResultHandler;
 
                 // First check for commands
-                if (await WebApiConfig.BotCommandHandler.HandleCommandAsync(
-                        activity, messageRouterManager, messageRouterResultHandler) == false)
+                if (await WebApiConfig.BotCommandHandler.HandleCommandAsync(activity) == false)
                 {
                     // No command detected
 
@@ -56,7 +57,7 @@ namespace IntermediatorBotSample.Controllers
                         // the dialog too...
                         //
                         // Here's an example:
-                        if (!string.IsNullOrEmpty(activity.Text) && activity.Text.ToLower().Contains("human"))
+                        if (!string.IsNullOrEmpty(activity.Text) && activity.Text.ToLower().Contains(CommandInitiateEngagement))
                         {
                             messageRouterResult = messageRouterManager.InitiateEngagement(activity);
                         }

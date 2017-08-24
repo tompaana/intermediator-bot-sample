@@ -56,7 +56,7 @@ namespace IntermediatorBotSample
             // Message routing
             MessageRouterManager = new MessageRouterManager(new LocalRoutingDataManager());
             MessageRouterResultHandler = new MessageRouterResultHandler();
-            BotCommandHandler = new BotCommandHandler(MessageRouterManager.RoutingDataManager);
+            BotCommandHandler = new BotCommandHandler(MessageRouterManager, MessageRouterResultHandler);
         }
     }
 }
