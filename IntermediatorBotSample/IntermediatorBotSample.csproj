@@ -181,12 +181,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\bot-message-routing\BotMessageRouting\BotMessageRouting.csproj">
-      <Project>{4a90870f-6202-4025-baea-bd9ebde317c7}</Project>
-      <Name>BotMessageRouting</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="Strings\ConversationText.fr.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>ConversationText.fr.Designer.cs</LastGenOutput>
@@ -195,6 +189,12 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>ConversationText.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\bot-message-routing\BotMessageRouting\BotMessageRouting.csproj">
+      <Project>{4a90870f-6202-4025-baea-bd9ebde317c7}</Project>
+      <Name>BotMessageRouting</Name>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
