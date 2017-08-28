@@ -149,7 +149,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App_Start\WebApiConfig.cs" />
-    <Compile Include="CommandHandling\BotCommandHandler.cs" />
+    <Compile Include="CommandHandling\BackChannelMessageHandler.cs" />
+    <Compile Include="CommandHandling\CommandMessageHandler.cs" />
     <Compile Include="Controllers\AgentController.cs" />
     <Compile Include="Controllers\MessagesController.cs" />
     <Compile Include="Dialogs\RootDialog.cs" />

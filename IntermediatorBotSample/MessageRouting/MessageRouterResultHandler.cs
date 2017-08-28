@@ -185,7 +185,7 @@ namespace IntermediatorBotSample.MessageRouting
                         messageActivity.Recipient = aggregationParty.ChannelAccount;
                         messageActivity.Attachments = new List<Attachment>
                         {
-                            BotCommandHandler.CreateEngagementRequestHeroCard(conversationClientParty, botParty.ChannelAccount?.Name)
+                            CommandMessageHandler.CreateEngagementRequestHeroCard(conversationClientParty, botParty.ChannelAccount?.Name)
                         };
 
                         await messageRouterManager.SendMessageToPartyByBotAsync(aggregationParty, messageActivity);

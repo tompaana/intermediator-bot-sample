@@ -38,13 +38,18 @@ namespace IntermediatorBotSample.Controllers
                 MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
                 IMessageRouterResultHandler messageRouterResultHandler = WebApiConfig.MessageRouterResultHandler;
 
-                // First check for commands
-                if (await WebApiConfig.BotCommandHandler.HandleCommandAsync(activity) == false)
+                messageRouterManager.MakeSurePartiesAreTracked(activity);
+
+                // First check for commands (both from back channel and the ones directly typed)
+                MessageRouterResult messageRouterResult = WebApiConfig.BackChannelMessageHandler.HandleBackChannelMessage(activity);
+
+                if (messageRouterResult.Type != MessageRouterResultType.EngagementAdded
+                    || await WebApiConfig.CommandMessageHandler.HandleCommandAsync(activity) == false)
                 {
                     // No command detected
 
-                    // Get the message router manager instance and let it handle the activity
-                    MessageRouterResult messageRouterResult = await messageRouterManager.HandleActivityAsync(activity, false);
+                    // Let the message router manager instance handle the activity
+                    messageRouterResult = await messageRouterManager.HandleActivityAsync(activity, false);
 
                     if (messageRouterResult.Type == MessageRouterResultType.NoActionTaken)
                     {
@@ -66,9 +71,10 @@ namespace IntermediatorBotSample.Controllers
                             await Conversation.SendAsync(activity, () => new RootDialog());
                         }
                     }
-
-                    await messageRouterResultHandler.HandleResultAsync(messageRouterResult);
                 }
+
+                // Handle the result, if required
+                await messageRouterResultHandler.HandleResultAsync(messageRouterResult);
             }
             else
             {

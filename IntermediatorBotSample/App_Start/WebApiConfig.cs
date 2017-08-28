@@ -22,7 +22,13 @@ namespace IntermediatorBotSample
             private set;
         }
 
-        public static BotCommandHandler BotCommandHandler
+        public static CommandMessageHandler CommandMessageHandler
+        {
+            get;
+            private set;
+        }
+
+        public static BackChannelMessageHandler BackChannelMessageHandler
         {
             get;
             private set;
@@ -56,7 +62,8 @@ namespace IntermediatorBotSample
             // Message routing
             MessageRouterManager = new MessageRouterManager(new LocalRoutingDataManager());
             MessageRouterResultHandler = new MessageRouterResultHandler();
-            BotCommandHandler = new BotCommandHandler(MessageRouterManager, MessageRouterResultHandler);
+            CommandMessageHandler = new CommandMessageHandler(MessageRouterManager, MessageRouterResultHandler);
+            BackChannelMessageHandler = new BackChannelMessageHandler(MessageRouterManager.RoutingDataManager);
         }
     }
 }

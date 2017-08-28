@@ -37,7 +37,7 @@ namespace IntermediatorBotSample.CommandHandling
     /// <summary>
     /// Handler for bot commands related to message routing.
     /// </summary>
-    public class BotCommandHandler
+    public class CommandMessageHandler
     {
         private const string LineBreak = "\n\r";
         private MessageRouterManager _messageRouterManager;
@@ -92,7 +92,7 @@ namespace IntermediatorBotSample.CommandHandling
         /// <param name="messageRouterManager">The message router manager.</param>
         /// <param name="messageRouterResultHandler"/>A MessageRouterResultHandler instance for
         /// handling possible routing actions such as accepting a 1:1 conversation engagement.</param>
-        public BotCommandHandler(MessageRouterManager messageRouterManager, IMessageRouterResultHandler messageRouterResultHandler)
+        public CommandMessageHandler(MessageRouterManager messageRouterManager, IMessageRouterResultHandler messageRouterResultHandler)
         {
             _messageRouterManager = messageRouterManager;
             _messageRouterResultHandler = messageRouterResultHandler;
