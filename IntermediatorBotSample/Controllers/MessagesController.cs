@@ -44,7 +44,7 @@ namespace IntermediatorBotSample.Controllers
                 MessageRouterResult messageRouterResult = WebApiConfig.BackChannelMessageHandler.HandleBackChannelMessage(activity);
 
                 if (messageRouterResult.Type != MessageRouterResultType.EngagementAdded
-                    || await WebApiConfig.CommandMessageHandler.HandleCommandAsync(activity) == false)
+                    && await WebApiConfig.CommandMessageHandler.HandleCommandAsync(activity) == false)
                 {
                     // No command detected
 
