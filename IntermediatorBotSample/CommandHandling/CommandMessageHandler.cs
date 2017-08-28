@@ -189,7 +189,7 @@ namespace IntermediatorBotSample.CommandHandling
                     case string command when (command.StartsWith(Commands.CommandDeleteAllRoutingData)):
                         // DELETE ALL ROUTING DATA
                         await _messageRouterManager.BroadcastMessageToAggregationChannelsAsync(
-                            $"Deleting all data as requested by \"{senderParty.ChannelAccount?.Name}...");
+                            $"Deleting all data as requested by \"{senderParty.ChannelAccount?.Name}\"...");
                         replyActivity = activity.CreateReply("Deleting all data...");
                         _messageRouterManager.RoutingDataManager.DeleteAll();
                         wasHandled = true;
@@ -421,7 +421,8 @@ namespace IntermediatorBotSample.CommandHandling
 
                             if (doAccept)
                             {
-                                messageRouterResult = await _messageRouterManager.AddEngagementAsync(senderParty, partyToAcceptOrReject);
+                                messageRouterResult = await _messageRouterManager.AddEngagementAsync(
+                                    senderParty, partyToAcceptOrReject, !partyToAcceptOrReject.ChannelId.Contains("skype"));
                             }
                             else
                             {
