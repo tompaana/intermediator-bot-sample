@@ -13,8 +13,11 @@ namespace IntermediatorBotSample.CommandHandling
     /// </summary>
     public class BackChannelMessageHandler
     {
-        protected const string DefaultBackChannelId = "backchannel";
-        protected const string DefaultPartyPropertyId = "conversationId";
+        public const string DefaultBackChannelId = "backchannel";
+        public const string DefaultPartyKey = "conversationId";
+        protected string EndOfLine = "\\r\\n";
+        protected const char Backslash = '\\';
+        protected const char QuotationMark = '"';
 
         /// <summary>
         /// The routing data manager instance.
@@ -35,22 +38,26 @@ namespace IntermediatorBotSample.CommandHandling
         }
 
         /// <summary>
+        /// The key identifying the serialized party data in the back channel message.
+        /// </summary>
+        public string PartyKey
+        {
+            get;
+            protected set;
+        }
+
+        /// <summary>
         /// Constructor.
         /// </summary>
-        /// <param name="backchannelId">The ID for back channel messages. If null, the default ID is used.</param>
-        public BackChannelMessageHandler(IRoutingDataManager routingDataManager, string backchannelId = null)
+        /// <param name="backchannelId">The ID for back channel messages. If null, the default value is used.</param>
+        /// <param name="partyKey">The key identifying the serialized party data. If null, the default value is used.</param>
+        public BackChannelMessageHandler(IRoutingDataManager routingDataManager, string backChannelId = null, string partyKey = null)
         {
             RoutingDataManager = routingDataManager
                 ?? throw new ArgumentNullException("Routing data manager instance must be given");
 
-            if (string.IsNullOrEmpty(backchannelId))
-            {
-                BackChannelId = DefaultBackChannelId;
-            }
-            else
-            {
-                BackChannelId = backchannelId;
-            }
+            BackChannelId = string.IsNullOrEmpty(backChannelId) ? DefaultBackChannelId : backChannelId;
+            PartyKey = string.IsNullOrEmpty(partyKey) ? DefaultPartyKey : partyKey;
         }
 
         /// <summary>
@@ -74,7 +81,7 @@ namespace IntermediatorBotSample.CommandHandling
                 messageRouterResult.Type = MessageRouterResultType.Error;
                 messageRouterResult.ErrorMessage = $"The given activity ({nameof(activity)}) is either null or the message is missing";
             }
-            else if (activity.Text.StartsWith(BackChannelId))
+            else if (activity.Text.Equals(BackChannelId))
             {
                 if (activity.ChannelData == null)
                 {
@@ -84,14 +91,28 @@ namespace IntermediatorBotSample.CommandHandling
                 else
                 {
                     // Handle accepted request and start 1:1 conversation
-                    string partyAsJsonString = ((JObject)activity.ChannelData)[BackChannelId][DefaultPartyPropertyId].ToString();
-                    Party conversationClientParty = Party.FromJsonString(partyAsJsonString);
+                    Party conversationClientParty = null;
 
-                    Party conversationOwnerParty = MessagingUtils.CreateSenderParty(activity);
+                    try
+                    {
+                        conversationClientParty = ParsePartyFromChannelData(activity.ChannelData);
+                    }
+                    catch (Exception e)
+                    {
+                        messageRouterResult.Type = MessageRouterResultType.Error;
+                        messageRouterResult.ErrorMessage =
+                            $"Failed to parse the party information from the back channel message: {e.Message}";
+                    }
 
-                    messageRouterResult = RoutingDataManager.AddEngagementAndClearPendingRequest(
-                        conversationOwnerParty, conversationClientParty);
-                    messageRouterResult.Activity = activity;
+                    if (conversationClientParty != null)
+                    {
+                        Party conversationOwnerParty = MessagingUtils.CreateSenderParty(activity);
+
+                        messageRouterResult = RoutingDataManager.AddEngagementAndClearPendingRequest(
+                            conversationOwnerParty, conversationClientParty);
+
+                        messageRouterResult.Activity = activity;
+                    }
                 }
             }
             else
@@ -101,6 +122,26 @@ namespace IntermediatorBotSample.CommandHandling
             }
 
             return messageRouterResult;
+        }
+
+        /// <summary>
+        /// Tries to parse the party information and deserialize the party instance from the given
+        /// channel data object.
+        /// </summary>
+        /// <param name="channelData">The channel data object to parse.</param>
+        /// <returns>A deserialized party instance.</returns>
+        protected Party ParsePartyFromChannelData(object channelData)
+        {
+            string partyAsJsonString = ((JObject)channelData)[BackChannelId][PartyKey].ToString();
+
+            if (string.IsNullOrEmpty(partyAsJsonString))
+            {
+                throw new NullReferenceException("Failed to find the party information from the channel data");
+            }
+
+            partyAsJsonString = partyAsJsonString.Replace(EndOfLine, string.Empty);
+            partyAsJsonString = partyAsJsonString.Replace(Backslash, QuotationMark);
+            return Party.FromJsonString(partyAsJsonString);
         }
     }
 }

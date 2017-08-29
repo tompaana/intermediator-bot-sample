@@ -118,7 +118,7 @@ To set this up, follow these steps:
 4. Run `npm install` to get the npm packages 
 
     * You only need to run this command once, unless you add other node packages to the project
-    * If you see error **TS2300**, run `npm install typescript@2.0.10`
+    * If you encounter `error TS2300`, run `npm install typescript@2.0.10`
 
 5. Run `npm run build` to build the app 
 
@@ -126,6 +126,8 @@ To set this up, follow these steps:
 
 6. Run `npm run start` to start the app
 7. Go to http://localhost:8080 to see the Agent UI
+
+#### Troubleshooting ####
 
 Make sure that the value of `RejectPendingRequestIfNoAggregationChannel` key in
 [Web.config](/IntermediatorBotSample/Web.config) is `false`:

@@ -39,14 +39,14 @@ namespace IntermediatorBotSample.Controllers
                 IMessageRouterResultHandler messageRouterResultHandler = WebApiConfig.MessageRouterResultHandler;
 
                 messageRouterManager.MakeSurePartiesAreTracked(activity);
-
+                
                 // First check for commands (both from back channel and the ones directly typed)
                 MessageRouterResult messageRouterResult = WebApiConfig.BackChannelMessageHandler.HandleBackChannelMessage(activity);
 
                 if (messageRouterResult.Type != MessageRouterResultType.EngagementAdded
                     && await WebApiConfig.CommandMessageHandler.HandleCommandAsync(activity) == false)
                 {
-                    // No command detected
+                    // No valid back channel (command) message or typed command detected
 
                     // Let the message router manager instance handle the activity
                     messageRouterResult = await messageRouterManager.HandleActivityAsync(activity, false);
