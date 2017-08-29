@@ -167,16 +167,9 @@ namespace IntermediatorBotSample.CommandHandling
                         // End the 1:1 conversation
                         IList<MessageRouterResult> messageRouterResults = _messageRouterManager.EndEngagement(senderParty);
 
-                        if (messageRouterResults == null || messageRouterResults.Count == 0)
+                        foreach (MessageRouterResult messageRouterResult in messageRouterResults)
                         {
-                            replyActivity = activity.CreateReply(ConversationText.CommandEndEngagement);
-                        }
-                        else
-                        {
-                            foreach (MessageRouterResult messageRouterResult in messageRouterResults)
-                            {
-                                await _messageRouterResultHandler.HandleResultAsync(messageRouterResult);
-                            }
+                            await _messageRouterResultHandler.HandleResultAsync(messageRouterResult);
                         }
 
                         wasHandled = true;

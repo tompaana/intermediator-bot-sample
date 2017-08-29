@@ -74,10 +74,23 @@ namespace IntermediatorBotSample.MessageRouting
             else
             {
                 MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
+                IList<Party> aggregationParties = messageRouterManager.RoutingDataManager.GetAggregationParties();
 
-                foreach (Party aggregationChannel in messageRouterManager.RoutingDataManager.GetAggregationParties())
+                if (aggregationParties == null || aggregationParties.Count == 0)
                 {
-                    await messageRouterManager.SendMessageToPartyByBotAsync(aggregationChannel, messageRouterResult.ErrorMessage);
+                    if (messageRouterResult.ConversationOwnerParty != null)
+                    {
+                        await messageRouterManager.SendMessageToPartyByBotAsync(
+                            messageRouterResult.ConversationOwnerParty, messageRouterResult.ErrorMessage);
+                    }
+                }
+                else
+                {
+                    foreach (Party aggregationChannel in aggregationParties)
+                    {
+                        await messageRouterManager.SendMessageToPartyByBotAsync(
+                            aggregationChannel, messageRouterResult.ErrorMessage);
+                    }
                 }
 
                 System.Diagnostics.Debug.WriteLine(messageRouterResult.ErrorMessage);
