@@ -36,12 +36,12 @@ namespace IntermediatorBotSample.MessageRouting
                 case MessageRouterResultType.OK:
                     // No need to do anything
                     break;
-                case MessageRouterResultType.EngagementInitiated:
-                case MessageRouterResultType.EngagementAlreadyInitiated:
-                case MessageRouterResultType.EngagementRejected:
-                case MessageRouterResultType.EngagementAdded:
-                case MessageRouterResultType.EngagementRemoved:
-                    await HandleEngagementChangedResultAsync(messageRouterResult);
+                case MessageRouterResultType.ConnectionRequested:
+                case MessageRouterResultType.ConnectionAlreadyRequested:
+                case MessageRouterResultType.ConnectionRejected:
+                case MessageRouterResultType.Connected:
+                case MessageRouterResultType.Disconnected:
+                    await HandleConnectionChangedResultAsync(messageRouterResult);
                     break;
                 case MessageRouterResultType.NoAgentsAvailable:
                     await HandleNoAgentsAvailableResultAsync(messageRouterResult);
@@ -161,10 +161,10 @@ namespace IntermediatorBotSample.MessageRouting
 
         /// <summary>
         /// Notifies both the conversation owner (agent) and the conversation client (customer)
-        /// about the change in engagement (initiated/started/ended).
+        /// about the connection status change.
         /// </summary>
         /// <param name="messageRouterResult">The result to handle.</param>
-        protected virtual async Task HandleEngagementChangedResultAsync(MessageRouterResult messageRouterResult)
+        protected virtual async Task HandleConnectionChangedResultAsync(MessageRouterResult messageRouterResult)
         {
             MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
             IRoutingDataManager routingDataManager = messageRouterManager.RoutingDataManager;
@@ -178,7 +178,7 @@ namespace IntermediatorBotSample.MessageRouting
             string messageToConversationOwner = string.Empty;
             string messageToConversationClient = string.Empty;
 
-            if (messageRouterResult.Type == MessageRouterResultType.EngagementInitiated)
+            if (messageRouterResult.Type == MessageRouterResultType.ConnectionRequested)
             {
                 if (conversationClientParty == null || conversationClientParty.ChannelAccount == null)
                 {
@@ -198,7 +198,7 @@ namespace IntermediatorBotSample.MessageRouting
                         messageActivity.Recipient = aggregationParty.ChannelAccount;
                         messageActivity.Attachments = new List<Attachment>
                         {
-                            CommandMessageHandler.CreateEngagementRequestHeroCard(conversationClientParty, botParty.ChannelAccount?.Name)
+                            CommandMessageHandler.CreateRequestCard(conversationClientParty, botParty.ChannelAccount?.Name)
                         };
 
                         await messageRouterManager.SendMessageToPartyByBotAsync(aggregationParty, messageActivity);
@@ -212,21 +212,21 @@ namespace IntermediatorBotSample.MessageRouting
 
                 messageToConversationClient = "Please wait for your request to be accepted";
             }
-            else if (messageRouterResult.Type == MessageRouterResultType.EngagementAlreadyInitiated)
+            else if (messageRouterResult.Type == MessageRouterResultType.ConnectionAlreadyRequested)
             {
                 messageToConversationClient = "Your request has already been receieved and we are waiting for an agent to respond";
             }
-            else if (messageRouterResult.Type == MessageRouterResultType.EngagementRejected)
+            else if (messageRouterResult.Type == MessageRouterResultType.ConnectionRejected)
             {
                 messageToConversationOwner = $"Request from user \"{conversationClientName}\" rejected";
                 messageToConversationClient = "Unfortunately your request could not be processed";
             }
-            else if (messageRouterResult.Type == MessageRouterResultType.EngagementAdded)
+            else if (messageRouterResult.Type == MessageRouterResultType.Connected)
             {
                 messageToConversationOwner = $"You are now connected to user \"{conversationClientName}\"";
                 messageToConversationClient = $"Your request was accepted and you are now chatting with {conversationOwnerName}";
             }
-            else if (messageRouterResult.Type == MessageRouterResultType.EngagementRemoved)
+            else if (messageRouterResult.Type == MessageRouterResultType.Disconnected)
             {
                 messageToConversationOwner = $"You are now disconnected from the conversation with user \"{conversationClientName}\"";
                 messageToConversationClient = $"Your conversation with {conversationOwnerName} has ended";

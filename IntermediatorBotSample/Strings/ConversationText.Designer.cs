@@ -61,11 +61,11 @@ namespace IntermediatorBot.Strings {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Failed to end the engagement.
+        ///   Looks up a localized string similar to Failed to end the conversation.
         /// </summary>
-        internal static string CommandEndEngagement {
+        internal static string CommandDisconnect {
             get {
-                return ResourceManager.GetString("CommandEndEngagement", resourceCulture);
+                return ResourceManager.GetString("CommandDisconnect", resourceCulture);
             }
         }
         

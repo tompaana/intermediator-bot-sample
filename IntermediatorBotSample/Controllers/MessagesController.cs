@@ -16,7 +16,7 @@ namespace IntermediatorBotSample.Controllers
     [BotAuthentication]
     public class MessagesController : ApiController
     {
-        public const string CommandInitiateEngagement = "human";
+        public const string CommandRequestConnection = "human";
 
         public MessagesController()
         {
@@ -41,9 +41,10 @@ namespace IntermediatorBotSample.Controllers
                 messageRouterManager.MakeSurePartiesAreTracked(activity);
                 
                 // First check for commands (both from back channel and the ones directly typed)
-                MessageRouterResult messageRouterResult = WebApiConfig.BackChannelMessageHandler.HandleBackChannelMessage(activity);
+                MessageRouterResult messageRouterResult =
+                    WebApiConfig.BackChannelMessageHandler.HandleBackChannelMessage(activity);
 
-                if (messageRouterResult.Type != MessageRouterResultType.EngagementAdded
+                if (messageRouterResult.Type != MessageRouterResultType.Connected
                     && await WebApiConfig.CommandMessageHandler.HandleCommandAsync(activity) == false)
                 {
                     // No valid back channel (command) message or typed command detected
@@ -53,18 +54,19 @@ namespace IntermediatorBotSample.Controllers
 
                     if (messageRouterResult.Type == MessageRouterResultType.NoActionTaken)
                     {
-                        // No action was taken by the message router manager. This means that the user
-                        // is not engaged in a 1:1 conversation with a human (e.g. customer service
-                        // agent) yet.
+                        // No action was taken by the message router manager. This means that the
+                        // user is not connected (in a 1:1 conversation) with a human
+                        // (e.g. customer service agent) yet.
                         //
-                        // You can, for example, check if the user (customer) needs human assistance
-                        // here or forward the activity to a dialog. You could also do the check in
-                        // the dialog too...
+                        // You can, for example, check if the user (customer) needs human
+                        // assistance here or forward the activity to a dialog. You could also do
+                        // the check in the dialog too...
                         //
                         // Here's an example:
-                        if (!string.IsNullOrEmpty(activity.Text) && activity.Text.ToLower().Contains(CommandInitiateEngagement))
+                        if (!string.IsNullOrEmpty(activity.Text)
+                            && activity.Text.ToLower().Contains(CommandRequestConnection))
                         {
-                            messageRouterResult = messageRouterManager.InitiateEngagement(activity);
+                            messageRouterResult = messageRouterManager.RequestConnection(activity);
                         }
                         else
                         {

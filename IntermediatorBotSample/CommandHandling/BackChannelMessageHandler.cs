@@ -62,13 +62,13 @@ namespace IntermediatorBotSample.CommandHandling
 
         /// <summary>
         /// Checks the given activity for back channel messages and handles them, if detected.
-        /// Currently the only back channel message supported is for adding engagements
+        /// Currently the only back channel message supported is for creating connections
         /// (establishing 1:1 conversations).
         /// </summary>
         /// <param name="activity">The activity to check for back channel messages.</param>
         /// <returns>
         /// The result:
-        ///     * MessageRouterResultType.EngagementAdded: An engagement (1:1 conversation) was created
+        ///     * MessageRouterResultType.Connected: A connection (1:1 conversation) was created
         ///     * MessageRouterResultType.NoActionTaken: No back channel message detected
         ///     * MessageRouterResultType.Error: See the error message for details
         /// </returns>
@@ -108,7 +108,7 @@ namespace IntermediatorBotSample.CommandHandling
                     {
                         Party conversationOwnerParty = MessagingUtils.CreateSenderParty(activity);
 
-                        messageRouterResult = RoutingDataManager.AddEngagementAndClearPendingRequest(
+                        messageRouterResult = RoutingDataManager.ConnectAndClearPendingRequest(
                             conversationOwnerParty, conversationClientParty);
 
                         messageRouterResult.Activity = activity;

@@ -23,13 +23,13 @@ namespace IntermediatorBotSample.CommandHandling
         public const string CommandAddAggregationChannel = "watch";
         public const string CommandAcceptRequest = "accept";
         public const string CommandRejectRequest = "reject";
-        public const string CommandEndEngagement = "disconnect";
+        public const string CommandDisconnect = "disconnect";
 
 #if DEBUG // Commands for debugging
         public const string CommandDeleteAllRoutingData = "reset";
         public const string CommandListAllParties = "list parties";
         public const string CommandListPendingRequests = "list requests";
-        public const string CommandListEngagements = "list conversations";
+        public const string CommandListConnections = "list conversations";
         public const string CommandListLastMessageRouterResults = "list results";
 #endif
     }
@@ -44,12 +44,12 @@ namespace IntermediatorBotSample.CommandHandling
         private IMessageRouterResultHandler _messageRouterResultHandler;
 
         /// <summary>
-        /// Creates a engagement (e.g. human agent) request card.
+        /// Creates a connection (e.g. human agent) request card.
         /// </summary>
-        /// <param name="requesterParty">The party who requested engagement.</param>
+        /// <param name="requesterParty">The party who requested a connection.</param>
         /// <param name="botHandle">The name of the bot.</param>
         /// <returns>A newly created request card as an attachment.</returns>
-        public static Attachment CreateEngagementRequestHeroCard(Party requesterParty, string botHandle)
+        public static Attachment CreateRequestCard(Party requesterParty, string botHandle)
         {
             string requesterUserName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(requesterParty.ChannelAccount.Name);
             string requesterChannelId = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(requesterParty.ChannelId);
@@ -91,7 +91,7 @@ namespace IntermediatorBotSample.CommandHandling
         /// </summary>
         /// <param name="messageRouterManager">The message router manager.</param>
         /// <param name="messageRouterResultHandler"/>A MessageRouterResultHandler instance for
-        /// handling possible routing actions such as accepting a 1:1 conversation engagement.</param>
+        /// handling possible routing actions such as accepting a 1:1 conversation connection.</param>
         public CommandMessageHandler(MessageRouterManager messageRouterManager, IMessageRouterResultHandler messageRouterResultHandler)
         {
             _messageRouterManager = messageRouterManager;
@@ -163,9 +163,9 @@ namespace IntermediatorBotSample.CommandHandling
                         wasHandled = true;
                         break;
 
-                    case string command when (command.StartsWith(Commands.CommandEndEngagement)):
+                    case string command when (command.StartsWith(Commands.CommandDisconnect)):
                         // End the 1:1 conversation
-                        IList<MessageRouterResult> messageRouterResults = _messageRouterManager.EndEngagement(senderParty);
+                        IList<MessageRouterResult> messageRouterResults = _messageRouterManager.Disconnect(senderParty);
 
                         foreach (MessageRouterResult messageRouterResult in messageRouterResults)
                         {
@@ -224,7 +224,7 @@ namespace IntermediatorBotSample.CommandHandling
                             
                         foreach (Party party in _messageRouterManager.RoutingDataManager.GetPendingRequests())
                         {
-                            attachments.Add(CreateEngagementRequestHeroCard(party, activity.Recipient.Name));
+                            attachments.Add(CreateRequestCard(party, activity.Recipient.Name));
                         }
 
                         if (attachments.Count > 0)
@@ -241,9 +241,9 @@ namespace IntermediatorBotSample.CommandHandling
                         wasHandled = true;
                         break;
 
-                    case string command when (command.StartsWith(Commands.CommandListEngagements)):
-                        // List all engagements (conversations)
-                        string parties = _messageRouterManager.RoutingDataManager.EngagementsAsString();
+                    case string command when (command.StartsWith(Commands.CommandListConnections)):
+                        // List all connections (conversations)
+                        string parties = _messageRouterManager.RoutingDataManager.ConnectionsToString();
 
                         if (string.IsNullOrEmpty(parties))
                         {
@@ -382,11 +382,11 @@ namespace IntermediatorBotSample.CommandHandling
         {
             string errorMessage = null;
             IRoutingDataManager routingDataManager = _messageRouterManager.RoutingDataManager;
-            Party engagedSenderParty = routingDataManager.FindEngagedPartyByChannel(senderParty.ChannelId, senderParty.ChannelAccount);
+            Party connectedSenderParty = routingDataManager.FindConnectedPartyByChannel(senderParty.ChannelId, senderParty.ChannelAccount);
 
-            if (engagedSenderParty == null || !routingDataManager.IsEngaged(senderParty, EngagementProfile.Owner))
+            if (connectedSenderParty == null || !routingDataManager.IsConnected(senderParty, ConnectionProfile.Owner))
             {
-                // The sender (accepter/rejecter) is NOT engaged in a conversation with another party
+                // The sender (accepter/rejecter) is NOT connected with another party
                 if (routingDataManager.GetPendingRequests().Count > 0)
                 {
                     // The name of the user to accept should be the second word
@@ -414,7 +414,7 @@ namespace IntermediatorBotSample.CommandHandling
 
                             if (doAccept)
                             {
-                                messageRouterResult = await _messageRouterManager.AddEngagementAsync(
+                                messageRouterResult = await _messageRouterManager.ConnectAsync(
                                     senderParty, partyToAcceptOrReject, !partyToAcceptOrReject.ChannelId.Contains("skype"));
                             }
                             else
@@ -437,12 +437,12 @@ namespace IntermediatorBotSample.CommandHandling
             }
             else
             {
-                // The sender (accepter/rejecter) is ALREADY engaged in a conversation with another party
-                Party otherParty = routingDataManager.GetEngagedCounterpart(engagedSenderParty);
+                // The sender (accepter/rejecter) is ALREADY connected with another party
+                Party otherParty = routingDataManager.GetConnectedCounterpart(connectedSenderParty);
 
                 if (otherParty != null)
                 {
-                    errorMessage = $"You are already engaged in a conversation with user \"{otherParty.ChannelAccount.Name}\"";
+                    errorMessage = $"You are already connected with user \"{otherParty.ChannelAccount.Name}\"";
                 }
                 else
                 {
@@ -466,7 +466,7 @@ namespace IntermediatorBotSample.CommandHandling
             {
                 Title = "Command menu",
                 Subtitle = "Administrator options for controlling end user bot conversations",
-                Text = $"Select from the buttons below **or** type \"{Commands.CommandKeyword}\" or mention the bot (\"@{activity.Recipient.Name}\") followed by the command (e.g. \"{Commands.CommandEndEngagement}\")",
+                Text = $"Select from the buttons below **or** type \"{Commands.CommandKeyword}\" or mention the bot (\"@{activity.Recipient.Name}\") followed by the command (e.g. \"{Commands.CommandDisconnect}\")",
                 Buttons = new List<CardAction>()
                 {
                     new CardAction()
@@ -489,9 +489,9 @@ namespace IntermediatorBotSample.CommandHandling
                     },
                     new CardAction()
                     {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandEndEngagement),
+                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandDisconnect),
                         Type = ActionTypes.PostBack,
-                        Value = $"{Commands.CommandKeyword} {Commands.CommandEndEngagement}"
+                        Value = $"{Commands.CommandKeyword} {Commands.CommandDisconnect}"
                     }
 #if DEBUG
                     ,
@@ -515,9 +515,9 @@ namespace IntermediatorBotSample.CommandHandling
                     },
                     new CardAction()
                     {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandListEngagements),
+                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandListConnections),
                         Type = ActionTypes.PostBack,
-                        Value = $"{Commands.CommandKeyword} {Commands.CommandListEngagements}"
+                        Value = $"{Commands.CommandKeyword} {Commands.CommandListConnections}"
                     },
                     new CardAction()
                     {
