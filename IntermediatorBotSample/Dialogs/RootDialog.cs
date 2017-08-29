@@ -2,26 +2,28 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Bot.Connector;
-using MessageRouting;
+using IntermediatorBot.Strings;
+using IntermediatorBotSample.Controllers;
+using IntermediatorBotSample.CommandHandling;
 
-namespace IntermediatorBot.Dialogs
+namespace IntermediatorBotSample.Dialogs
 {
     /// <summary>
-    /// Simple echo dialog that initiates an engagement, if the message contains a certain keyword.
+    /// Simple echo dialog that tries to connect with a human, if the message contains a certain keyword.
     /// </summary>
     [Serializable]
     public class RootDialog : IDialog<object>
     {
-#pragma warning disable 1998
+        #pragma warning disable 1998
         public async Task StartAsync(IDialogContext context)
         {
             context.Wait(OnMessageReceivedAsync);
         }
-#pragma warning restore 1998
+        #pragma warning restore 1998
 
         /// <summary>
         /// Responds back to the sender with the message received or in case the message contains
-        /// a specific keyword, will try to initiate an engagement (1:1 conversation).
+        /// a specific keyword, will try to connect with a human (in 1:1 conversation).
         /// </summary>
         /// <param name="context"></param>
         /// <param name="result"></param>
@@ -33,14 +35,14 @@ namespace IntermediatorBot.Dialogs
 
             if (!string.IsNullOrEmpty(message))
             {
-                if (message.ToLower().Contains("help"))
+                if (message.ToLower().Contains(MessagesController.CommandRequestConnection))
                 {
-                    await MessageRouterManager.Instance.InitiateEngagementAsync((messageActivity as Activity));
+                    WebApiConfig.MessageRouterManager.RequestConnection((messageActivity as Activity));
                 }
                 else
                 {
                     messageActivity = context.MakeMessage();
-                    messageActivity.Text = $"You said: " + message;
+                    messageActivity.Text = $"{ConversationText.EchoMessage}: {message}\n\rType \"{Commands.CommandKeyword} {Commands.CommandListOptions}\" to see all command options.\n\rType \"{MessagesController.CommandRequestConnection}\" to initiate conversation with human agent.";
                     await context.PostAsync(messageActivity);
                 }
             }

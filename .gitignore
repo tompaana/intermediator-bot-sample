@@ -251,6 +251,5 @@ paket-files/
 .idea/
 *.sln.iml
 
-# Web config
-*.config
-/Bot-HandOff/nuget.exe
+# Package and web configs
+#*.config

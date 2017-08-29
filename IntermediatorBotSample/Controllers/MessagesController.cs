@@ -1,18 +1,23 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web.Http;
 using Microsoft.Bot.Connector;
-using MessageRouting;
-using IntermediatorBot.Dialogs;
+using IntermediatorBotSample.Dialogs;
 using Microsoft.Bot.Builder.Dialogs;
+using Underscore.Bot.MessageRouting;
+using Underscore.Bot.Utils;
+using Underscore.Bot.Models;
+using System.Globalization;
+using IntermediatorBot.Strings;
 
-namespace IntermediatorBotSample
+namespace IntermediatorBotSample.Controllers
 {
     [BotAuthentication]
     public class MessagesController : ApiController
     {
+        public const string CommandRequestConnection = "human";
+
         public MessagesController()
         {
             // Note: This class is constructed every time there is a new activity (Post called).
@@ -23,31 +28,55 @@ namespace IntermediatorBotSample
         /// </summary>
         public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
         {
+            if (activity.Locale != null)
+            {
+                ConversationText.Culture = new CultureInfo(activity.Locale);
+            }
+
             if (activity.Type == ActivityTypes.Message)
             {
-                // Get the message router manager instance and let it handle the activity
-                MessageRouterResult result = await MessageRouterManager.Instance.HandleActivityAsync(activity, false);
+                MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
+                IMessageRouterResultHandler messageRouterResultHandler = WebApiConfig.MessageRouterResultHandler;
 
-                if (result.Type == MessageRouterResultType.NoActionTaken)
+                messageRouterManager.MakeSurePartiesAreTracked(activity);
+                
+                // First check for commands (both from back channel and the ones directly typed)
+                MessageRouterResult messageRouterResult =
+                    WebApiConfig.BackChannelMessageHandler.HandleBackChannelMessage(activity);
+
+                if (messageRouterResult.Type != MessageRouterResultType.Connected
+                    && await WebApiConfig.CommandMessageHandler.HandleCommandAsync(activity) == false)
                 {
-                    // No action was taken by the message router manager. This means that the user
-                    // is not engaged in a 1:1 conversation with a human (e.g. customer service
-                    // agent) yet.
-                    //
-                    // You can, for example, check if the user (customer) needs human assistance
-                    // here or forward the activity to a dialog. You could also do the check in
-                    // the dialog too...
-                    //
-                    // Here's an example:
-                    if (!string.IsNullOrEmpty(activity.Text) && activity.Text.ToLower().Contains("human"))
+                    // No valid back channel (command) message or typed command detected
+
+                    // Let the message router manager instance handle the activity
+                    messageRouterResult = await messageRouterManager.HandleActivityAsync(activity, false);
+
+                    if (messageRouterResult.Type == MessageRouterResultType.NoActionTaken)
                     {
-                        await MessageRouterManager.Instance.InitiateEngagementAsync(activity);
-                    }
-                    else
-                    {
-                        await Conversation.SendAsync(activity, () => new RootDialog());
+                        // No action was taken by the message router manager. This means that the
+                        // user is not connected (in a 1:1 conversation) with a human
+                        // (e.g. customer service agent) yet.
+                        //
+                        // You can, for example, check if the user (customer) needs human
+                        // assistance here or forward the activity to a dialog. You could also do
+                        // the check in the dialog too...
+                        //
+                        // Here's an example:
+                        if (!string.IsNullOrEmpty(activity.Text)
+                            && activity.Text.ToLower().Contains(CommandRequestConnection))
+                        {
+                            messageRouterResult = messageRouterManager.RequestConnection(activity);
+                        }
+                        else
+                        {
+                            await Conversation.SendAsync(activity, () => new RootDialog());
+                        }
                     }
                 }
+
+                // Handle the result, if required
+                await messageRouterResultHandler.HandleResultAsync(messageRouterResult);
             }
             else
             {
@@ -58,9 +87,10 @@ namespace IntermediatorBotSample
             return response;
         }
 
+#pragma warning disable 1998
         private async Task<Activity> HandleSystemMessageAsync(Activity message)
         {
-            MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
+            MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
 
             if (message.Type == ActivityTypes.DeleteUserData)
             {
@@ -68,7 +98,7 @@ namespace IntermediatorBotSample
                 // If we handle user deletion, return a real message
                 Party senderParty = MessagingUtils.CreateSenderParty(message);
 
-                if (await messageRouterManager.RemovePartyAsync(senderParty))
+                if (messageRouterManager.RemoveParty(senderParty)?.Count > 0)
                 {
                     return message.CreateReply($"Data of user {senderParty.ChannelAccount?.Name} removed");
                 }
@@ -85,7 +115,7 @@ namespace IntermediatorBotSample
                         Party party = new Party(
                             message.ServiceUrl, message.ChannelId, channelAccount, message.Conversation);
 
-                        if (await messageRouterManager.RemovePartyAsync(party))
+                        if (messageRouterManager.RemoveParty(party)?.Count > 0)
                         {
                             System.Diagnostics.Debug.WriteLine($"Party {party.ToString()} removed");
                         }
@@ -107,5 +137,6 @@ namespace IntermediatorBotSample
 
             return null;
         }
+#pragma warning restore 1998
     }
 }

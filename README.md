@@ -1,16 +1,14 @@
 # Intermediator Bot Sample #
 
-A bot build on [Microsoft Bot Framework](https://dev.botframework.com/) that
-routes messages between two users on different channels. This is a C# sample -
-if you're looking to do this with Node, see
+A bot build on [Microsoft Bot Framework](https://dev.botframework.com/) that routes messages between
+two users on different channels. This is sample utilizes the core functionality found in
+[Bot Message Routing (component) project](https://github.com/tompaana/bot-message-routing).
+
+This is a C# sample - if you're looking to do this with Node, see
 [this sample](https://github.com/palindromed/Bot-HandOff).
 
 A possible use case for this type of a bot would be a customer service scenario
 where the bot relays the messages between a customer and a customer service agent.
-
-See also [Chatbots as Middlemen blog post](http://tomipaananen.azurewebsites.net/?p=1851)
-related to this sample.
-
 
 ## Getting started ##
 
@@ -18,47 +16,47 @@ To test the bot, publish it in
 [Microsoft Bot Framework portal](https://dev.botframework.com) and connect it to
 the channels of your choice. If you are new to bots, please familiarize yourself
 first with the basics [here](https://dev.botframework.com/).
-[Microsoft Bot Framework Emulator](https://docs.botframework.com/en-us/tools/bot-framework-emulator/)
-is a great tool for testing and debugging. To communicate with a remotely hosted
-bot, you should use [ngrok](https://ngrok.com/) tunneling software:
+[Microsoft Bot Framework Emulator](https://docs.microsoft.com/en-us/bot-framework/debug-bots-emulator)
+is a great tool for testing and debugging - you can download it from
+[here](https://github.com/Microsoft/BotFramework-Emulator/releases). To communicate with a remotely
+hosted bot, you should use [ngrok](https://ngrok.com/) tunneling software:
 
 1. In emulator open **App Settings**
 2. Make sure ngrok path is set:
-    ![Setting ngrok path in emulator settings](Documentation/Screenshots/SettingNgrokPathInEmulatorSettings.png?raw=true)
+    ![Setting ngrok path in emulator settings](Documentation/Screenshots/SettingNgrokPathInEmulatorSettings.png)
 3. See the emulator log to verify the path was set correctly:
-    ![ngrok info in emulator log](Documentation/Screenshots/NgrokLocalhostPortInEmulatorLog.png?raw=true)
+    ![ngrok info in emulator log](Documentation/Screenshots/NgrokLocalhostPortInEmulatorLog.png)
 4. Set the bot end point in emulator (`https://<bot URL>/api/messages`)
 5. Set **Microsoft App ID** and **Microsoft App Password**
     * **Note:** It is easy to forget to add the app ID and password to the
       `Web.config` file. Make sure you have the values set before you publish
       the bot:
-    ![Setting app ID and password in Web.config](Documentation/Screenshots/AppSettingsInWebConfig.png?raw=true)
+    ![Setting app ID and password in Web.config](Documentation/Screenshots/AppSettingsInWebConfig.png)
 6. Click **CONNECT** to start a new conversation
-    ![Setting end point, app ID and password in emulator](Documentation/Screenshots/SettingBotEndpointAppIdAndPasswordInEmulator.png?raw=true)
+    ![Setting end point, app ID and password in emulator](Documentation/Screenshots/SettingBotEndpointAppIdAndPasswordInEmulator.png)
 
 See also: [Microsoft Bot Framework Emulator wiki](https://github.com/microsoft/botframework-emulator/wiki/Getting-Started)
 
 ### Scenario 1: Channel <-> channel ###
 
-This scenario utilizes an aggregation concept (see the terminology table in this
-document). One or more channels act as aggregated channels where the customer
-requests (for human assistance) are sent. The conversation owners (e.g. customer
-service agents) then accept or reject the requests.
+This scenario utilizes an aggregation concept (see the terminology table in this document). One or
+more channels act as aggregated channels where the customer requests (for human assistance) are
+sent. The conversation owners (e.g. customer service agents) then accept or reject the requests.
 
-Once you have published the bot, go to the channel you want to receive the
-requests and issue the following command to the bot (given that you haven't
-changed the default bot command handler or the command itself):
+Once you have published the bot, go to the channel you want to receive the requests and issue the
+following command to the bot (given that you haven't changed the default bot command handler or the
+command itself):
 
 ```
-@BOT_NAME watch
+@<bot name> watch
 ```
-    
+
 In case mentions are not supported, you can also use the command keyword:
 
 ```
-agent watch
+command watch
 ```
-    
+
 Now all the requests from another channels are forwarded to this channel.
 See the default flow below:
 
@@ -88,7 +86,7 @@ To set this up, follow these steps:
 
     `fetch("http://YOUR_BOT_ENDPOINT/api/agent/1")`
     
-    Example: `fetch("http://intermediatorbotsample.azurewebsites.net/api/agent/1")`
+    Example: `fetch("http://mybot.azurewebsites.net/api/agent/1")`
 
 3. Inside `index.ts`, update the line below with your bot secret key
 
@@ -98,8 +96,7 @@ To set this up, follow these steps:
     
     * The bot secret key can be found in your bot's profile in
       [the portal](https://dev.botframework.com/bots)
-    * Click on the **Edit** button next to the **Direct Line** channel to locate
-      the secret key
+    * Click on the **Edit** button next to the **Direct Line** channel to locate the secret key
     
     ![Edit button in the portal](Documentation/Screenshots/RetrievingBotSecret1.png?raw=true)
     
@@ -110,187 +107,166 @@ To set this up, follow these steps:
 
 4. Run `npm install` to get the npm packages 
 
-    * You only need to run this command once, unless you add other node packages
-      to the project
-    * if you see error: error TS2300
-    run `npm install typescript@2.0.10`
+    * You only need to run this command once, unless you add other node packages to the project
+    * If you encounter `error TS2300`, run `npm install typescript@2.0.10`
 
 5. Run `npm run build` to build the app 
 
-    * You need to run this every time you make changes to the code before you
-      start the application
+    * You need to run this every time you make changes to the code before you start the application
 
 6. Run `npm run start` to start the app
-7. Go to `http://localhost:8080` to see the Agent UI
+7. Go to http://localhost:8080 to see the Agent UI
 
-    * The http server also serves up the UI on other local addresses eg: http://127.0.0.1:8080
-    However, ensure you use `http://localhost:8080` within a browser
+#### Troubleshooting agent UI scenario ####
 
+Make sure that the value of `RejectPendingRequestIfNoAggregationChannel` key in
+[Web.config](/IntermediatorBotSample/Web.config) is `false`:
+
+```xml
+<add key="<add key="RejectPendingRequestIfNoAggregationChannel" value="false" />" value="false" />
+```
+
+Otherwise the agent UI will not receive the requests, but they are automatically rejected
+(if no aggregation channel is set).
+
+### Commands ###
+
+The bot comes with
+[a CommandMessageHandler class](/IntermediatorBotSample/CommandHandling/CommandMessageHandler.cs),
+which implements the commands in the table below.
+
+| Command | Description |
+| ------- | ----------- |
+| `options` | Displays the command options as a card with buttons (convenient!) |
+| `watch` | Marks the current channel as **aggregation** channel (where requests are sent). |
+| `accept <user ID>`  | Accepts the conversation connection request of the given user.  |
+| `reject <user ID>` | Rejects the conversation connection request of the given user. |
+| `disconnect` | Ends the current conversation with a user. |
+| `reset` | Deletes all routing data! |
+| `list parties` | Lists all parties the bot is aware of. |
+| `list requests` | Lists all pending requests. |
+| `list conversations` | Lists all conversations (connections). |
+| `list results` | Lists all handled results (`MessageRouterResult`). |
+
+To issue a command use the bot name:
+
+```
+@<bot name> <command> <optional parameters>
+```
+
+In case mentions are not supported, you can also use the command keyword:
+
+```
+command <command> <optional parameters>
+```
 
 ## Implementation ##
 
-### Terminology ###
+The core message routing functionality comes from the
+[Bot Message Routing (component)](https://github.com/tompaana/bot-message-routing) project.
+This sample demonstrates how to use the component and provides the necessary "plumbing" such as
+command handling.
 
-| Term | Description |
-| ---- | ----------- |
-| Aggregation (channel) | A channel where the chat requests are sent. The users in the aggregation channel can accept the requests. **If you went with the agent UI approach, aggregation concept is not used.** |
-| Engagement | Is created when a request is accepted - the acceptor and the one accepted form an engagement (1:1 chat where the bot relays the messages between the users). |
-| Party | A user/bot in a specific conversation. |
-| Conversation client | A reqular user e.g. a customer. |
-| Conversation owner | E.g. a customer service **agent**. |
+The key classes of this sample are:
 
-### Interfaces ###
+* **[AgentController](/IntermediatorBotSample/Controllers/AgentController.cs)**:
+  A controller for the agent UI. Enables the agent UI to check the status of pending requests and
+  automatically accept them.
 
-#### [IRoutingDataManager](/IntermediatorBotSample/MessageRouting/IRoutingDataManager.cs) ####
+* **[BackChannelMessageHandler](/IntermediatorBotSample/CommandHandling/BackChannelMessageHandler.cs)**:
+  Provides implementation for checking and acting on back channel (command) messages. Back channel
+  messages are used by the agent UI.
 
-An interface for managing the parties (users/bot), aggregation channel details, the list of
-engaged parties and pending requests. **Note:** In production this data should be stored
-in e.g. a table storage!
-[LocalRoutingDataManager](/IntermediatorBotSample/MessageRouting/LocalRoutingDataManager.cs) is
-provided for testing, but it provides only an in-memory solution.
+* **[CommandMessageHandler](/IntermediatorBotSample/CommandHandling/CommandMessageHandler.cs)**:
+  Provides implementation for checking and acting on commands in messages before they are passed to
+  a dialog etc.
 
-#### [IMessageRouterResultHandler](/IntermediatorBotSample/MessageRouting/IMessageRouterResultHandler.cs) ####
+* **[MessageRouterResultHandler](/IntermediatorBotSample/MessageRouting/MessageRouterResultHandler.cs)**:
+  Implements `IMessageRouterResultHandler`. Handles the results of the operations executed by
+  `MessageRouterManager`.
 
-An interface for handling message router operation results. You can consider
-the result handler as an event handler, but since asynchronicity (that comes
-with an actual event handler in C#) may cause all kind of problems with the bot
-framework *(namely that the execution of the code that makes the bot send
-messages related to an incoming activity should not continue once
-`MessagesController.Post` is exited)*, it is more convenient to handle the
-results this way. The implementation of this interface defines the bot
-responses for specific events (results) so it is a natural place to have
-localization in (should your bot application require it).
+See also: [Taking the code into use](#taking-the-code-into-use)
 
-A default result handler implementation is provided by
-[DefaultMessageRouterResultHandler](/IntermediatorBotSample/MessageRouting/DefaultMessageRouterResultHandler.cs)
-class, but you can easily replace this with your own
-(see `MessageRouterMananger` class documentation below).
+### App settings ###
 
-#### [IBotCommandHandler](/IntermediatorBotSample/MessageRouting/IBotCommandHandler.cs) ####
+A number of **app settings** are available in the [Web.config](/IntermediatorBotSample/Web.config)
+file of this sample which can be used to tailor the experience.
 
-An interface for handling commands to the bot. This project cares little what
-bot commands (if any) are defined and what they should do, although a default
-implementation
-([DefaultBotCommandHandler](/IntermediatorBotSample/MessageRouting/DefaultBotCommandHandler.cs))
-has been provided. Like with the result handler, you can implement and set your
-own command handler to the `MessageRouterManager` class instance.
+**PermittedAgentChannels**: If you wish to only allow conversation owners (i.e. customer service
+agent) to use a specific channel or channels, you can specify a comma seperated list of channel IDs
+here.  This will prevent agent commands from being used on other channels and prevent users from
+accidentally or deliberately calling such commands. E.g. to allow agents to use the emulator and
+Skype channels you would use.
 
-### MessageRouterManager class ###
+```
+<add key="PermittedAgentChannels" value="emulator,skype" />
+```
 
-**[MessageRouterManager](/IntermediatorBotSample/MessageRouting/MessageRouterManager.cs)**
-is the main class of the project. It manages the routing data (using the
-provided `IRoutingDataManager` implementation) and handles the commands to
-the bot (`IBotCommandHandler`) and executes the actual message mediation
-between the parties engaged in a conversation.
-
-#### Properties ####
-
-* `Instance` is a static property providing the singleton instance of the class.
-* `RoutingDataManager`: The implementation of `IRoutingDataManager` interface
-  in use. In case you want to replace the default implementation with your own,
-  set it in `App_Start\WebApiConfig.cs`.
-* `ResultHandler`: The implementation of `IMessageRouterResultHandler` interface
-  in use. In case you want to replace the default implementation with your own,
-  set it in `App_Start\WebApiConfig.cs`.
-* `CommandHandler`: The implementation of `IBotCommandHandler` interface
-  in use. In case you want to replace the default implementation with your own,
-  set it in `App_Start\WebApiConfig.cs`.
-
-#### Methods ####
-
-* **`HandleActivityAsync`**: In simple cases this is the only method you need
-  to call in your `MessagesController` class. It will track the users 
-  (stores their information), handle the commands, forward messages between
-  users engaged in a conversation and handle the results (by sending them to
-  the provided result handler) automatically. The return value
-  (`MessageRouterResult`) will indicate whether the message routing logic
-  consumed the activity or not. If the activity was ignored by the message
-  routing logic, you can e.g. forward it to your dialog.
-* `SendMessageToPartyByBotAsync`: Utility method to make the bot send a given
-  message to a given user.
-* `BroadcastMessageToAggregationChannels`: Sends the given message to all the
-  aggregation channels.
-* `MakeSurePartiesAreTracked`: A convenient method for adding parties.
-  The given parties are added if they are new. This method is called by
-  `HandleActivityAsync` so you don't need to bother calling this explicitly
-  yourself.
-* `RemovePartyAsync`: Removes all the instances related to the given party from
-  the routing data (since there can be multiple - one for each conversation).
-  Will also remove any pending requests of the party in question as well as end
-  all conversations of this specific user.
-* `IntiateEngagementAsync`: Creates a request on behalf of the sender of the
-  activity. The result handler forward the request to the owners
-  (e.g. customer service agents).
-* `RejectPendingRequestAsync`: Removes the pending request of the given user.
-  The result handler implementation should notify the user, if necessary.
-* `AddEngagementAsync`: Establishes an engagement between the given parties.
-  This method should be called when a chat request is accepted.
-* `EndEngagementAsync`: Ends the engagement and severs the connection between
-  the users so that the messages are no longer relayed.
-* `HandleBackChannelMessageAsync`: Handles (hidden) messages from the agent UI
-  component.
-* `HandleMessageAsync`: Handles the incoming messages: Relays the messages
-  between engaged parties.
-
-### Other classes ###
-
-**[Party](/IntermediatorBotSample/MessageRouting/Party.cs)** holds the details
-of specific user/bot in a specific conversation. Note that the bot collects
-parties from all the conversations it's in and there will be a `Party` instance
-of a user/bot for each conversation (i.e. there can be multiple parties for a
-single user/bot). One can think of `Party` as a full address the bot needs in
-order to send a message to the user in a conversation. The `Party` instances are
-stored in routing data.
-
-**[MessageRouterResult](/IntermediatorBotSample/MessageRouting/MessageRouterResult.cs)**
-is the return value for more complex operations of the `MessageRouterManager`
-class not unlike custom `EventArgs` implementations, but due to the problems
-that using actual event handlers can cause, these return values are handled
-by a dedicated `IMessageRouterResultHandler` implementation.
-
-**[AgentController](/IntermediatorBotSample/Controllers/AgentController.cs)**
-provides the pending requests from customers to the agent UI webchat component.
+**RejectPendingRequestIfNoAggregationChannel**: This setting, which is set to true by default, will
+cause the LocalRoutingDataManager to return the NoAgentsAvailable result when no agents are watching
+for incoming requests. You can then send an appropriate response to let the user know no agents are
+available within the implementation of `IMessageRouterResultHandler`. If this is set to false, then
+the `LocalRoutingDataManager` will process and add the users request to the pending requests list
+and return the `ConnectionRequested` result instead. 
 
 ### Taking the code into use ###
 
 The most convenient place to use the aforementioned classes is in the
 **[MessagesController](/IntermediatorBotSample/Controllers/MessagesController.cs)**
-class - you can first call the methods in `MessageRouterManager` and, for
-instance, if no action is taken by the manager, you can forward the `Activity`
-to a `Dialog`:
+class - you can first call the methods in `MessageRouterManager` and, for instance, if no action is
+taken by the manager, you can forward the `Activity` to a `Dialog`:
 
 ```cs
 public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
 {
     if (activity.Type == ActivityTypes.Message)
     {
-        // Get the message router manager instance and let it handle the activity
-        MessageRouterResult result = await MessageRouterManager.Instance.HandleActivityAsync(activity, false);
+        MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
+        IMessageRouterResultHandler messageRouterResultHandler = WebApiConfig.MessageRouterResultHandler;
 
-        if (result.Type == MessageRouterResultType.NoActionTaken)
+        messageRouterManager.MakeSurePartiesAreTracked(activity);
+                
+        // First check for commands (both from back channel and the ones directly typed)
+        MessageRouterResult messageRouterResult =
+            WebApiConfig.BackChannelMessageHandler.HandleBackChannelMessage(activity);
+
+        if (messageRouterResult.Type != MessageRouterResultType.Connected
+            && await WebApiConfig.CommandMessageHandler.HandleCommandAsync(activity) == false)
         {
-            // No action was taken by the message router manager. This means that the user
-            // is not engaged in a 1:1 conversation with a human (e.g. customer service
-            // agent) yet.
-            //
-            // You can, for example, check if the user (customer) needs human assistance
-            // here or forward the activity to a dialog. You could also do the check in
-            // the dialog too...
-            //
-            // Here's an example:
-            if (!string.IsNullOrEmpty(activity.Text) && activity.Text.ToLower().Contains("human"))
+            // No valid back channel (command) message or typed command detected
+
+            // Let the message router manager instance handle the activity
+            messageRouterResult = await messageRouterManager.HandleActivityAsync(activity, false);
+
+            if (messageRouterResult.Type == MessageRouterResultType.NoActionTaken)
             {
-                await MessageRouterManager.Instance.InitiateEngagement(activity);
-            }
-            else
-            {
-                await Conversation.SendAsync(activity, () => new RootDialog());
+                // No action was taken by the message router manager. This means that the
+                // user is not connected (in a 1:1 conversation) with a human
+                // (e.g. customer service agent) yet.
+                //
+                // You can, for example, check if the user (customer) needs human
+                // assistance here or forward the activity to a dialog. You could also do
+                // the check in the dialog too...
+                //
+                // Here's an example:
+                if (!string.IsNullOrEmpty(activity.Text)
+                    && activity.Text.ToLower().Contains(CommandRequestConnection))
+                {
+                    messageRouterResult = messageRouterManager.RequestConnection(activity);
+                }
+                else
+                {
+                    await Conversation.SendAsync(activity, () => new RootDialog());
+                }
             }
         }
+
+        // Handle the result, if required
+        await messageRouterResultHandler.HandleResultAsync(messageRouterResult);
     }
     else
     {
-        HandleSystemMessage(activity);
+        await HandleSystemMessageAsync(activity);
     }
 
     var response = Request.CreateResponse(HttpStatusCode.OK);
@@ -298,13 +274,8 @@ public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
 }
 ```
 
+## See also ##
 
-## Acknowledgements ##
-
-* [Lilian Kasem](https://github.com/liliankasem) implemented and documented the
-  agent UI support. She also had a significant role in the making of this
-  sample.
-* Although you can't see it in the change history,
-  [Edouard Mathon](https://github.com/edouard-mathon) added
-  multi-aggregation-channel support (many thanks!), which in human talk means
-  that the chat requests can be received by multiple channels/conversations.
+* [Bot Message Routing (component) project](https://github.com/tompaana/bot-message-routing)
+    * [NuGet package](https://www.nuget.org/packages/Underscore.Bot.MessageRouting)
+* [Chatbots as Middlemen blog post](http://tomipaananen.azurewebsites.net/?p=1851)

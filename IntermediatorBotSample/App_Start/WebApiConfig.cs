@@ -1,16 +1,39 @@
-﻿using IntermediatorBot;
-using MessageRouting;
+﻿using IntermediatorBotSample.CommandHandling;
+using IntermediatorBotSample.MessageRouting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Web.Http;
+using Underscore.Bot.MessageRouting;
+using Underscore.Bot.MessageRouting.DataStore;
 
 namespace IntermediatorBotSample
 {
     public static class WebApiConfig
     {
+        public static MessageRouterManager MessageRouterManager
+        {
+            get;
+            private set;
+        }
+
+        public static IMessageRouterResultHandler MessageRouterResultHandler
+        {
+            get;
+            private set;
+        }
+
+        public static CommandMessageHandler CommandMessageHandler
+        {
+            get;
+            private set;
+        }
+
+        public static BackChannelMessageHandler BackChannelMessageHandler
+        {
+            get;
+            private set;
+        }
+
         public static void Register(HttpConfiguration config)
         {
             // Json settings
@@ -36,9 +59,11 @@ namespace IntermediatorBotSample
                 defaults: new { id = RouteParameter.Optional }
             );
 
-            // Message router manager settings:
-            //MessageRouterManager messageRouterManager = MessageRouterManager.Instance;
-            //messageRouterManager.ResultHandler = new MyDebugMessageRouterResultHandler();
+            // Message routing
+            MessageRouterManager = new MessageRouterManager(new LocalRoutingDataManager());
+            MessageRouterResultHandler = new MessageRouterResultHandler();
+            CommandMessageHandler = new CommandMessageHandler(MessageRouterManager, MessageRouterResultHandler);
+            BackChannelMessageHandler = new BackChannelMessageHandler(MessageRouterManager.RoutingDataManager);
         }
     }
 }
