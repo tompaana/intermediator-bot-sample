@@ -51,7 +51,7 @@ namespace IntermediatorBotSample.CommandHandling
         /// <returns>A newly created request card as an attachment.</returns>
         public static Attachment CreateRequestCard(Party requesterParty, string botHandle)
         {
-            string requesterUserName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(requesterParty.ChannelAccount.Name);
+            string requesterUserName = requesterParty.ChannelAccount.Name ?? "User";
             string requesterChannelId = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(requesterParty.ChannelId);
             string requesterChannelAccountId = requesterParty.ChannelAccount.Id;
 
