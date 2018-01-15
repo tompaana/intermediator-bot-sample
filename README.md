@@ -240,6 +240,9 @@ emulator and Skype channels, you would use:
 <add key="PermittedAggregationChannels" value="emulator,skype" />
 ```
 
+The provided [BotSettings](/IntermediatorBotSample/Settings/BotSettings.cs) utility class can be
+used to easily access the settings in the code.
+
 ### Taking the code into use ###
 
 The most convenient place to use the aforementioned classes is in the
