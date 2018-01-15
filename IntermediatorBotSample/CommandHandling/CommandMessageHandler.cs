@@ -1,4 +1,5 @@
 ﻿using IntermediatorBot.Strings;
+using IntermediatorBotSample.MessageRouting;
 using Microsoft.Bot.Connector;
 using System;
 using System.Collections.Generic;
@@ -41,7 +42,7 @@ namespace IntermediatorBotSample.CommandHandling
     {
         private const string LineBreak = "\n\r";
         private MessageRouterManager _messageRouterManager;
-        private IMessageRouterResultHandler _messageRouterResultHandler;
+        private MessageRouterResultHandler _messageRouterResultHandler;
 
         /// <summary>
         /// Creates a connection (e.g. human agent) request card.
@@ -92,7 +93,7 @@ namespace IntermediatorBotSample.CommandHandling
         /// <param name="messageRouterManager">The message router manager.</param>
         /// <param name="messageRouterResultHandler"/>A MessageRouterResultHandler instance for
         /// handling possible routing actions such as accepting a 1:1 conversation connection.</param>
-        public CommandMessageHandler(MessageRouterManager messageRouterManager, IMessageRouterResultHandler messageRouterResultHandler)
+        public CommandMessageHandler(MessageRouterManager messageRouterManager, MessageRouterResultHandler messageRouterResultHandler)
         {
             _messageRouterManager = messageRouterManager;
             _messageRouterResultHandler = messageRouterResultHandler;

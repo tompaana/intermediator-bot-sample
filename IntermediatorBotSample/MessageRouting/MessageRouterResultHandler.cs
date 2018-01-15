@@ -10,7 +10,7 @@ using Underscore.Bot.Utils;
 
 namespace IntermediatorBotSample.MessageRouting
 {
-    public class MessageRouterResultHandler : IMessageRouterResultHandler
+    public class MessageRouterResultHandler
     {
         /// <summary>
         /// From IMessageRouterResultHandler.

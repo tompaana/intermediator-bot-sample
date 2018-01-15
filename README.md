@@ -187,27 +187,53 @@ The key classes of this sample are:
 
 See also: [Taking the code into use](#taking-the-code-into-use)
 
-### App settings ###
+### App settings and credentials ###
 
-A number of **app settings** are available in the [Web.config](/IntermediatorBotSample/Web.config)
-file of this sample which can be used to tailor the experience.
+App settings and credentials are available in the [Web.config](/IntermediatorBotSample/Web.config)
+file of this sample. The settings can be used to tailor the experience.
 
-**PermittedAgentChannels**: If you wish to only allow conversation owners (i.e. customer service
-agent) to use a specific channel or channels, you can specify a comma seperated list of channel IDs
-here.  This will prevent agent commands from being used on other channels and prevent users from
-accidentally or deliberately calling such commands. E.g. to allow agents to use the emulator and
-Skype channels you would use.
+#### Credentials ####
+
+The credentials (and the bot ID) can be placed either directly in the `Web.config` file (**not
+recommended** when the code is managed in a repository to avoid accidentally leaking them there) or
+in the separate `AppSettingsAndCredentials.config` file in the root folder of the project
+(**recommended**). The content of the `AppSettingsAndCredentials.config` file is added into
+the `Web.config` when the project is built. The format of the `AppSettingsAndCredentials.config`
+file is as follows:
+
+```xml
+<appSettings>
+  <!-- Update these with your BotId, Microsoft App Id and your Microsoft App Password-->
+  <add key="BotId" value="" />
+  <add key="MicrosoftAppId" value="" />
+  <add key="MicrosoftAppPassword" value="" />
+
+  <!-- Add your connection string for routing data storage below -->
+  <add key="RoutingDataStorageConnectionString" value="" />
+</appSettings>
+```
+
+Note that since the `AppSettingsAndCredentials.config` file is not included in the repository,
+**you must create the file** in the root folder (the same folder containing this README) yourself.
+
+#### Settings ####
+
+**RejectConnectionRequestIfNoAggregationChannel**: This setting, which is set to true by default,
+will cause the `IRoutingDataManager` implementation to return the `NoAgentsAvailable` result when no
+agents are watching for incoming requests. You can then send an appropriate response to let the user
+know no agents are available within the implementation of your `MessageRouterResult` handler.
+If this is set to `false`, then the `IRoutingDataManager` implementation will process and add
+the user's request to the pending requests list and return the `ConnectionRequested` result instead.
+
+**PermittedAggregationChannels**: If you wish to only allow conversation owners (i.e. customer
+service agent) to use a specific channel or channels, you can specify a comma separated list of
+channel IDs here.  This will prevent agent commands from being used on other channels and prevent
+users from accidentally or deliberately calling such commands. E.g. to allow agents to use the
+emulator and Skype channels you would use:
 
 ```
 <add key="PermittedAgentChannels" value="emulator,skype" />
 ```
-
-**RejectPendingRequestIfNoAggregationChannel**: This setting, which is set to true by default, will
-cause the LocalRoutingDataManager to return the NoAgentsAvailable result when no agents are watching
-for incoming requests. You can then send an appropriate response to let the user know no agents are
-available within the implementation of `IMessageRouterResultHandler`. If this is set to false, then
-the `LocalRoutingDataManager` will process and add the users request to the pending requests list
-and return the `ConnectionRequested` result instead. 
 
 ### Taking the code into use ###
 

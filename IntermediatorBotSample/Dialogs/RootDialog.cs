@@ -37,7 +37,8 @@ namespace IntermediatorBotSample.Dialogs
             {
                 if (message.ToLower().Contains(MessagesController.CommandRequestConnection))
                 {
-                    WebApiConfig.MessageRouterManager.RequestConnection((messageActivity as Activity));
+                    WebApiConfig.MessageRouterManager.RequestConnection(
+                        (messageActivity as Activity), WebApiConfig.Settings.RejectConnectionRequestIfNoAggregationChannel);
                 }
                 else
                 {

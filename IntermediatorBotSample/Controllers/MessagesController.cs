@@ -1,15 +1,18 @@
-﻿using System.Net;
+﻿using IntermediatorBot.Strings;
+using IntermediatorBotSample.Dialogs;
+using IntermediatorBotSample.MessageRouting;
+using Microsoft.Bot.Builder.Dialogs;
+using Microsoft.Bot.Connector;
+using System.Globalization;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web.Http;
-using Microsoft.Bot.Connector;
-using IntermediatorBotSample.Dialogs;
-using Microsoft.Bot.Builder.Dialogs;
 using Underscore.Bot.MessageRouting;
 using Underscore.Bot.Utils;
 using Underscore.Bot.Models;
-using System.Globalization;
-using IntermediatorBot.Strings;
+
+
 
 namespace IntermediatorBotSample.Controllers
 {
@@ -36,7 +39,7 @@ namespace IntermediatorBotSample.Controllers
             if (activity.Type == ActivityTypes.Message)
             {
                 MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
-                IMessageRouterResultHandler messageRouterResultHandler = WebApiConfig.MessageRouterResultHandler;
+                MessageRouterResultHandler messageRouterResultHandler = WebApiConfig.MessageRouterResultHandler;
 
                 messageRouterManager.MakeSurePartiesAreTracked(activity);
                 
@@ -50,7 +53,7 @@ namespace IntermediatorBotSample.Controllers
                     // No valid back channel (command) message or typed command detected
 
                     // Let the message router manager instance handle the activity
-                    messageRouterResult = await messageRouterManager.HandleActivityAsync(activity, false);
+                    messageRouterResult = await messageRouterManager.HandleActivityAsync(activity, false, /* TODO */ false);
 
                     if (messageRouterResult.Type == MessageRouterResultType.NoActionTaken)
                     {
@@ -66,7 +69,8 @@ namespace IntermediatorBotSample.Controllers
                         if (!string.IsNullOrEmpty(activity.Text)
                             && activity.Text.ToLower().Contains(CommandRequestConnection))
                         {
-                            messageRouterResult = messageRouterManager.RequestConnection(activity);
+                            messageRouterResult = messageRouterManager.RequestConnection(
+                                activity, WebApiConfig.Settings.RejectConnectionRequestIfNoAggregationChannel);
                         }
                         else
                         {
