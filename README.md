@@ -225,15 +225,20 @@ know no agents are available within the implementation of your `MessageRouterRes
 If this is set to `false`, then the `IRoutingDataManager` implementation will process and add
 the user's request to the pending requests list and return the `ConnectionRequested` result instead.
 
+    ```xml
+    <add key="RejectConnectionRequestIfNoAggregationChannel" value="false" />
+    ```
+
 **PermittedAggregationChannels**: If you wish to only allow conversation owners (i.e. customer
 service agent) to use a specific channel or channels, you can specify a comma separated list of
 channel IDs here.  This will prevent agent commands from being used on other channels and prevent
-users from accidentally or deliberately calling such commands. E.g. to allow agents to use the
-emulator and Skype channels you would use:
+users from accidentally or deliberately calling such commands. If you leave the value empty, all
+channels are considered permitted. If, for instance, you wanted to restrict the agents to use the
+emulator and Skype channels, you would use:
 
-```
-<add key="PermittedAgentChannels" value="emulator,skype" />
-```
+    ```xml
+    <add key="PermittedAggregationChannels" value="emulator,skype" />
+    ```
 
 ### Taking the code into use ###
 
