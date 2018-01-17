@@ -1,8 +1,10 @@
 ﻿using IntermediatorBot.Strings;
+using IntermediatorBotSample.CommandHandling;
 using IntermediatorBotSample.Dialogs;
 using IntermediatorBotSample.MessageRouting;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Connector;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
 using System.Net.Http;
@@ -12,18 +14,13 @@ using Underscore.Bot.MessageRouting;
 using Underscore.Bot.Utils;
 using Underscore.Bot.Models;
 
-
-
 namespace IntermediatorBotSample.Controllers
 {
     [BotAuthentication]
     public class MessagesController : ApiController
     {
-        public const string CommandRequestConnection = "human";
-
         public MessagesController()
         {
-            // Note: This class is constructed every time there is a new activity (Post called).
         }
 
         /// <summary>
@@ -40,6 +37,8 @@ namespace IntermediatorBotSample.Controllers
             {
                 MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
                 MessageRouterResultHandler messageRouterResultHandler = WebApiConfig.MessageRouterResultHandler;
+                bool rejectConnectionRequestIfNoAggregationChannel =
+                    WebApiConfig.Settings.RejectConnectionRequestIfNoAggregationChannel;
 
                 messageRouterManager.MakeSurePartiesAreTracked(activity);
                 
@@ -53,7 +52,8 @@ namespace IntermediatorBotSample.Controllers
                     // No valid back channel (command) message or typed command detected
 
                     // Let the message router manager instance handle the activity
-                    messageRouterResult = await messageRouterManager.HandleActivityAsync(activity, false, /* TODO */ false);
+                    messageRouterResult = await messageRouterManager.HandleActivityAsync(
+                        activity, false, rejectConnectionRequestIfNoAggregationChannel);
 
                     if (messageRouterResult.Type == MessageRouterResultType.NoActionTaken)
                     {
@@ -67,10 +67,10 @@ namespace IntermediatorBotSample.Controllers
                         //
                         // Here's an example:
                         if (!string.IsNullOrEmpty(activity.Text)
-                            && activity.Text.ToLower().Contains(CommandRequestConnection))
+                            && activity.Text.ToLower().Contains(Commands.CommandRequestConnection))
                         {
                             messageRouterResult = messageRouterManager.RequestConnection(
-                                activity, WebApiConfig.Settings.RejectConnectionRequestIfNoAggregationChannel);
+                                activity, rejectConnectionRequestIfNoAggregationChannel);
                         }
                         else
                         {
@@ -84,63 +84,64 @@ namespace IntermediatorBotSample.Controllers
             }
             else
             {
-                await HandleSystemMessageAsync(activity);
+                HandleSystemMessage(activity);
             }
 
             var response = Request.CreateResponse(HttpStatusCode.OK);
             return response;
         }
 
-#pragma warning disable 1998
-        private async Task<Activity> HandleSystemMessageAsync(Activity message)
+        private void HandleSystemMessage(Activity activity)
         {
             MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
 
-            if (message.Type == ActivityTypes.DeleteUserData)
+            if (activity.Type == ActivityTypes.DeleteUserData)
             {
-                // Implement user deletion here
-                // If we handle user deletion, return a real message
-                Party senderParty = MessagingUtils.CreateSenderParty(message);
+                Party senderParty = MessagingUtils.CreateSenderParty(activity);
+                IList<MessageRouterResult> messageRouterResults = messageRouterManager.RemoveParty(senderParty);
 
-                if (messageRouterManager.RemoveParty(senderParty)?.Count > 0)
+                foreach (MessageRouterResult messageRouterResult in messageRouterResults)
                 {
-                    return message.CreateReply($"Data of user {senderParty.ChannelAccount?.Name} removed");
+                    if (messageRouterResult.Type == MessageRouterResultType.OK)
+                    {
+                        System.Diagnostics.Debug.WriteLine(ConversationText.UserDataDeleted, senderParty.ChannelAccount?.Name);
+                    }
                 }
             }
-            else if (message.Type == ActivityTypes.ConversationUpdate)
+            else if (activity.Type == ActivityTypes.ConversationUpdate)
             {
                 // Handle conversation state changes, like members being added and removed
                 // Use Activity.MembersAdded and Activity.MembersRemoved and Activity.Action for info
                 // Not available in all channels
-                if (message.MembersRemoved != null && message.MembersRemoved.Count > 0)
+                if (activity.MembersRemoved != null && activity.MembersRemoved.Count > 0)
                 {
-                    foreach (ChannelAccount channelAccount in message.MembersRemoved)
+                    foreach (ChannelAccount channelAccount in activity.MembersRemoved)
                     {
-                        Party party = new Party(
-                            message.ServiceUrl, message.ChannelId, channelAccount, message.Conversation);
+                        Party partyToRemove = new Party(activity.ServiceUrl, activity.ChannelId, channelAccount, activity.Conversation);
+                        IList<MessageRouterResult> messageRouterResults = messageRouterManager.RemoveParty(partyToRemove);
 
-                        if (messageRouterManager.RemoveParty(party)?.Count > 0)
+                        foreach (MessageRouterResult messageRouterResult in messageRouterResults)
                         {
-                            System.Diagnostics.Debug.WriteLine($"Party {party.ToString()} removed");
+                            if (messageRouterResult.Type == MessageRouterResultType.OK)
+                            {
+                                System.Diagnostics.Debug.WriteLine(ConversationText.PartyRemoved, partyToRemove.ChannelAccount?.Name);
+                            }
                         }
                     }
                 }
             }
-            else if (message.Type == ActivityTypes.ContactRelationUpdate)
+            else if (activity.Type == ActivityTypes.ContactRelationUpdate)
             {
                 // Handle add/remove from contact lists
                 // Activity.From + Activity.Action represent what happened
             }
-            else if (message.Type == ActivityTypes.Typing)
+            else if (activity.Type == ActivityTypes.Typing)
             {
                 // Handle knowing that the user is typing
             }
-            else if (message.Type == ActivityTypes.Ping)
+            else if (activity.Type == ActivityTypes.Ping)
             {
             }
-
-            return null;
         }
-#pragma warning restore 1998
     }
 }

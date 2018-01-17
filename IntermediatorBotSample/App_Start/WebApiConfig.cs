@@ -70,6 +70,14 @@ namespace IntermediatorBotSample
             );
 
             // Message routing
+            InitializeMessageRouting();
+        }
+
+        /// <summary>
+        /// Creates and sets up the instances required for message routing.
+        /// </summary>
+        public static void InitializeMessageRouting()
+        {
             Settings = new BotSettings();
             string connectionString = Settings[BotSettings.KeyRoutingDataStorageConnectionString];
             IRoutingDataManager routingDataManager = null;
@@ -86,7 +94,7 @@ namespace IntermediatorBotSample
             }
 
             MessageRouterManager = new MessageRouterManager(routingDataManager);
-            MessageRouterResultHandler = new MessageRouterResultHandler();
+            MessageRouterResultHandler = new MessageRouterResultHandler(MessageRouterManager);
             CommandMessageHandler = new CommandMessageHandler(MessageRouterManager, MessageRouterResultHandler);
             BackChannelMessageHandler = new BackChannelMessageHandler(MessageRouterManager.RoutingDataManager);
         }

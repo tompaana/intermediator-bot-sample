@@ -117,12 +117,64 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="CommandDisconnect" xml:space="preserve">
-    <value>Failed to end the conversation</value>
-    <comment>No conversations found for the party</comment>
+  <data name="AddAggregationChannelCommandHint" xml:space="preserve">
+    <value>To set up an aggregation channel, type "{0}"</value>
+  </data>
+  <data name="ConnectionRequestMadeButRequestorIsNull" xml:space="preserve">
+    <value>A connection request was made, but the requestor party is null</value>
+  </data>
+  <data name="ConnectRequestCommandHint" xml:space="preserve">
+    <value>To initiate a conversation with an agent, type "{0}"</value>
   </data>
   <data name="EchoMessage" xml:space="preserve">
-    <value>You said</value>
-    <comment>Bot echo functionality when no commands are issued</comment>
+    <value>You said: {0}</value>
+  </data>
+  <data name="ErrorOccuredWithResult" xml:space="preserve">
+    <value>An error occured (result: {0})</value>
+  </data>
+  <data name="FailedToFindBotOnAggregationChannel" xml:space="preserve">
+    <value>Failed to find the bot party on aggregation channel "{0}"</value>
+  </data>
+  <data name="FailedToForwardMessage" xml:space="preserve">
+    <value>Failed to forward the message</value>
+  </data>
+  <data name="NoAgentsAvailable" xml:space="preserve">
+    <value>Sorry, there are no agents available right now</value>
+  </data>
+  <data name="NoAggregationChannel" xml:space="preserve">
+    <value>No aggregation channel set up</value>
+  </data>
+  <data name="NotifyClientConnected" xml:space="preserve">
+    <value>Your request was accepted and you are now chatting with {0}</value>
+  </data>
+  <data name="NotifyClientDisconnected" xml:space="preserve">
+    <value>Your conversation with {0} has ended</value>
+  </data>
+  <data name="NotifyClientDuplicateRequest" xml:space="preserve">
+    <value>Your request has already been received, please wait for an agent to respond</value>
+  </data>
+  <data name="NotifyClientRequestRejected" xml:space="preserve">
+    <value>Unfortunately your request could not be processed</value>
+  </data>
+  <data name="NotifyClientWaitForRequestHandling" xml:space="preserve">
+    <value>Please wait for your request to be accepted</value>
+  </data>
+  <data name="NotifyOwnerConnected" xml:space="preserve">
+    <value>You are now connected to user "{0}"</value>
+  </data>
+  <data name="NotifyOwnerDisconnected" xml:space="preserve">
+    <value>You are now disconnected from the conversation with user "{0}"</value>
+  </data>
+  <data name="NotifyOwnerRequestRejected" xml:space="preserve">
+    <value>Request from user "{0}" rejected</value>
+  </data>
+  <data name="OptionsCommandHint" xml:space="preserve">
+    <value>To see the available commands, type "{0}"</value>
+  </data>
+  <data name="PartyRemoved" xml:space="preserve">
+    <value>Party "{0}" removed</value>
+  </data>
+  <data name="UserDataDeleted" xml:space="preserve">
+    <value>Data of user "{0}" deleted</value>
   </data>
 </root>

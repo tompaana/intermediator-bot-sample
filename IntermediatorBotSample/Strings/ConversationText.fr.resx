@@ -117,12 +117,7 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="CommandDisconnect" xml:space="preserve">
-    <value>Échec de la fin de l'engagement</value>
-    <comment>No connection found for the party</comment>
-  </data>
   <data name="EchoMessage" xml:space="preserve">
-    <value>Tu as dit que</value>
-    <comment>Bot echo functionality when no commands are issued</comment>
+    <value>Tu as dit que: {0}</value>
   </data>
 </root>

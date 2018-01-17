@@ -33,6 +33,8 @@ namespace IntermediatorBotSample.CommandHandling
         public const string CommandListConnections = "list conversations";
         public const string CommandListLastMessageRouterResults = "list results";
 #endif
+
+        public const string CommandRequestConnection = "human"; // For "customers"
     }
 
     /// <summary>
@@ -40,9 +42,49 @@ namespace IntermediatorBotSample.CommandHandling
     /// </summary>
     public class CommandMessageHandler
     {
-        private const string LineBreak = "\n\r";
         private MessageRouterManager _messageRouterManager;
         private MessageRouterResultHandler _messageRouterResultHandler;
+
+        /// <summary>
+        /// Resolves the full command string.
+        /// </summary>
+        /// <param name="botName">The bot name (handle). If null or empty, the basic commmand keyword is used.</param>
+        /// <param name="command">The actual command.</param>
+        /// <returns>The generated full command string.</returns>
+        public static string ResolveFullCommand(string botName, string command)
+        {
+            if (string.IsNullOrEmpty(command))
+            {
+                throw new ArgumentNullException("The actual command itself missing");
+            }
+
+            if (string.IsNullOrEmpty(botName))
+            {
+                return $"{Commands.CommandKeyword} {command}";
+            }
+
+            return $"@{botName} {command}";
+        }
+
+        /// <summary>
+        /// Resolves the full command string.
+        /// </summary>
+        /// <param name="messageRouterManager">The message router manager instance.</param>
+        /// <param name="activity">An activity used to resolve the bot name (handle), if available.</param>
+        /// /// <param name="command">The actual command.</param>
+        /// <returns>The generated full command string.</returns>
+        public static string ResolveFullCommand(
+            MessageRouterManager messageRouterManager, Activity activity, string command)
+        {
+            if (activity != null)
+            {
+                return ResolveFullCommand(
+                    messageRouterManager.RoutingDataManager.ResolveBotNameInConversation(
+                        MessagingUtils.CreateSenderParty(activity)), command);
+            }
+
+            return ResolveFullCommand(null, command);
+        }
 
         /// <summary>
         /// Creates a connection (e.g. human agent) request card.
@@ -197,11 +239,11 @@ namespace IntermediatorBotSample.CommandHandling
 
                         if (string.IsNullOrEmpty(partiesAsString))
                         {
-                            replyMessage = $"No user parties{LineBreak}";
+                            replyMessage = $"No user parties{StringAndCharConstants.LineBreak}";
                         }
                         else
                         {
-                            replyMessage = $"Users:{LineBreak}{partiesAsString}";
+                            replyMessage = $"Users:{StringAndCharConstants.LineBreak}{partiesAsString}";
                         }
 
                         partiesAsString = PartyListToString(routingDataManager.GetBotParties());
@@ -212,7 +254,7 @@ namespace IntermediatorBotSample.CommandHandling
                         }
                         else
                         {
-                            replyMessage += $"Bot:{LineBreak}{partiesAsString}";
+                            replyMessage += $"Bot:{StringAndCharConstants.LineBreak}{partiesAsString}";
                         }
 
                         replyActivity = activity.CreateReply(replyMessage);
@@ -548,7 +590,7 @@ namespace IntermediatorBotSample.CommandHandling
             {
                 foreach (Party party in partyList)
                 {
-                    partiesAsString += $"{party.ToString()}{LineBreak}";
+                    partiesAsString += $"{party.ToString()}{StringAndCharConstants.LineBreak}";
                 }
             }
 

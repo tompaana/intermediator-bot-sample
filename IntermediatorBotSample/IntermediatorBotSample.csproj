@@ -179,6 +179,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>ConversationText.resx</DependentUpon>
     </Compile>
+    <Compile Include="Strings\StringAndCharConstants.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="packages.config" />
