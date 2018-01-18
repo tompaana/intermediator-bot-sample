@@ -117,17 +117,62 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="AcceptButtonTitle" xml:space="preserve">
+    <value>Accept</value>
+  </data>
+  <data name="AcceptRejectConnectionHint" xml:space="preserve">
+    <value>Accept or reject the request: Type "{0}" to accept, "{1}" to reject or use the buttons if enabled</value>
+  </data>
   <data name="AddAggregationChannelCommandHint" xml:space="preserve">
     <value>To set up an aggregation channel, type "{0}"</value>
+  </data>
+  <data name="AggregationChannelAlreadySet" xml:space="preserve">
+    <value>This channel/conversation is already receiving requests</value>
+  </data>
+  <data name="AggregationChannelRemoved" xml:space="preserve">
+    <value>This channel/conversation will no longer receive requests</value>
+  </data>
+  <data name="AggregationChannelSet" xml:space="preserve">
+    <value>This channel/conversation is now where the requests are aggregated</value>
+  </data>
+  <data name="AlreadyConnectedWithUser" xml:space="preserve">
+    <value>You are already connected with user "{0}"</value>
+  </data>
+  <data name="CommandMenuDescription" xml:space="preserve">
+    <value>Administrative options for controlling the end user bot conversations</value>
+  </data>
+  <data name="CommandMenuInstructions" xml:space="preserve">
+    <value>Select the command using the buttons below or type the command keyword ("{0}")/bot handle ("{1}") followed by the command and its parameters (if any), for example: "{2}". Note that some commands (e.g. accepting or rejecting connection requests) are not listed here as they require event specific parameters.</value>
+  </data>
+  <data name="CommandMenuTitle" xml:space="preserve">
+    <value>Commands</value>
+  </data>
+  <data name="CommandNotRecognized" xml:space="preserve">
+    <value>Command "{0}" not recognized</value>
   </data>
   <data name="ConnectionRequestMadeButRequestorIsNull" xml:space="preserve">
     <value>A connection request was made, but the requestor party is null</value>
   </data>
+  <data name="ConnectionRequestResponseNotAllowed" xml:space="preserve">
+    <value>Sorry, you are not allowed to accept or reject requests</value>
+  </data>
+  <data name="ConnectionRequestTitle" xml:space="preserve">
+    <value>Assistance request</value>
+  </data>
   <data name="ConnectRequestCommandHint" xml:space="preserve">
     <value>To initiate a conversation with an agent, type "{0}"</value>
   </data>
+  <data name="DeletingAllData" xml:space="preserve">
+    <value>Deleting all data...</value>
+  </data>
+  <data name="DeletingAllDataWithCommandIssuer" xml:space="preserve">
+    <value>Deleting all data as requested by "0"...</value>
+  </data>
   <data name="EchoMessage" xml:space="preserve">
     <value>You said: {0}</value>
+  </data>
+  <data name="ErrorOccured" xml:space="preserve">
+    <value>An error occured</value>
   </data>
   <data name="ErrorOccuredWithResult" xml:space="preserve">
     <value>An error occured (result: {0})</value>
@@ -135,14 +180,23 @@
   <data name="FailedToFindBotOnAggregationChannel" xml:space="preserve">
     <value>Failed to find the bot party on aggregation channel "{0}"</value>
   </data>
+  <data name="FailedToFindPendingRequestForUserWithErrorMessage" xml:space="preserve">
+    <value>Failed to find a pending request for user "0": {1}</value>
+  </data>
   <data name="FailedToForwardMessage" xml:space="preserve">
     <value>Failed to forward the message</value>
+  </data>
+  <data name="FailedToRemoveAggregationChannel" xml:space="preserve">
+    <value>Failed to remove aggregation channel</value>
   </data>
   <data name="NoAgentsAvailable" xml:space="preserve">
     <value>Sorry, there are no agents available right now</value>
   </data>
   <data name="NoAggregationChannel" xml:space="preserve">
     <value>No aggregation channel set up</value>
+  </data>
+  <data name="NoPendingRequests" xml:space="preserve">
+    <value>No pending requests</value>
   </data>
   <data name="NotifyClientConnected" xml:space="preserve">
     <value>Your request was accepted and you are now chatting with {0}</value>
@@ -174,7 +228,16 @@
   <data name="PartyRemoved" xml:space="preserve">
     <value>Party "{0}" removed</value>
   </data>
+  <data name="RejectButtonTitle" xml:space="preserve">
+    <value>Reject</value>
+  </data>
+  <data name="RequestorDetails" xml:space="preserve">
+    <value>Requested by user "{0}", channel ID: {1}</value>
+  </data>
   <data name="UserDataDeleted" xml:space="preserve">
     <value>Data of user "{0}" deleted</value>
+  </data>
+  <data name="UserNameMissing" xml:space="preserve">
+    <value>User name missing</value>
   </data>
 </root>

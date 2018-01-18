@@ -61,11 +61,101 @@ namespace IntermediatorBot.Strings {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Accept.
+        /// </summary>
+        internal static string AcceptButtonTitle {
+            get {
+                return ResourceManager.GetString("AcceptButtonTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Accept or reject the request: Type &quot;{0}&quot; to accept, &quot;{1}&quot; to reject or use the buttons if enabled.
+        /// </summary>
+        internal static string AcceptRejectConnectionHint {
+            get {
+                return ResourceManager.GetString("AcceptRejectConnectionHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to To set up an aggregation channel, type &quot;{0}&quot;.
         /// </summary>
         internal static string AddAggregationChannelCommandHint {
             get {
                 return ResourceManager.GetString("AddAggregationChannelCommandHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This channel/conversation is already receiving requests.
+        /// </summary>
+        internal static string AggregationChannelAlreadySet {
+            get {
+                return ResourceManager.GetString("AggregationChannelAlreadySet", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This channel/conversation will no longer receive requests.
+        /// </summary>
+        internal static string AggregationChannelRemoved {
+            get {
+                return ResourceManager.GetString("AggregationChannelRemoved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This channel/conversation is now where the requests are aggregated.
+        /// </summary>
+        internal static string AggregationChannelSet {
+            get {
+                return ResourceManager.GetString("AggregationChannelSet", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to You are already connected with user &quot;{0}&quot;.
+        /// </summary>
+        internal static string AlreadyConnectedWithUser {
+            get {
+                return ResourceManager.GetString("AlreadyConnectedWithUser", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Administrative options for controlling the end user bot conversations.
+        /// </summary>
+        internal static string CommandMenuDescription {
+            get {
+                return ResourceManager.GetString("CommandMenuDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select the command using the buttons below or type the command keyword (&quot;{0}&quot;)/bot handle (&quot;{1}&quot;) followed by the command and its parameters (if any), for example: &quot;{2}&quot;. Note that some commands (e.g. accepting or rejecting connection requests) are not listed here as they require event specific parameters..
+        /// </summary>
+        internal static string CommandMenuInstructions {
+            get {
+                return ResourceManager.GetString("CommandMenuInstructions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Commands.
+        /// </summary>
+        internal static string CommandMenuTitle {
+            get {
+                return ResourceManager.GetString("CommandMenuTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Command &quot;{0}&quot; not recognized.
+        /// </summary>
+        internal static string CommandNotRecognized {
+            get {
+                return ResourceManager.GetString("CommandNotRecognized", resourceCulture);
             }
         }
         
@@ -79,6 +169,24 @@ namespace IntermediatorBot.Strings {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Sorry, you are not allowed to accept or reject requests.
+        /// </summary>
+        internal static string ConnectionRequestResponseNotAllowed {
+            get {
+                return ResourceManager.GetString("ConnectionRequestResponseNotAllowed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Assistance request.
+        /// </summary>
+        internal static string ConnectionRequestTitle {
+            get {
+                return ResourceManager.GetString("ConnectionRequestTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to To initiate a conversation with an agent, type &quot;{0}&quot;.
         /// </summary>
         internal static string ConnectRequestCommandHint {
@@ -88,11 +196,38 @@ namespace IntermediatorBot.Strings {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Deleting all data....
+        /// </summary>
+        internal static string DeletingAllData {
+            get {
+                return ResourceManager.GetString("DeletingAllData", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Deleting all data as requested by &quot;0&quot;....
+        /// </summary>
+        internal static string DeletingAllDataWithCommandIssuer {
+            get {
+                return ResourceManager.GetString("DeletingAllDataWithCommandIssuer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to You said: {0}.
         /// </summary>
         internal static string EchoMessage {
             get {
                 return ResourceManager.GetString("EchoMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to An error occured.
+        /// </summary>
+        internal static string ErrorOccured {
+            get {
+                return ResourceManager.GetString("ErrorOccured", resourceCulture);
             }
         }
         
@@ -115,11 +250,29 @@ namespace IntermediatorBot.Strings {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Failed to find a pending request for user &quot;0&quot;: {1}.
+        /// </summary>
+        internal static string FailedToFindPendingRequestForUserWithErrorMessage {
+            get {
+                return ResourceManager.GetString("FailedToFindPendingRequestForUserWithErrorMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Failed to forward the message.
         /// </summary>
         internal static string FailedToForwardMessage {
             get {
                 return ResourceManager.GetString("FailedToForwardMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to remove aggregation channel.
+        /// </summary>
+        internal static string FailedToRemoveAggregationChannel {
+            get {
+                return ResourceManager.GetString("FailedToRemoveAggregationChannel", resourceCulture);
             }
         }
         
@@ -138,6 +291,15 @@ namespace IntermediatorBot.Strings {
         internal static string NoAggregationChannel {
             get {
                 return ResourceManager.GetString("NoAggregationChannel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No pending requests.
+        /// </summary>
+        internal static string NoPendingRequests {
+            get {
+                return ResourceManager.GetString("NoPendingRequests", resourceCulture);
             }
         }
         
@@ -232,11 +394,38 @@ namespace IntermediatorBot.Strings {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Reject.
+        /// </summary>
+        internal static string RejectButtonTitle {
+            get {
+                return ResourceManager.GetString("RejectButtonTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Requested by user &quot;{0}&quot;, channel ID: {1}.
+        /// </summary>
+        internal static string RequestorDetails {
+            get {
+                return ResourceManager.GetString("RequestorDetails", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Data of user &quot;{0}&quot; deleted.
         /// </summary>
         internal static string UserDataDeleted {
             get {
                 return ResourceManager.GetString("UserDataDeleted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User name missing.
+        /// </summary>
+        internal static string UserNameMissing {
+            get {
+                return ResourceManager.GetString("UserNameMissing", resourceCulture);
             }
         }
     }
