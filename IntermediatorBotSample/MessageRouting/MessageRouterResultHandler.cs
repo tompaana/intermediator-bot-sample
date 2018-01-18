@@ -163,7 +163,8 @@ namespace IntermediatorBotSample.MessageRouting
             {
                 if (conversationClientParty == null || conversationClientParty.ChannelAccount == null)
                 {
-                    await _messageRouterManager.BroadcastMessageToAggregationChannelsAsync(ConversationText.ConnectionRequestMadeButRequestorIsNull);
+                    await _messageRouterManager.BroadcastMessageToAggregationChannelsAsync(
+                        ConversationText.ConnectionRequestMadeButRequestorIsNull);
                     throw new NullReferenceException(ConversationText.ConnectionRequestMadeButRequestorIsNull);
                 }
 

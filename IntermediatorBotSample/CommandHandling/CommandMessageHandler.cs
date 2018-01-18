@@ -127,7 +127,14 @@ namespace IntermediatorBotSample.CommandHandling
         /// <returns>A newly created request card as an attachment.</returns>
         public static Attachment CreateRequestCard(Party requestorParty, string botHandle = null)
         {
-            string requestorUserName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(requestorParty.ChannelAccount.Name);
+            if (requestorParty.ChannelAccount == null)
+            {
+                throw new ArgumentNullException("The channel account of the requestor is null");
+            }
+
+            string requestorUserName = string.IsNullOrEmpty(requestorParty.ChannelAccount.Name)
+                ? "<no user name>" : requestorParty.ChannelAccount.Name;
+
             string requestorChannelId = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(requestorParty.ChannelId);
             string requestorChannelAccountId = requestorParty.ChannelAccount.Id;
 
@@ -315,7 +322,10 @@ namespace IntermediatorBotSample.CommandHandling
                             
                         foreach (Party party in _messageRouterManager.RoutingDataManager.GetPendingRequests())
                         {
-                            attachments.Add(CreateRequestCard(party, activity.Recipient.Name));
+                            if (party.ChannelAccount != null)
+                            {
+                                attachments.Add(CreateRequestCard(party, activity.Recipient.Name));
+                            }
                         }
 
                         if (attachments.Count > 0)
