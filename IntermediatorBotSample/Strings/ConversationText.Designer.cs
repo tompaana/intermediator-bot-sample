@@ -133,7 +133,7 @@ namespace IntermediatorBot.Strings {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Select the command using the buttons below or type the command keyword (&quot;{0}&quot;)/bot handle (&quot;{1}&quot;) followed by the command and its parameters (if any), for example: &quot;{2}&quot;. Note that some commands (e.g. accepting or rejecting connection requests) are not listed here as they require event specific parameters..
+        ///   Looks up a localized string similar to Select the command using the buttons below or type the command keyword (&quot;{0}&quot;)/bot handle (&quot;@{1}&quot;) followed by the command and its parameters (if any), for example: &quot;{2}&quot;. Note that some commands (e.g. accepting and rejecting connection requests) are not listed here as they require event specific parameters..
         /// </summary>
         internal static string CommandMenuInstructions {
             get {

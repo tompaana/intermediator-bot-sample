@@ -142,7 +142,7 @@
     <value>Administrative options for controlling the end user bot conversations</value>
   </data>
   <data name="CommandMenuInstructions" xml:space="preserve">
-    <value>Select the command using the buttons below or type the command keyword ("{0}")/bot handle ("{1}") followed by the command and its parameters (if any), for example: "{2}". Note that some commands (e.g. accepting or rejecting connection requests) are not listed here as they require event specific parameters.</value>
+    <value>Select the command using the buttons below or type the command keyword ("{0}")/bot handle ("@{1}") followed by the command and its parameters (if any), for example: "{2}". Note that some commands (e.g. accepting and rejecting connection requests) are not listed here as they require event specific parameters.</value>
   </data>
   <data name="CommandMenuTitle" xml:space="preserve">
     <value>Commands</value>

@@ -84,11 +84,14 @@ namespace IntermediatorBotSample.CommandHandling
                 fullCommand = $"@{botName} {command}";
             }
 
-            foreach (string parameter in parameters)
+            if (parameters != null)
             {
-                if (!string.IsNullOrEmpty(parameter))
+                foreach (string parameter in parameters)
                 {
-                    fullCommand += $" {parameter}";
+                    if (!string.IsNullOrEmpty(parameter))
+                    {
+                        fullCommand += $" {parameter}";
+                    }
                 }
             }
 
@@ -143,13 +146,13 @@ namespace IntermediatorBotSample.CommandHandling
                     new CardAction()
                     {
                         Title = ConversationText.AcceptButtonTitle,
-                        Type = ActionTypes.PostBack,
+                        Type = ActionTypes.ImBack,
                         Value = acceptCommand
                     },
                     new CardAction()
                     {
                         Title = ConversationText.RejectButtonTitle,
-                        Type = ActionTypes.PostBack,
+                        Type = ActionTypes.ImBack,
                         Value = rejectCommand
                     }
                 }
@@ -572,19 +575,19 @@ namespace IntermediatorBotSample.CommandHandling
                     new CardAction()
                     {
                         Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandAddAggregationChannel),
-                        Type = ActionTypes.PostBack,
+                        Type = ActionTypes.ImBack,
                         Value = ResolveFullCommand(botName, Commands.CommandAddAggregationChannel)
                     },
                     new CardAction()
                     {
                         Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandRemoveAggregationChannel),
-                        Type = ActionTypes.PostBack,
+                        Type = ActionTypes.ImBack,
                         Value = ResolveFullCommand(botName, Commands.CommandRemoveAggregationChannel)
                     },
                     new CardAction()
                     {
                         Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandDisconnect),
-                        Type = ActionTypes.PostBack,
+                        Type = ActionTypes.ImBack,
                         Value = ResolveFullCommand(botName, Commands.CommandDisconnect)
                     }
 #if DEBUG
@@ -592,31 +595,31 @@ namespace IntermediatorBotSample.CommandHandling
                     new CardAction()
                     {
                         Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandDeleteAllRoutingData),
-                        Type = ActionTypes.PostBack,
+                        Type = ActionTypes.ImBack,
                         Value = ResolveFullCommand(botName, Commands.CommandDeleteAllRoutingData)
                     },
                     new CardAction()
                     {
                         Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandListAllParties),
-                        Type = ActionTypes.PostBack,
+                        Type = ActionTypes.ImBack,
                         Value = ResolveFullCommand(botName, Commands.CommandListAllParties)
                     },
                     new CardAction()
                     {
                         Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandListPendingRequests),
-                        Type = ActionTypes.PostBack,
+                        Type = ActionTypes.ImBack,
                         Value = ResolveFullCommand(botName, Commands.CommandListPendingRequests)
                     },
                     new CardAction()
                     {
                         Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandListConnections),
-                        Type = ActionTypes.PostBack,
+                        Type = ActionTypes.ImBack,
                         Value = ResolveFullCommand(botName, Commands.CommandListConnections)
                     },
                     new CardAction()
                     {
                         Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandListLastMessageRouterResults),
-                        Type = ActionTypes.PostBack,
+                        Type = ActionTypes.ImBack,
                         Value = ResolveFullCommand(botName, Commands.CommandListLastMessageRouterResults)
                     }
 #endif
