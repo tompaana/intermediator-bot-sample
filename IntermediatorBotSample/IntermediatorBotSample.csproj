@@ -173,6 +173,7 @@
   <ItemGroup>
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="CommandHandling\BackChannelMessageHandler.cs" />
+    <Compile Include="CommandHandling\CommandCardFactory.cs" />
     <Compile Include="CommandHandling\CommandMessageHandler.cs" />
     <Compile Include="Controllers\AgentController.cs" />
     <Compile Include="Controllers\MessagesController.cs" />
@@ -182,6 +183,7 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="MessageRouting\MessageRouterResultHandler.cs" />
+    <Compile Include="MessageRouting\MessageRoutingUtils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Settings\BotSettings.cs" />
     <Compile Include="Strings\ConversationText.fr.Designer.cs">

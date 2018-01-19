@@ -142,7 +142,7 @@
     <value>Administrative options for controlling the end user bot conversations</value>
   </data>
   <data name="CommandMenuInstructions" xml:space="preserve">
-    <value>Select the command using the buttons below or type the command keyword ("{0}")/bot handle ("@{1}") followed by the command and its parameters (if any), for example: "{2}". Note that some commands (e.g. accepting and rejecting connection requests) are not listed here as they require event specific parameters.</value>
+    <value>Select the command using the buttons below or type the command keyword ("{0}")/bot handle ("@{1}") followed by the command and its parameters (if any), for example: "{2}".</value>
   </data>
   <data name="CommandMenuTitle" xml:space="preserve">
     <value>Commands</value>
@@ -231,13 +231,64 @@
   <data name="RejectButtonTitle" xml:space="preserve">
     <value>Reject</value>
   </data>
-  <data name="RequestorDetails" xml:space="preserve">
-    <value>Requested by user "{0}", channel ID: {1}</value>
+  <data name="RequestorDetailsTitle" xml:space="preserve">
+    <value>Requested by user "{0}" on channel "{1}"</value>
   </data>
   <data name="UserDataDeleted" xml:space="preserve">
     <value>Data of user "{0}" deleted</value>
   </data>
   <data name="UserNameMissing" xml:space="preserve">
     <value>User name missing</value>
+  </data>
+  <data name="AcceptConnectionRequestsCardInstructions" xml:space="preserve">
+    <value>Choose the user whose request to accept</value>
+  </data>
+  <data name="AcceptConnectionRequestsCardTitle" xml:space="preserve">
+    <value>Accept request</value>
+  </data>
+  <data name="ApplyToAll" xml:space="preserve">
+    <value>Apply to all</value>
+  </data>
+  <data name="Bots" xml:space="preserve">
+    <value>Bots</value>
+  </data>
+  <data name="FailedToFindPendingRequest" xml:space="preserve">
+    <value>Failed to find the pending request</value>
+  </data>
+  <data name="FailedToRejectPendingRequests" xml:space="preserve">
+    <value>Failed to reject pending requests</value>
+  </data>
+  <data name="InvalidOrMissingCommandParameter" xml:space="preserve">
+    <value>Command parameter invalid or missing</value>
+  </data>
+  <data name="NoBotsStored" xml:space="preserve">
+    <value>No bots stored</value>
+  </data>
+  <data name="NoConversations" xml:space="preserve">
+    <value>No conversations</value>
+  </data>
+  <data name="NoResults" xml:space="preserve">
+    <value>No results</value>
+  </data>
+  <data name="NoUsersStored" xml:space="preserve">
+    <value>No users stored</value>
+  </data>
+  <data name="PendingRequestsFoundWithCount" xml:space="preserve">
+    <value>{0} pending request(s) found</value>
+  </data>
+  <data name="RejectAll" xml:space="preserve">
+    <value>Reject all</value>
+  </data>
+  <data name="RejectConnectionRequestCardTitle" xml:space="preserve">
+    <value>Reject request</value>
+  </data>
+  <data name="RejectConnectionRequestsCardInstructions" xml:space="preserve">
+    <value>Choose the user whose request to reject</value>
+  </data>
+  <data name="RequestorDetailsItem" xml:space="preserve">
+    <value>"{0}" on channel "{1}" ({2})</value>
+  </data>
+  <data name="Users" xml:space="preserve">
+    <value>Users</value>
   </data>
 </root>

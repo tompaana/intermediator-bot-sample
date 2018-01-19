@@ -180,7 +180,8 @@ namespace IntermediatorBotSample.MessageRouting
                         messageActivity.Recipient = aggregationParty.ChannelAccount;
                         messageActivity.Attachments = new List<Attachment>
                         {
-                            CommandMessageHandler.CreateRequestCard(conversationClientParty, botParty.ChannelAccount?.Name)
+                            CommandCardFactory.CreateRequestCard(
+                                conversationClientParty, botParty.ChannelAccount?.Name).ToAttachment()
                         };
 
                         await _messageRouterManager.SendMessageToPartyByBotAsync(aggregationParty, messageActivity);
