@@ -196,10 +196,10 @@ file of this sample. The settings can be used to tailor the experience.
 
 The credentials (and the bot ID) can be placed either directly in the `Web.config` file (**not
 recommended** when the code is managed in a repository to avoid accidentally leaking them there) or
-in the separate `AppSettingsAndCredentials.config` file in the root folder of the project
-(**recommended**). The content of the `AppSettingsAndCredentials.config` file is added into
-the `Web.config` when the project is built. The format of the `AppSettingsAndCredentials.config`
-file is as follows:
+in the separate `AppSettingsAndCredentials.config` file in the `IntermediatorBotSample` folder of
+the project (**recommended**). The content of the `AppSettingsAndCredentials.config` file is added
+into the `Web.config` when the project is built. The format of the
+`AppSettingsAndCredentials.config` file is as follows:
 
 ```xml
 <appSettings>
@@ -214,7 +214,9 @@ file is as follows:
 ```
 
 Note that since the `AppSettingsAndCredentials.config` file is not included in the repository,
-**you must create the file** in the root folder (the same folder containing this README) yourself.
+**you must create the file**.
+A [template file](/IntermediatorBotSample/AppSettingsAndCredentials.config.template) is provided
+for your convenience. Simply remove the `.template` postfix and fill in the details.
 
 #### Settings ####
 
