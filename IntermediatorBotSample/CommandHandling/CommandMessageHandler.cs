@@ -41,7 +41,7 @@ namespace IntermediatorBotSample.CommandHandling
         public const string CommandRequestConnection = "human"; // For "customers"
     }
 
-    internal class Command
+    public class Command
     {
         public string BaseCommand { get; set; }
         public IList<string> Parameters { get; set; }
@@ -53,7 +53,6 @@ namespace IntermediatorBotSample.CommandHandling
     public class CommandMessageHandler
     {
         public static readonly string NoUserNamePlaceholder = "<no user name>";
-        private const string SkypeChannelId = "skype";
 
         private MessageRouterManager _messageRouterManager;
         private MessageRouterResultHandler _messageRouterResultHandler;
@@ -203,11 +202,29 @@ namespace IntermediatorBotSample.CommandHandling
                         if (_messageRouterManager.RoutingDataManager.IsAssociatedWithAggregation(senderParty))
                         {
                             // The party is associated with the aggregation and has the right to accept/reject
-                            if (!doAccept
-                                && command.Parameters.Count > 0
+                            if (command.Parameters.Count == 0)
+                            {
+                                replyActivity = activity.CreateReply();
+
+                                IList<Party> pendingRequests =
+                                    _messageRouterManager.RoutingDataManager.GetPendingRequests();
+
+                                if (pendingRequests.Count == 0)
+                                {
+                                    replyActivity.Text = ConversationText.NoPendingRequests;
+                                }
+                                else
+                                {
+                                    replyActivity = CommandCardFactory.AddCardToActivity(
+                                        replyActivity, CommandCardFactory.CreateAcceptOrRejectCardForMultipleRequests(
+                                            pendingRequests, doAccept, activity.Recipient?.Name));
+                                }
+                            }
+                            else if (!doAccept
                                 && command.Parameters[0].Equals(Commands.CommandParameterAll))
                             {
-                                if (!await RejectAllPendingRequestsAsync())
+                                if (!await new MessageRoutingUtils().RejectAllPendingRequestsAsync(
+                                        _messageRouterManager, _messageRouterResultHandler))
                                 {
                                     replyActivity = activity.CreateReply();
                                     replyActivity.Text = ConversationText.FailedToRejectPendingRequests;
@@ -215,7 +232,14 @@ namespace IntermediatorBotSample.CommandHandling
                             }
                             else
                             {
-                                replyActivity = await AcceptOrRejectRequestAsync(activity, senderParty, command);
+                                string errorMessage = await new MessageRoutingUtils().AcceptOrRejectRequestAsync(
+                                    _messageRouterManager, _messageRouterResultHandler, senderParty, doAccept, command.Parameters[0]);
+
+                                if (!string.IsNullOrEmpty(errorMessage))
+                                {
+                                    replyActivity = activity.CreateReply();
+                                    replyActivity.Text = errorMessage;
+                                }
                             }
                         }
 #if DEBUG
@@ -476,149 +500,6 @@ namespace IntermediatorBotSample.CommandHandling
             }
 
             return botWasMentioned;
-        }
-
-        /// <summary>
-        /// Tries to accept/reject a pending request.
-        /// </summary>
-        /// <param name="activity">The activity to reply to.</param>
-        /// <param name="senderParty">The sender party (accepter/rejecter).</param>
-        /// <param name="command">The command.</param>
-        /// <returns>Null, if an accept/reject operation was executed successfully.
-        /// A proper response as an activity otherwise (e.g. request for more details or
-        /// a user friendly error message otherwise.</returns>
-        private async Task<Activity> AcceptOrRejectRequestAsync(
-            Activity activity, Party senderParty, Command command)
-        {
-            if (!(command.BaseCommand.Equals(Commands.CommandAcceptRequest)
-                  || command.BaseCommand.Equals(Commands.CommandRejectRequest))
-                || command.Parameters.Count == 0)
-            {
-                System.Diagnostics.Debug.WriteLine("Invalid command");
-                return null;
-            }
-
-            IRoutingDataManager routingDataManager = _messageRouterManager.RoutingDataManager;
-            bool doAccept = command.BaseCommand.Equals(Commands.CommandAcceptRequest);
-
-            Activity replyActivity = null;
-            Party partyToAcceptOrReject = null;
-
-            if (routingDataManager.GetPendingRequests().Count > 0
-                && command.Parameters.Count > 0)
-            {
-                string channelAccountIdOfPartyToAcceptOrReject = command.Parameters[0];
-
-                try
-                {
-                    partyToAcceptOrReject = routingDataManager.GetPendingRequests().Single(
-                          party => (party.ChannelAccount != null
-                              && !string.IsNullOrEmpty(party.ChannelAccount.Id)
-                              && party.ChannelAccount.Id.Equals(channelAccountIdOfPartyToAcceptOrReject)));
-                }
-                catch (InvalidOperationException e)
-                {
-                    replyActivity = activity.CreateReply();
-
-                    replyActivity.Text = string.Format(
-                        ConversationText.FailedToFindPendingRequestForUserWithErrorMessage,
-                        channelAccountIdOfPartyToAcceptOrReject,
-                        e.Message);
-                }
-            }
-
-            if (partyToAcceptOrReject != null)
-            {
-                Party connectedSenderParty =
-                routingDataManager.FindConnectedPartyByChannel(
-                    senderParty.ChannelId, senderParty.ChannelAccount);
-
-                bool senderIsConnected =
-                    (connectedSenderParty != null
-                    && routingDataManager.IsConnected(connectedSenderParty, ConnectionProfile.Owner));
-
-                MessageRouterResult messageRouterResult = null;
-
-                if (doAccept)
-                {
-                    if (senderIsConnected)
-                    {
-                        // The sender (accepter/rejecter) is ALREADY connected with another party
-                        replyActivity = activity.CreateReply();
-                        Party otherParty = routingDataManager.GetConnectedCounterpart(connectedSenderParty);
-
-                        if (otherParty != null)
-                        {
-                            replyActivity.Text = string.Format(
-                                ConversationText.AlreadyConnectedWithUser, otherParty.ChannelAccount?.Name);
-                        }
-                        else
-                        {
-                            replyActivity.Text = ConversationText.ErrorOccured;
-                        }
-                    }
-                    else
-                    {
-                        // Try to accept
-                        messageRouterResult = await _messageRouterManager.ConnectAsync(
-                            senderParty,
-                            partyToAcceptOrReject,
-                            !partyToAcceptOrReject.ChannelId.Contains(SkypeChannelId) // Do not try to create direct conversation in Skype
-                        );
-
-                        await _messageRouterResultHandler.HandleResultAsync(messageRouterResult);
-                    }
-                }
-                else
-                {
-                    // Note: Rejecting is OK even if the sender is alreay connected
-                    messageRouterResult = _messageRouterManager.RejectPendingRequest(partyToAcceptOrReject, senderParty);
-                }
-
-                if (messageRouterResult != null)
-                {
-                    await _messageRouterResultHandler.HandleResultAsync(messageRouterResult);
-                }
-            }
-            else
-            {
-                if (replyActivity == null)
-                {
-                    replyActivity = activity.CreateReply();
-                    replyActivity.Text = ConversationText.FailedToFindPendingRequest;
-                }
-            }
-
-            return replyActivity;
-        }
-
-        /// <summary>
-        /// Tries to reject all pending requests.
-        /// </summary>
-        /// <returns>True, if successful. False otherwise.</returns>
-        private async Task<bool> RejectAllPendingRequestsAsync()
-        {
-            bool wasSuccessful = false;
-            IList<Party> pendingRequests = _messageRouterManager.RoutingDataManager.GetPendingRequests();
-
-            if (pendingRequests.Count > 0)
-            {
-                IList<MessageRouterResult> messageRouterResults = new List<MessageRouterResult>();
-
-                foreach (Party pendingRequest in pendingRequests)
-                {
-                    messageRouterResults.Add(_messageRouterManager.RejectPendingRequest(pendingRequest));
-                }
-
-                foreach (MessageRouterResult messageRouterResult in messageRouterResults)
-                {
-                    await _messageRouterResultHandler.HandleResultAsync(messageRouterResult);
-                }
-
-                wasSuccessful = true;
-            }
-
-            return wasSuccessful;
         }
 
 #if DEBUG

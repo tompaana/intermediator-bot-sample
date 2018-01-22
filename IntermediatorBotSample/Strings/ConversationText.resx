@@ -258,6 +258,9 @@
   <data name="FailedToRejectPendingRequests" xml:space="preserve">
     <value>Failed to reject pending requests</value>
   </data>
+  <data name="InvalidCommand" xml:space="preserve">
+    <value>Invalid command</value>
+  </data>
   <data name="InvalidOrMissingCommandParameter" xml:space="preserve">
     <value>Command parameter invalid or missing</value>
   </data>

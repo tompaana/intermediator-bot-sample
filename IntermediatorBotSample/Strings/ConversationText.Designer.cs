@@ -331,6 +331,15 @@ namespace IntermediatorBot.Strings {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalid command.
+        /// </summary>
+        internal static string InvalidCommand {
+            get {
+                return ResourceManager.GetString("InvalidCommand", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Command parameter invalid or missing.
         /// </summary>
         internal static string InvalidOrMissingCommandParameter {
