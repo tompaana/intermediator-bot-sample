@@ -18,7 +18,8 @@ namespace IntermediatorBotSample.MessageRouting
         public MessageRouterResultHandler(MessageRouterManager messageRouterManager)
         {
             _messageRouterManager = messageRouterManager
-                ?? throw new ArgumentNullException($"The message router manager ({nameof(messageRouterManager)}) cannot be null");
+                ?? throw new ArgumentNullException(
+                    $"The message router manager ({nameof(messageRouterManager)}) cannot be null");
         }
 
         /// <summary>
@@ -83,8 +84,15 @@ namespace IntermediatorBotSample.MessageRouting
 
             if (messageRouterResult.ConversationOwnerParty != null)
             {
-                await _messageRouterManager.SendMessageToPartyByBotAsync(
-                    messageRouterResult.ConversationOwnerParty, errorMessage);
+                try
+                {
+                    await _messageRouterManager.SendMessageToPartyByBotAsync(
+                        messageRouterResult.ConversationOwnerParty, errorMessage);
+                }
+                catch (UnauthorizedAccessException e)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to send message: {e.Message}");
+                }
             }
         }
 
@@ -184,12 +192,28 @@ namespace IntermediatorBotSample.MessageRouting
                                 conversationClientParty, botParty.ChannelAccount?.Name).ToAttachment()
                         };
 
-                        await _messageRouterManager.SendMessageToPartyByBotAsync(aggregationParty, messageActivity);
+                        try
+                        {
+                            await _messageRouterManager.SendMessageToPartyByBotAsync(aggregationParty, messageActivity);
+                        }
+                        catch (UnauthorizedAccessException e)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Failed to broadcast message: {e.Message}");
+                        }
                     }
                     else
                     {
-                        await _messageRouterManager.BroadcastMessageToAggregationChannelsAsync(
-                            string.Format(ConversationText.FailedToFindBotOnAggregationChannel, aggregationParty.ConversationAccount.Name));
+                        try
+                        {
+                            await _messageRouterManager.BroadcastMessageToAggregationChannelsAsync(
+                                string.Format(
+                                    ConversationText.FailedToFindBotOnAggregationChannel,
+                                    aggregationParty.ConversationAccount.Name));
+                        }
+                        catch (UnauthorizedAccessException e)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Failed to send message: {e.Message}");
+                        }
                     }
                 }
 
@@ -217,12 +241,28 @@ namespace IntermediatorBotSample.MessageRouting
 
             if (!string.IsNullOrEmpty(messageToConversationOwner) && conversationOwnerParty != null)
             {
-                await _messageRouterManager.SendMessageToPartyByBotAsync(conversationOwnerParty, messageToConversationOwner);
+                try
+                {
+                    await _messageRouterManager.SendMessageToPartyByBotAsync(
+                        conversationOwnerParty, messageToConversationOwner);
+                }
+                catch (UnauthorizedAccessException e)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to send message: {e.Message}");
+                }
             }
 
             if (!string.IsNullOrEmpty(messageToConversationClient) && conversationClientParty != null)
             {
-                await _messageRouterManager.SendMessageToPartyByBotAsync(conversationClientParty, messageToConversationClient);
+                try
+                {
+                    await _messageRouterManager.SendMessageToPartyByBotAsync(
+                        conversationClientParty, messageToConversationClient);
+                }
+                catch (UnauthorizedAccessException e)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to send message: {e.Message}");
+                }
             }
         }
     }
