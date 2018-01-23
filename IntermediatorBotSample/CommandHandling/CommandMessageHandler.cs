@@ -13,41 +13,6 @@ using Underscore.Bot.Utils;
 namespace IntermediatorBotSample.CommandHandling
 {
     /// <summary>
-    /// Constants for commands.
-    /// </summary>
-    public struct Commands
-    {
-        public const string CommandKeyword = "command"; // Used if the channel does not support mentions
-
-        public const string CommandListOptions = "options";
-        public const string CommandAddAggregationChannel = "watch";
-        public const string CommandRemoveAggregationChannel = "unwatch";
-        public const string CommandAcceptRequest = "accept";
-        public const string CommandRejectRequest = "reject";
-        public const string CommandDisconnect = "disconnect";
-
-        public const string CommandParameterAll = "*";
-
-#if DEBUG // Commands for debugging
-        public const string CommandDeleteAllRoutingData = "reset";
-        public const string CommandList = "list";
-
-        public const string CommandParameterParties = "parties";
-        public const string CommandParameterRequests = "requests";
-        public const string CommandParameterConnections = "connections";
-        public const string CommandParameterResults = "results";
-#endif
-
-        public const string CommandRequestConnection = "human"; // For "customers"
-    }
-
-    public class Command
-    {
-        public string BaseCommand { get; set; }
-        public IList<string> Parameters { get; set; }
-    }
-
-    /// <summary>
     /// Handler for bot commands related to message routing.
     /// </summary>
     public class CommandMessageHandler
@@ -67,66 +32,6 @@ namespace IntermediatorBotSample.CommandHandling
         {
             _messageRouterManager = messageRouterManager;
             _messageRouterResultHandler = messageRouterResultHandler;
-        }
-
-        /// <summary>
-        /// Resolves the full command string.
-        /// </summary>
-        /// <param name="botName">The bot name (handle). If null or empty, the basic commmand keyword is used.</param>
-        /// <param name="command">The actual command.</param>
-        /// <param name="parameters">The command parameters (if any).</param>
-        /// <returns>The generated full command string.</returns>
-        public static string ResolveFullCommand(string botName, string command, string[] parameters = null)
-        {
-            if (string.IsNullOrEmpty(command))
-            {
-                throw new ArgumentNullException("The actual command itself missing");
-            }
-
-            string fullCommand = string.Empty;
-
-            if (string.IsNullOrEmpty(botName))
-            {
-                fullCommand = $"{Commands.CommandKeyword} {command}";
-            }
-            else
-            {
-                fullCommand = $"@{botName} {command}";
-            }
-
-            if (parameters != null)
-            {
-                foreach (string parameter in parameters)
-                {
-                    if (!string.IsNullOrEmpty(parameter))
-                    {
-                        fullCommand += $" {parameter}";
-                    }
-                }
-            }
-
-            return fullCommand;
-        }
-
-        /// <summary>
-        /// Resolves the full command string.
-        /// </summary>
-        /// <param name="messageRouterManager">The message router manager instance.</param>
-        /// <param name="activity">An activity used to resolve the bot name (handle), if available.</param>
-        /// <param name="command">The actual command.</param>
-        /// <param name="parameters">The command parameters (if any).</param>
-        /// <returns>The generated full command string.</returns>
-        public static string ResolveFullCommand(
-            MessageRouterManager messageRouterManager, Activity activity, string command, string[] parameters = null)
-        {
-            if (activity != null)
-            {
-                return ResolveFullCommand(
-                    messageRouterManager.RoutingDataManager.ResolveBotNameInConversation(
-                        MessagingUtils.CreateSenderParty(activity)), command, parameters);
-            }
-
-            return ResolveFullCommand(null, command, parameters);
         }
 
         /// <summary>
@@ -414,20 +319,15 @@ namespace IntermediatorBotSample.CommandHandling
 
                 if (!string.IsNullOrEmpty(cleanCommandMessage))
                 {
-                    command = new Command
-                    {
-                        Parameters = new List<string>()
-                    };
-
                     string[] splitCommand = cleanCommandMessage.Split(' ');
 
                     if (splitCommand.Count() == 0)
                     {
-                        command.BaseCommand = cleanCommandMessage;
+                        command = new Command(cleanCommandMessage);
                     }
                     else
                     {
-                        command.BaseCommand = splitCommand[0];
+                        command = new Command(splitCommand[0]);
                     }
 
                     if (splitCommand.Count() > 1)

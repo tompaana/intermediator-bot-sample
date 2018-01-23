@@ -173,6 +173,7 @@
   <ItemGroup>
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="CommandHandling\BackChannelMessageHandler.cs" />
+    <Compile Include="CommandHandling\Command.cs" />
     <Compile Include="CommandHandling\CommandCardFactory.cs" />
     <Compile Include="CommandHandling\CommandMessageHandler.cs" />
     <Compile Include="Controllers\AgentController.cs" />

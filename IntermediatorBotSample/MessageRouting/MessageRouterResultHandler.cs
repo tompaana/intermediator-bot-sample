@@ -123,7 +123,7 @@ namespace IntermediatorBotSample.MessageRouting
                 messageText += $" - ";
                 messageText += string.Format(
                     ConversationText.AddAggregationChannelCommandHint,
-                    $"{CommandMessageHandler.ResolveFullCommand(_messageRouterManager, messageRouterResult.Activity, Commands.CommandAddAggregationChannel)}");
+                    $"{Command.ResolveFullCommand(messageRouterResult.Activity.Recipient?.Name, Commands.CommandAddAggregationChannel)}");
 
                 await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, messageText);
             }
