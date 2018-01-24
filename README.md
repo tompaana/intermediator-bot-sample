@@ -128,6 +128,7 @@ The bot comes with a simple command handling mechanism, which implements the com
 | ------- | ----------- |
 | `options` | Displays the command options as a card with buttons (convenient!) |
 | `watch` | Marks the current channel as **aggregation** channel (where requests are sent). |
+| `unwatch` | Removes the current channel from the list of aggregation channels. |
 | `accept <user ID>` | Accepts the conversation connection request of the given user. |
 | `reject <user ID>` | Rejects the conversation connection request of the given user. |
 | `disconnect` | Ends the current conversation with a user. |
