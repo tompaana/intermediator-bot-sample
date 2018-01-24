@@ -1,4 +1,5 @@
-﻿using Microsoft.Bot.Connector;
+﻿using IntermediatorBot.Strings;
+using Microsoft.Bot.Connector;
 using Newtonsoft.Json.Linq;
 using System;
 using Underscore.Bot.MessageRouting;
@@ -15,18 +16,6 @@ namespace IntermediatorBotSample.CommandHandling
     {
         public const string DefaultBackChannelId = "backchannel";
         public const string DefaultPartyKey = "conversationId";
-        protected string EndOfLine = "\\r\\n";
-        protected const char Backslash = '\\';
-        protected const char QuotationMark = '"';
-
-        /// <summary>
-        /// The routing data manager instance.
-        /// </summary>
-        public IRoutingDataManager RoutingDataManager
-        {
-            get;
-            protected set;
-        }
 
         /// <summary>
         /// The ID for back channel messages.
@@ -46,14 +35,17 @@ namespace IntermediatorBotSample.CommandHandling
             protected set;
         }
 
+        private IRoutingDataManager _routingDataManager;
+
         /// <summary>
         /// Constructor.
         /// </summary>
+        /// <param name="routingDataManager">The routing data manager instance.</param>
         /// <param name="backchannelId">The ID for back channel messages. If null, the default value is used.</param>
         /// <param name="partyKey">The key identifying the serialized party data. If null, the default value is used.</param>
         public BackChannelMessageHandler(IRoutingDataManager routingDataManager, string backChannelId = null, string partyKey = null)
         {
-            RoutingDataManager = routingDataManager
+            _routingDataManager = routingDataManager
                 ?? throw new ArgumentNullException("Routing data manager instance must be given");
 
             BackChannelId = string.IsNullOrEmpty(backChannelId) ? DefaultBackChannelId : backChannelId;
@@ -72,7 +64,7 @@ namespace IntermediatorBotSample.CommandHandling
         ///     * MessageRouterResultType.NoActionTaken: No back channel message detected
         ///     * MessageRouterResultType.Error: See the error message for details
         /// </returns>
-        public MessageRouterResult HandleBackChannelMessage(Activity activity)
+        public virtual MessageRouterResult HandleBackChannelMessage(Activity activity)
         {
             MessageRouterResult messageRouterResult = new MessageRouterResult();
 
@@ -108,7 +100,7 @@ namespace IntermediatorBotSample.CommandHandling
                     {
                         Party conversationOwnerParty = MessagingUtils.CreateSenderParty(activity);
 
-                        messageRouterResult = RoutingDataManager.ConnectAndClearPendingRequest(
+                        messageRouterResult = _routingDataManager.ConnectAndClearPendingRequest(
                             conversationOwnerParty, conversationClientParty);
 
                         messageRouterResult.Activity = activity;
@@ -139,8 +131,8 @@ namespace IntermediatorBotSample.CommandHandling
                 throw new NullReferenceException("Failed to find the party information from the channel data");
             }
 
-            partyAsJsonString = partyAsJsonString.Replace(EndOfLine, string.Empty);
-            partyAsJsonString = partyAsJsonString.Replace(Backslash, QuotationMark);
+            partyAsJsonString = partyAsJsonString.Replace(StringAndCharConstants.EndOfLineInJsonResponse, string.Empty);
+            partyAsJsonString = partyAsJsonString.Replace(StringAndCharConstants.BackslashInJsonResponse, StringAndCharConstants.QuotationMark);
             return Party.FromJsonString(partyAsJsonString);
         }
     }

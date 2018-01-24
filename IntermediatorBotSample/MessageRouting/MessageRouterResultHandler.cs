@@ -1,4 +1,5 @@
-﻿using IntermediatorBotSample.CommandHandling;
+﻿using IntermediatorBot.Strings;
+using IntermediatorBotSample.CommandHandling;
 using Microsoft.Bot.Connector;
 using System;
 using System.Collections.Generic;
@@ -10,8 +11,17 @@ using Underscore.Bot.Utils;
 
 namespace IntermediatorBotSample.MessageRouting
 {
-    public class MessageRouterResultHandler : IMessageRouterResultHandler
+    public class MessageRouterResultHandler
     {
+        private MessageRouterManager _messageRouterManager;
+
+        public MessageRouterResultHandler(MessageRouterManager messageRouterManager)
+        {
+            _messageRouterManager = messageRouterManager
+                ?? throw new ArgumentNullException(
+                    $"The message router manager ({nameof(messageRouterManager)}) cannot be null");
+        }
+
         /// <summary>
         /// From IMessageRouterResultHandler.
         /// </summary>
@@ -25,7 +35,7 @@ namespace IntermediatorBotSample.MessageRouting
             }
 
         #if DEBUG
-            WebApiConfig.MessageRouterManager.RoutingDataManager.AddMessageRouterResult(messageRouterResult);
+            _messageRouterManager.RoutingDataManager.AddMessageRouterResult(messageRouterResult);
         #endif
 
             string message = string.Empty;
@@ -61,102 +71,82 @@ namespace IntermediatorBotSample.MessageRouting
         }
 
         /// <summary>
-        /// Notifies the conversation client (customer) or owner (agent) that an error has occured and
-        /// sends the error message
+        /// Tries to notify the conversation owner (agent) about the error.
         /// </summary>
         /// <param name="messageRouterResult">The result to handle.</param>
-        private static async Task HandleErrorAsync(MessageRouterResult messageRouterResult)
+        protected virtual async Task HandleErrorAsync(MessageRouterResult messageRouterResult)
         {
-            if (string.IsNullOrEmpty(messageRouterResult.ErrorMessage))
-            {
-                System.Diagnostics.Debug.WriteLine("An error occured");
-            }
-            else
-            {
-                MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
-                IList<Party> aggregationParties = messageRouterManager.RoutingDataManager.GetAggregationParties();
+            string errorMessage = string.IsNullOrEmpty(messageRouterResult.ErrorMessage)
+                ? string.Format(ConversationText.ErrorOccuredWithResult, messageRouterResult.Type.ToString())
+                : $"{messageRouterResult.ErrorMessage} ({messageRouterResult.Type})";
 
-                if (aggregationParties == null || aggregationParties.Count == 0)
-                {
-                    if (messageRouterResult.ConversationOwnerParty != null)
-                    {
-                        await messageRouterManager.SendMessageToPartyByBotAsync(
-                            messageRouterResult.ConversationOwnerParty, messageRouterResult.ErrorMessage);
-                    }
-                }
-                else
-                {
-                    foreach (Party aggregationChannel in aggregationParties)
-                    {
-                        await messageRouterManager.SendMessageToPartyByBotAsync(
-                            aggregationChannel, messageRouterResult.ErrorMessage);
-                    }
-                }
+            System.Diagnostics.Debug.WriteLine(errorMessage);
 
-                System.Diagnostics.Debug.WriteLine(messageRouterResult.ErrorMessage);
+            if (messageRouterResult.ConversationOwnerParty != null)
+            {
+                try
+                {
+                    await _messageRouterManager.SendMessageToPartyByBotAsync(
+                        messageRouterResult.ConversationOwnerParty, errorMessage);
+                }
+                catch (UnauthorizedAccessException e)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to send message: {e.Message}");
+                }
             }
         }
 
         /// <summary>
-        /// Notifies the conversation client (customer) or the conversation owner (agent) that there 
-        /// was a problem forwarding their message
+        /// Notifies the conversation client (customer) or the conversation owner (agent) that
+        /// there was a problem forwarding their message.
         /// </summary>
         /// <param name="messageRouterResult">The result to handle.</param>
-        private static async Task<string> HandleFailedToForwardMessageAsync(MessageRouterResult messageRouterResult)
+        protected virtual async Task HandleFailedToForwardMessageAsync(MessageRouterResult messageRouterResult)
         {
-            string message = $"{(string.IsNullOrEmpty(messageRouterResult.ErrorMessage) ? "Failed to forward the message" : messageRouterResult.ErrorMessage)}";
-            await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
-            return message;
+            string messageText = string.IsNullOrEmpty(messageRouterResult.ErrorMessage)
+                ? ConversationText.FailedToForwardMessage
+                : messageRouterResult.ErrorMessage;
+            await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, messageText);
         }
 
         /// <summary>
-        /// Notifies the user that there are no aggregation channels setup 
+        /// Notifies the user that there are no aggregation channels set up.
         /// </summary>
         /// <param name="messageRouterResult">The result to handle.</param>
-        private static async Task<string> HandleNoAggregationChannelResultAsync(MessageRouterResult messageRouterResult)
+        protected virtual async Task HandleNoAggregationChannelResultAsync(MessageRouterResult messageRouterResult)
         {
-            string message = string.Empty;
-
             if (messageRouterResult.Activity != null)
             {
-                MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
-                string botName = messageRouterManager.RoutingDataManager.ResolveBotNameInConversation(
-                    MessagingUtils.CreateSenderParty(messageRouterResult.Activity));
+                string messageText = string.IsNullOrEmpty(messageRouterResult.ErrorMessage)
+                    ? string.Format(ConversationText.NoAggregationChannel)
+                    : messageRouterResult.ErrorMessage;
+                messageText += $" - ";
+                messageText += string.Format(
+                    ConversationText.AddAggregationChannelCommandHint,
+                    $"{Command.ResolveFullCommand(messageRouterResult.Activity.Recipient?.Name, Commands.CommandAddAggregationChannel)}");
 
-                message = $"{(string.IsNullOrEmpty(messageRouterResult.ErrorMessage) ? "" : $"{messageRouterResult.ErrorMessage}: ")}The message router manager is not initialized; type \"";
-                message += string.IsNullOrEmpty(botName) ? $"{Commands.CommandKeyword} " : $"@{botName} ";
-                message += $"{Commands.CommandAddAggregationChannel}\" to setup the aggregation channel";
-
-                await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
+                await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, messageText);
             }
             else
             {
                 System.Diagnostics.Debug.WriteLine("The activity of the result is null");
             }
-
-            return message;
         }
 
         /// <summary>
-        /// Notifies the conversation client (customer) that no agents are available 
-        /// (i.e. no agents are currently watching for requests
+        /// Notifies the conversation client (customer) that no agents are available.
         /// </summary>
         /// <param name="messageRouterResult">The result to handle.</param>
-        private static async Task<string> HandleNoAgentsAvailableResultAsync(MessageRouterResult messageRouterResult)
+        protected virtual async Task HandleNoAgentsAvailableResultAsync(MessageRouterResult messageRouterResult)
         {
-            string message = string.Empty;
-
             if (messageRouterResult.Activity != null)
             {
-                message = $"Sorry. There are no agents available right now.";
-                await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, message);
+                await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, ConversationText.NoAgentsAvailable);
             }
             else
             {
                 System.Diagnostics.Debug.WriteLine("The activity of the result is null");
             }
-
-            return message;
         }
 
         /// <summary>
@@ -166,8 +156,7 @@ namespace IntermediatorBotSample.MessageRouting
         /// <param name="messageRouterResult">The result to handle.</param>
         protected virtual async Task HandleConnectionChangedResultAsync(MessageRouterResult messageRouterResult)
         {
-            MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
-            IRoutingDataManager routingDataManager = messageRouterManager.RoutingDataManager;
+            IRoutingDataManager routingDataManager = _messageRouterManager.RoutingDataManager;
 
             Party conversationOwnerParty = messageRouterResult.ConversationOwnerParty;
             Party conversationClientParty = messageRouterResult.ConversationClientParty;
@@ -182,13 +171,14 @@ namespace IntermediatorBotSample.MessageRouting
             {
                 if (conversationClientParty == null || conversationClientParty.ChannelAccount == null)
                 {
-                    await messageRouterManager.BroadcastMessageToAggregationChannelsAsync("Conversation request was made, but the requester party is null!");
-                    throw new NullReferenceException("Conversation request was made, but the requester party is null");
+                    await _messageRouterManager.BroadcastMessageToAggregationChannelsAsync(
+                        ConversationText.ConnectionRequestMadeButRequestorIsNull);
+                    throw new NullReferenceException(ConversationText.ConnectionRequestMadeButRequestorIsNull);
                 }
 
-                foreach (Party aggregationParty in messageRouterManager.RoutingDataManager.GetAggregationParties())
+                foreach (Party aggregationParty in _messageRouterManager.RoutingDataManager.GetAggregationParties())
                 {
-                    Party botParty = WebApiConfig.MessageRouterManager.RoutingDataManager
+                    Party botParty = routingDataManager
                         .FindBotPartyByChannelAndConversation(aggregationParty.ChannelId, aggregationParty.ConversationAccount);
 
                     if (botParty != null)
@@ -198,48 +188,81 @@ namespace IntermediatorBotSample.MessageRouting
                         messageActivity.Recipient = aggregationParty.ChannelAccount;
                         messageActivity.Attachments = new List<Attachment>
                         {
-                            CommandMessageHandler.CreateRequestCard(conversationClientParty, botParty.ChannelAccount?.Name)
+                            CommandCardFactory.CreateRequestCard(
+                                conversationClientParty, botParty.ChannelAccount?.Name).ToAttachment()
                         };
 
-                        await messageRouterManager.SendMessageToPartyByBotAsync(aggregationParty, messageActivity);
+                        try
+                        {
+                            await _messageRouterManager.SendMessageToPartyByBotAsync(aggregationParty, messageActivity);
+                        }
+                        catch (UnauthorizedAccessException e)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Failed to broadcast message: {e.Message}");
+                        }
                     }
                     else
                     {
-                        await messageRouterManager.BroadcastMessageToAggregationChannelsAsync(
-                            $"Could not find the bot party on aggregation channel \"{aggregationParty.ConversationAccount.Name}\"!");
+                        try
+                        {
+                            await _messageRouterManager.BroadcastMessageToAggregationChannelsAsync(
+                                string.Format(
+                                    ConversationText.FailedToFindBotOnAggregationChannel,
+                                    aggregationParty.ConversationAccount.Name));
+                        }
+                        catch (UnauthorizedAccessException e)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Failed to send message: {e.Message}");
+                        }
                     }
                 }
 
-                messageToConversationClient = "Please wait for your request to be accepted";
+                messageToConversationClient = ConversationText.NotifyClientWaitForRequestHandling;
             }
             else if (messageRouterResult.Type == MessageRouterResultType.ConnectionAlreadyRequested)
             {
-                messageToConversationClient = "Your request has already been receieved and we are waiting for an agent to respond";
+                messageToConversationClient = ConversationText.NotifyClientDuplicateRequest;
             }
             else if (messageRouterResult.Type == MessageRouterResultType.ConnectionRejected)
             {
-                messageToConversationOwner = $"Request from user \"{conversationClientName}\" rejected";
-                messageToConversationClient = "Unfortunately your request could not be processed";
+                messageToConversationOwner = string.Format(ConversationText.NotifyOwnerRequestRejected, conversationClientName);
+                messageToConversationClient = ConversationText.NotifyClientRequestRejected;
             }
             else if (messageRouterResult.Type == MessageRouterResultType.Connected)
             {
-                messageToConversationOwner = $"You are now connected to user \"{conversationClientName}\"";
-                messageToConversationClient = $"Your request was accepted and you are now chatting with {conversationOwnerName}";
+                messageToConversationOwner = string.Format(ConversationText.NotifyOwnerConnected, conversationClientName);
+                messageToConversationClient = string.Format(ConversationText.NotifyClientConnected, conversationOwnerName);
             }
             else if (messageRouterResult.Type == MessageRouterResultType.Disconnected)
             {
-                messageToConversationOwner = $"You are now disconnected from the conversation with user \"{conversationClientName}\"";
-                messageToConversationClient = $"Your conversation with {conversationOwnerName} has ended";
+                messageToConversationOwner = string.Format(ConversationText.NotifyOwnerDisconnected, conversationClientName);
+                messageToConversationClient = string.Format(ConversationText.NotifyClientDisconnected, conversationOwnerName);
             }
 
             if (!string.IsNullOrEmpty(messageToConversationOwner) && conversationOwnerParty != null)
             {
-                await messageRouterManager.SendMessageToPartyByBotAsync(conversationOwnerParty, messageToConversationOwner);
+                try
+                {
+                    await _messageRouterManager.SendMessageToPartyByBotAsync(
+                        conversationOwnerParty, messageToConversationOwner);
+                }
+                catch (UnauthorizedAccessException e)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to send message: {e.Message}");
+                }
             }
 
             if (!string.IsNullOrEmpty(messageToConversationClient) && conversationClientParty != null)
             {
-                await messageRouterManager.SendMessageToPartyByBotAsync(conversationClientParty, messageToConversationClient);
+                try
+                {
+                    await _messageRouterManager.SendMessageToPartyByBotAsync(
+                        conversationClientParty, messageToConversationClient);
+                }
+                catch (UnauthorizedAccessException e)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to send message: {e.Message}");
+                }
             }
         }
     }
