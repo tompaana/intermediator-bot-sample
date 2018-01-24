@@ -4,38 +4,38 @@ A bot build on [Microsoft Bot Framework](https://dev.botframework.com/) that rou
 two users on different channels. This is sample utilizes the core functionality found in
 [Bot Message Routing (component) project](https://github.com/tompaana/bot-message-routing).
 
+A possible use case for this type of a bot would be a customer service scenario where the bot relays
+the messages between a customer and a customer service agent.
+
 This is a C# sample - if you're looking to do this with Node, see
 [this sample](https://github.com/palindromed/Bot-HandOff).
 
-A possible use case for this type of a bot would be a customer service scenario
-where the bot relays the messages between a customer and a customer service agent.
-
 ## Getting started ##
 
-To test the bot, publish it in
-[Microsoft Bot Framework portal](https://dev.botframework.com) and connect it to
-the channels of your choice. If you are new to bots, please familiarize yourself
-first with the basics [here](https://dev.botframework.com/).
-[Microsoft Bot Framework Emulator](https://docs.microsoft.com/en-us/bot-framework/debug-bots-emulator)
-is a great tool for testing and debugging - you can download it from
-[here](https://github.com/Microsoft/BotFramework-Emulator/releases). To communicate with a remotely
-hosted bot, you should use [ngrok](https://ngrok.com/) tunneling software:
+Since this is an advanced bot scenario, the prerequisites include that you are familiar with the
+basic concepts of the Microsoft Bot Framework and you know the C# programming language. Before
+getting started it is recommended that you have installed the following tools:
 
-1. In emulator open **App Settings**
-2. Make sure ngrok path is set:
-    ![Setting ngrok path in emulator settings](Documentation/Screenshots/SettingNgrokPathInEmulatorSettings.png)
-3. See the emulator log to verify the path was set correctly:
-    ![ngrok info in emulator log](Documentation/Screenshots/NgrokLocalhostPortInEmulatorLog.png)
-4. Set the bot end point in emulator (`https://<bot URL>/api/messages`)
-5. Set **Microsoft App ID** and **Microsoft App Password**
-    * **Note:** It is easy to forget to add the app ID and password to the
-      `Web.config` file. Make sure you have the values set before you publish
-      the bot:
-    ![Setting app ID and password in Web.config](Documentation/Screenshots/AppSettingsInWebConfig.png)
-6. Click **CONNECT** to start a new conversation
-    ![Setting end point, app ID and password in emulator](Documentation/Screenshots/SettingBotEndpointAppIdAndPasswordInEmulator.png)
+* [Visual Studio IDE](https://www.visualstudio.com/vs/)
+* [ngrok](https://ngrok.com/)
+* [Bot Framework Emulator](https://github.com/Microsoft/BotFramework-Emulator) ([download](https://github.com/Microsoft/BotFramework-Emulator/releases))
+    * [Debug bots with the Bot Framework Emulator](https://docs.microsoft.com/fi-fi/bot-framework/bot-service-debug-emulator)
 
-See also: [Microsoft Bot Framework Emulator wiki](https://github.com/microsoft/botframework-emulator/wiki/Getting-Started)
+### Publishing the bot ###
+
+This sample demonstrates routing messages between different users on different channels. Hence,
+using only the emulator to test the sample may prove difficult. To utilize other channels, you must
+first publish the bot:
+
+1. Go to the [Azure Portal](https://portal.azure.com)
+2. Create a new **Bot Service** (**Web App Bot** is the recommended type for this sample)
+3. Collect the **application ID** and **application password** of the newly created Bot Service
+4. Copy and rename the application settings and credentials template file ([AppSettingsAndCredentials.config.template](/IntermediatorBotSample/AppSettingsAndCredentials.config.template)) by removing the `.template` postfix
+5. Open the solution file ([IntermediatorBotSample.sln](/IntermediatorBotSample.sln)) in Visual Studio
+6. Insert the settings and credentials into `AppSettingsAndCredentials.config` file
+    * See [App settings and credentials](#app-settings-and-credentials) section for more details
+7. Build the solution and publish (right-click the **IntermediatorBotSample** project in the **Solution Explorer** in Visual Studio and select **Publish**)
+    * For more details, see [Publish a bot to Bot Service](https://docs.microsoft.com/en-us/bot-framework/bot-service-continuous-deployment)
 
 ### Scenario 1: Channel <-> channel ###
 
@@ -69,10 +69,12 @@ See the default flow below:
 
 ### Scenario 2: Channel <-> call center (agent UI) ###
 
-In this scenario the conversation owners (e.g. customer service agents) access
-the bot via the webchat component, [Agent UI](https://github.com/billba/agent),
-implemented by [Bill Barnes](https://github.com/billba). Each customer request
-(for human assistance) automatically opens a new chat window in the agent UI.
+**BETA - [Help wanted!](/issues/27)**
+
+In this scenario the conversation owners (e.g. customer service agents) access the bot via the
+webchat component, [Agent UI](https://github.com/billba/agent), implemented by
+[Bill Barnes](https://github.com/billba). Each customer request (for human assistance) automatically
+opens a new chat window in the agent UI.
 
 | Emulator | Agent UI |
 | -------- | -------- |
@@ -88,22 +90,11 @@ To set this up, follow these steps:
     
     Example: `fetch("http://mybot.azurewebsites.net/api/agent/1")`
 
-3. Inside `index.ts`, update the line below with your bot secret key
+3. Inside `index.ts`, update the line below with your bot secret key (which you can find in your **Bot Service**)
 
     ```js
     iframe.src = 'botchat?s=YOUR_DIRECTLINE_SECRET_ID';
     ```
-    
-    * The bot secret key can be found in your bot's profile in
-      [the portal](https://dev.botframework.com/bots)
-    * Click on the **Edit** button next to the **Direct Line** channel to locate the secret key
-    
-    ![Edit button in the portal](Documentation/Screenshots/RetrievingBotSecret1.png?raw=true)
-    
-    * If your **Configure Direct Line** page is blank, create a new site by
-      clicking **Add new site** and two bot secret keys will be generated for you:
-    
-    ![Bot secret on Configure Direct Line page](Documentation/Screenshots/RetrievingBotSecret2.png?raw=true)
 
 4. Run `npm install` to get the npm packages 
 
@@ -119,11 +110,11 @@ To set this up, follow these steps:
 
 #### Troubleshooting agent UI scenario ####
 
-Make sure that the value of `RejectPendingRequestIfNoAggregationChannel` key in
+Make sure that the value of `RejectConnectionRequestIfNoAggregationChannel` key in
 [Web.config](/IntermediatorBotSample/Web.config) is `false`:
 
 ```xml
-<add key="<add key="RejectPendingRequestIfNoAggregationChannel" value="false" />" value="false" />
+<add key="RejectConnectionRequestIfNoAggregationChannel" value="false" />
 ```
 
 Otherwise the agent UI will not receive the requests, but they are automatically rejected
@@ -131,22 +122,20 @@ Otherwise the agent UI will not receive the requests, but they are automatically
 
 ### Commands ###
 
-The bot comes with
-[a CommandMessageHandler class](/IntermediatorBotSample/CommandHandling/CommandMessageHandler.cs),
-which implements the commands in the table below.
+The bot comes with a simple command handling mechanism, which implements the commands in the table below.
 
 | Command | Description |
 | ------- | ----------- |
 | `options` | Displays the command options as a card with buttons (convenient!) |
 | `watch` | Marks the current channel as **aggregation** channel (where requests are sent). |
-| `accept <user ID>`  | Accepts the conversation connection request of the given user.  |
+| `accept <user ID>` | Accepts the conversation connection request of the given user. |
 | `reject <user ID>` | Rejects the conversation connection request of the given user. |
 | `disconnect` | Ends the current conversation with a user. |
-| `reset` | Deletes all routing data! |
-| `list parties` | Lists all parties the bot is aware of. |
-| `list requests` | Lists all pending requests. |
-| `list conversations` | Lists all conversations (connections). |
-| `list results` | Lists all handled results (`MessageRouterResult`). |
+| `reset` | Deletes all routing data! *(Enabled only in debug builds)* |
+| `list parties` | Lists all parties the bot is aware of. *(Enabled only in debug builds)* |
+| `list requests` | Lists all pending requests. *(Enabled only in debug builds)* |
+| `list conversations` | Lists all conversations (connections). *(Enabled only in debug builds)* |
+| `list results` | Lists all handled results (`MessageRouterResult`). *(Enabled only in debug builds)* |
 
 To issue a command use the bot name:
 
@@ -159,6 +148,9 @@ In case mentions are not supported, you can also use the command keyword:
 ```
 command <command> <optional parameters>
 ```
+
+Although not an actual command, typing `human` will initiate a connection request, which an agent
+can then reject or accept.
 
 ## Implementation ##
 
@@ -244,71 +236,6 @@ emulator and Skype channels, you would use:
 
 The provided [BotSettings](/IntermediatorBotSample/Settings/BotSettings.cs) utility class can be
 used to easily access the settings in the code.
-
-### Taking the code into use ###
-
-The most convenient place to use the aforementioned classes is in the
-**[MessagesController](/IntermediatorBotSample/Controllers/MessagesController.cs)**
-class - you can first call the methods in `MessageRouterManager` and, for instance, if no action is
-taken by the manager, you can forward the `Activity` to a `Dialog`:
-
-```cs
-public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
-{
-    if (activity.Type == ActivityTypes.Message)
-    {
-        MessageRouterManager messageRouterManager = WebApiConfig.MessageRouterManager;
-        IMessageRouterResultHandler messageRouterResultHandler = WebApiConfig.MessageRouterResultHandler;
-
-        messageRouterManager.MakeSurePartiesAreTracked(activity);
-                
-        // First check for commands (both from back channel and the ones directly typed)
-        MessageRouterResult messageRouterResult =
-            WebApiConfig.BackChannelMessageHandler.HandleBackChannelMessage(activity);
-
-        if (messageRouterResult.Type != MessageRouterResultType.Connected
-            && await WebApiConfig.CommandMessageHandler.HandleCommandAsync(activity) == false)
-        {
-            // No valid back channel (command) message or typed command detected
-
-            // Let the message router manager instance handle the activity
-            messageRouterResult = await messageRouterManager.HandleActivityAsync(activity, false);
-
-            if (messageRouterResult.Type == MessageRouterResultType.NoActionTaken)
-            {
-                // No action was taken by the message router manager. This means that the
-                // user is not connected (in a 1:1 conversation) with a human
-                // (e.g. customer service agent) yet.
-                //
-                // You can, for example, check if the user (customer) needs human
-                // assistance here or forward the activity to a dialog. You could also do
-                // the check in the dialog too...
-                //
-                // Here's an example:
-                if (!string.IsNullOrEmpty(activity.Text)
-                    && activity.Text.ToLower().Contains(CommandRequestConnection))
-                {
-                    messageRouterResult = messageRouterManager.RequestConnection(activity);
-                }
-                else
-                {
-                    await Conversation.SendAsync(activity, () => new RootDialog());
-                }
-            }
-        }
-
-        // Handle the result, if required
-        await messageRouterResultHandler.HandleResultAsync(messageRouterResult);
-    }
-    else
-    {
-        await HandleSystemMessageAsync(activity);
-    }
-
-    var response = Request.CreateResponse(HttpStatusCode.OK);
-    return response;
-}
-```
 
 ## See also ##
 
