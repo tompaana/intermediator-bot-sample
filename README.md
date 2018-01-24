@@ -69,7 +69,7 @@ See the default flow below:
 
 ### Scenario 2: Channel <-> call center (agent UI) ###
 
-**BETA - [Help wanted!](/issues/27)**
+**BETA - [Help wanted!](https://github.com/tompaana/intermediator-bot-sample/issues/27)**
 
 In this scenario the conversation owners (e.g. customer service agents) access the bot via the
 webchat component, [Agent UI](https://github.com/billba/agent), implemented by
@@ -159,11 +159,9 @@ The core message routing functionality comes from the
 This sample demonstrates how to use the component and provides the necessary "plumbing" such as
 command handling.
 
-The key classes of this sample are:
+### Key classes of the sample ###
 
-* **[AgentController](/IntermediatorBotSample/Controllers/AgentController.cs)**:
-  A controller for the agent UI. Enables the agent UI to check the status of pending requests and
-  automatically accept them.
+**Command handling**
 
 * **[BackChannelMessageHandler](/IntermediatorBotSample/CommandHandling/BackChannelMessageHandler.cs)**:
   Provides implementation for checking and acting on back channel (command) messages. Back channel
@@ -173,11 +171,21 @@ The key classes of this sample are:
   Provides implementation for checking and acting on commands in messages before they are passed to
   a dialog etc.
 
-* **[MessageRouterResultHandler](/IntermediatorBotSample/MessageRouting/MessageRouterResultHandler.cs)**:
-  Implements `IMessageRouterResultHandler`. Handles the results of the operations executed by
-  `MessageRouterManager`.
+**Controllers**
 
-See also: [Taking the code into use](#taking-the-code-into-use)
+* **[AgentController](/IntermediatorBotSample/Controllers/AgentController.cs)**:
+  A controller for the agent UI. Enables the agent UI to check the status of pending requests and
+  automatically accept them.
+
+* **[MessagesController](/IntermediatorBotSample/Controllers/MessagesController.cs)**:
+  This class is included in the bot project template. In this sample it is beneficial to look into
+  how to the command handling and message routing implementations integrate into the bot code
+  (see the [`Post`](https://github.com/tompaana/intermediator-bot-sample/blob/dd9c6ff2e81dfc1037295d3f67065df4ed39bbc0/IntermediatorBotSample/Controllers/MessagesController.cs#L29) method).
+
+**Message routing (utils)**
+
+* **[MessageRouterResultHandler](/IntermediatorBotSample/MessageRouting/MessageRouterResultHandler.cs)**:
+  Handles the results of the operations executed by `MessageRouterManager`.
 
 ### App settings and credentials ###
 
