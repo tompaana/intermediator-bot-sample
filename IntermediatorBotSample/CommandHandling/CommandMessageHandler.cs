@@ -1,8 +1,8 @@
 ﻿using IntermediatorBot.Strings;
+using IntermediatorBotSample.MessageRouting;
 using Microsoft.Bot.Connector;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting;
@@ -13,78 +13,14 @@ using Underscore.Bot.Utils;
 namespace IntermediatorBotSample.CommandHandling
 {
     /// <summary>
-    /// Constants for commands.
-    /// </summary>
-    public struct Commands
-    {
-        public const string CommandKeyword = "command"; // Used if the channel does not support mentions
-
-        public const string CommandListOptions = "options";
-        public const string CommandAddAggregationChannel = "watch";
-        public const string CommandAcceptRequest = "accept";
-        public const string CommandRejectRequest = "reject";
-        public const string CommandDisconnect = "disconnect";
-
-#if DEBUG // Commands for debugging
-        public const string CommandDeleteAllRoutingData = "reset";
-        public const string CommandListAllParties = "list parties";
-        public const string CommandListPendingRequests = "list requests";
-        public const string CommandListConnections = "list conversations";
-        public const string CommandListLastMessageRouterResults = "list results";
-#endif
-    }
-
-    /// <summary>
     /// Handler for bot commands related to message routing.
     /// </summary>
     public class CommandMessageHandler
     {
-        private const string LineBreak = "\n\r";
+        public static readonly string NoUserNamePlaceholder = "<no user name>";
+
         private MessageRouterManager _messageRouterManager;
-        private IMessageRouterResultHandler _messageRouterResultHandler;
-
-        /// <summary>
-        /// Creates a connection (e.g. human agent) request card.
-        /// </summary>
-        /// <param name="requesterParty">The party who requested a connection.</param>
-        /// <param name="botHandle">The name of the bot.</param>
-        /// <returns>A newly created request card as an attachment.</returns>
-        public static Attachment CreateRequestCard(Party requesterParty, string botHandle)
-        {
-            string requesterUserName = requesterParty.ChannelAccount.Name ?? "User";
-            string requesterChannelId = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(requesterParty.ChannelId);
-            string requesterChannelAccountId = requesterParty.ChannelAccount.Id;
-
-            string commandKeyword = $"{Commands.CommandKeyword}/@{botHandle}";
-            string acceptCommand = $"{commandKeyword} {Commands.CommandAcceptRequest} {requesterChannelAccountId}";
-            string rejectCommand = $"{commandKeyword} {Commands.CommandRejectRequest} {requesterChannelAccountId}";
-
-            HeroCard acceptanceCard = new HeroCard()
-            {
-                Title = "Human assistance request",
-                Subtitle = $"Requested by \"{requesterUserName}\" ({requesterChannelId})",
-                Text = $"Accept or reject the request.\n\nYou can type \"{acceptCommand}\" to accept or \"{rejectCommand}\" to reject, if the buttons are not supported.",
-
-                // Use command keyword as some channels support buttons but not @mentions e.g. Webchat
-                Buttons = new List<CardAction>()
-                {
-                    new CardAction()
-                    {
-                        Title = "Accept",
-                        Type = ActionTypes.PostBack,
-                        Value = $"{Commands.CommandKeyword} {Commands.CommandAcceptRequest} {requesterChannelAccountId}"
-                    },
-                    new CardAction()
-                    {
-                        Title = "Reject",
-                        Type = ActionTypes.PostBack,
-                        Value = $"{Commands.CommandKeyword} {Commands.CommandRejectRequest} {requesterChannelAccountId}"
-                    }
-                }
-            };
-
-            return acceptanceCard.ToAttachment();
-        }
+        private MessageRouterResultHandler _messageRouterResultHandler;
 
         /// <summary>
         /// Constructor.
@@ -92,7 +28,7 @@ namespace IntermediatorBotSample.CommandHandling
         /// <param name="messageRouterManager">The message router manager.</param>
         /// <param name="messageRouterResultHandler"/>A MessageRouterResultHandler instance for
         /// handling possible routing actions such as accepting a 1:1 conversation connection.</param>
-        public CommandMessageHandler(MessageRouterManager messageRouterManager, IMessageRouterResultHandler messageRouterResultHandler)
+        public CommandMessageHandler(MessageRouterManager messageRouterManager, MessageRouterResultHandler messageRouterResultHandler)
         {
             _messageRouterManager = messageRouterManager;
             _messageRouterResultHandler = messageRouterResultHandler;
@@ -110,60 +46,120 @@ namespace IntermediatorBotSample.CommandHandling
         {
             bool wasHandled = false;
             Activity replyActivity = null;
-            
-            if ((!string.IsNullOrEmpty(activity.Text) && activity.Text.StartsWith($"{Commands.CommandKeyword} "))
-                || WasBotAddressedDirectly(activity, false))
+            Command command = ExtractCommand(activity);
+
+            if (command != null)
             {
-                string commandMessage = ExtractCleanCommandMessage(activity);
                 Party senderParty = MessagingUtils.CreateSenderParty(activity);
 
-                switch (commandMessage.ToLower())
+                switch (command.BaseCommand.ToLower())
                 {
-                    case string command when (command.StartsWith(Commands.CommandListOptions)):
+                    case string baseCommand when (baseCommand.Equals(Commands.CommandListOptions)):
                         // Present all command options in a card
-                        replyActivity = CreateCommandOptionsCard(activity);
+                        replyActivity = CommandCardFactory.AddCardToActivity(
+                                activity.CreateReply(), CommandCardFactory.CreateCommandOptionsCard(activity.Recipient?.Name));
                         wasHandled = true;
                         break;
 
-                    case string command when (command.StartsWith(Commands.CommandAddAggregationChannel)):
+                    case string baseCommand when (baseCommand.Equals(Commands.CommandAddAggregationChannel)):
                         // Establish the sender's channel/conversation as an aggreated one if not already exists
-                        Party aggregationParty = new Party(activity.ServiceUrl, activity.ChannelId, null, activity.Conversation);
+                        Party aggregationPartyToAdd =
+                            new Party(activity.ServiceUrl, activity.ChannelId, null, activity.Conversation);
 
-                        if (_messageRouterManager.RoutingDataManager.AddAggregationParty(aggregationParty))
+                        if (_messageRouterManager.RoutingDataManager.AddAggregationParty(aggregationPartyToAdd))
                         {
-                            replyActivity = activity.CreateReply("This channel/conversation is now where the requests are aggregated");
+                            replyActivity = activity.CreateReply(ConversationText.AggregationChannelSet);
                         }
                         else
                         {
-                            replyActivity = activity.CreateReply("This channel/conversation is already receiving requests");
+                            replyActivity = activity.CreateReply(ConversationText.AggregationChannelAlreadySet);
                         }
 
                         wasHandled = true;
                         break;
 
-                    case string command when (command.StartsWith(Commands.CommandAcceptRequest) || command.StartsWith(Commands.CommandRejectRequest)):
+                    case string baseCommand when (baseCommand.Equals(Commands.CommandRemoveAggregationChannel)):
+                        // Remove the sender's channel/conversation from the list of aggregation channels
+                        if (_messageRouterManager.RoutingDataManager.IsAssociatedWithAggregation(senderParty))
+                        {
+                            Party aggregationPartyToRemove =
+                                new Party(activity.ServiceUrl, activity.ChannelId, null, activity.Conversation);
+
+                            if (_messageRouterManager.RoutingDataManager.RemoveAggregationParty(aggregationPartyToRemove))
+                            {
+                                replyActivity = activity.CreateReply(ConversationText.AggregationChannelRemoved);
+                            }
+                            else
+                            {
+                                replyActivity = activity.CreateReply(ConversationText.FailedToRemoveAggregationChannel);
+                            }
+
+                            wasHandled = true;
+                        }
+
+                        break;
+
+                    case string baseCommand when (baseCommand.Equals(Commands.CommandAcceptRequest)
+                                                  || baseCommand.Equals(Commands.CommandRejectRequest)):
                         // Accept/reject conversation request
-                        bool doAccept = command.StartsWith(Commands.CommandAcceptRequest);
+                        bool doAccept = baseCommand.Equals(Commands.CommandAcceptRequest);
 
                         if (_messageRouterManager.RoutingDataManager.IsAssociatedWithAggregation(senderParty))
                         {
                             // The party is associated with the aggregation and has the right to accept/reject
-                            string errorMessage = await AcceptOrRejectRequestAsync(senderParty, commandMessage, doAccept);
-                            
-                            if (!string.IsNullOrEmpty(errorMessage))
+                            if (command.Parameters.Count == 0)
                             {
-                                replyActivity = activity.CreateReply(errorMessage);
+                                replyActivity = activity.CreateReply();
+
+                                IList<Party> pendingRequests =
+                                    _messageRouterManager.RoutingDataManager.GetPendingRequests();
+
+                                if (pendingRequests.Count == 0)
+                                {
+                                    replyActivity.Text = ConversationText.NoPendingRequests;
+                                }
+                                else
+                                {
+                                    replyActivity = CommandCardFactory.AddCardToActivity(
+                                        replyActivity, CommandCardFactory.CreateAcceptOrRejectCardForMultipleRequests(
+                                            pendingRequests, doAccept, activity.Recipient?.Name));
+                                }
+                            }
+                            else if (!doAccept
+                                && command.Parameters[0].Equals(Commands.CommandParameterAll))
+                            {
+                                if (!await new MessageRoutingUtils().RejectAllPendingRequestsAsync(
+                                        _messageRouterManager, _messageRouterResultHandler))
+                                {
+                                    replyActivity = activity.CreateReply();
+                                    replyActivity.Text = ConversationText.FailedToRejectPendingRequests;
+                                }
+                            }
+                            else
+                            {
+                                string errorMessage = await new MessageRoutingUtils().AcceptOrRejectRequestAsync(
+                                    _messageRouterManager, _messageRouterResultHandler, senderParty, doAccept, command.Parameters[0]);
+
+                                if (!string.IsNullOrEmpty(errorMessage))
+                                {
+                                    replyActivity = activity.CreateReply();
+                                    replyActivity.Text = errorMessage;
+                                }
                             }
                         }
+#if DEBUG
+                        // We shouldn't respond to command attempts by regular users, but I guess
+                        // it's okay when debugging
                         else
                         {
-                            replyActivity = activity.CreateReply("Sorry, you are not allowed to accept/reject requests");
+                            replyActivity = activity.CreateReply(ConversationText.ConnectionRequestResponseNotAllowed);
                         }
+#endif
 
                         wasHandled = true;
                         break;
 
-                    case string command when (command.StartsWith(Commands.CommandDisconnect)):
+                    case string baseCommand when (baseCommand.Equals(Commands.CommandDisconnect)):
                         // End the 1:1 conversation
                         IList<MessageRouterResult> messageRouterResults = _messageRouterManager.Disconnect(senderParty);
 
@@ -178,96 +174,97 @@ namespace IntermediatorBotSample.CommandHandling
 
                     #region Implementation of debugging commands
 #if DEBUG
-
-                    case string command when (command.StartsWith(Commands.CommandDeleteAllRoutingData)):
+                    case string baseCommand when (baseCommand.Equals(Commands.CommandDeleteAllRoutingData)):
                         // DELETE ALL ROUTING DATA
                         await _messageRouterManager.BroadcastMessageToAggregationChannelsAsync(
-                            $"Deleting all data as requested by \"{senderParty.ChannelAccount?.Name}\"...");
-                        replyActivity = activity.CreateReply("Deleting all data...");
+                            string.Format(ConversationText.DeletingAllDataWithCommandIssuer, senderParty.ChannelAccount?.Name));
+                        replyActivity = activity.CreateReply(ConversationText.DeletingAllData);
                         _messageRouterManager.RoutingDataManager.DeleteAll();
                         wasHandled = true;
                         break;
 
-                    case string command when (command.StartsWith(Commands.CommandListAllParties)):
-                        // List user and bot parties
-                        IRoutingDataManager routingDataManager = _messageRouterManager.RoutingDataManager;
-                        string replyMessage = string.Empty;
-                        string partiesAsString = PartyListToString(routingDataManager.GetUserParties());
+                    case string baseCommand when (baseCommand.Equals(Commands.CommandList)):
+                        bool listAll = command.Parameters.Contains(Commands.CommandParameterAll);
+                        replyActivity = activity.CreateReply();
+                        string replyMessageText = string.Empty;
 
-                        if (string.IsNullOrEmpty(partiesAsString))
+                        if (listAll || command.Parameters.Contains(Commands.CommandParameterParties))
                         {
-                            replyMessage = $"No user parties{LineBreak}";
-                        }
-                        else
-                        {
-                            replyMessage = $"Users:{LineBreak}{partiesAsString}";
-                        }
+                            // List user and bot parties
+                            IRoutingDataManager routingDataManager = _messageRouterManager.RoutingDataManager;
+                            string partiesAsString = PartyListToString(routingDataManager.GetUserParties());
 
-                        partiesAsString = PartyListToString(routingDataManager.GetBotParties());
+                            replyMessageText += string.IsNullOrEmpty(partiesAsString)
+                                ? $"{ConversationText.NoUsersStored}{StringAndCharConstants.LineBreak}"
+                                : $"{ConversationText.Users}:{StringAndCharConstants.LineBreak}{partiesAsString}{StringAndCharConstants.LineBreak}";
 
-                        if (string.IsNullOrEmpty(partiesAsString))
-                        {
-                            replyMessage += "No bot parties";
-                        }
-                        else
-                        {
-                            replyMessage += $"Bot:{LineBreak}{partiesAsString}";
+                            partiesAsString = PartyListToString(routingDataManager.GetBotParties());
+
+                            replyMessageText += string.IsNullOrEmpty(partiesAsString)
+                                ? $"{ConversationText.NoBotsStored}{StringAndCharConstants.LineBreak}"
+                                : $"{ConversationText.Bots}:{StringAndCharConstants.LineBreak}{partiesAsString}{StringAndCharConstants.LineBreak}";
+
+                            wasHandled = true;
                         }
 
-                        replyActivity = activity.CreateReply(replyMessage);
-                        wasHandled = true;
-                        break;
-
-                    case string command when (command.StartsWith(Commands.CommandListPendingRequests)):
-                        // List all pending requests
-                        var attachments = new List<Attachment>();
-                            
-                        foreach (Party party in _messageRouterManager.RoutingDataManager.GetPendingRequests())
+                        if (listAll || command.Parameters.Contains(Commands.CommandParameterRequests))
                         {
-                            attachments.Add(CreateRequestCard(party, activity.Recipient.Name));
+                            // List all pending requests
+                            IList<Attachment> attachments =
+                                CommandCardFactory.CreateMultipleRequestCards(
+                                    _messageRouterManager.RoutingDataManager.GetPendingRequests(), activity.Recipient?.Name);
+
+                            if (attachments.Count > 0)
+                            {
+                                replyMessageText += string.Format(ConversationText.PendingRequestsFoundWithCount, attachments.Count);
+                                replyMessageText += StringAndCharConstants.LineBreak;
+                                replyActivity.AttachmentLayout = AttachmentLayoutTypes.Carousel;
+                                replyActivity.Attachments = attachments;
+                            }
+                            else
+                            {
+                                replyMessageText += $"{ConversationText.NoPendingRequests}{StringAndCharConstants.LineBreak}";
+                            }
+
+                            wasHandled = true;
                         }
 
-                        if (attachments.Count > 0)
+                        if (listAll || command.Parameters.Contains(Commands.CommandParameterConnections))
                         {
-                            replyActivity = activity.CreateReply($"{attachments.Count} pending request(s) found:");
-                            replyActivity.AttachmentLayout = AttachmentLayoutTypes.Carousel;
-                            replyActivity.Attachments = attachments;
-                        }
-                        else
-                        {
-                            replyActivity = activity.CreateReply("No pending requests");
-                        }
+                            // List all connections (conversations)
+                            string connectionsAsString = _messageRouterManager.RoutingDataManager.ConnectionsToString();
 
-                        wasHandled = true;
-                        break;
+                            replyMessageText += string.IsNullOrEmpty(connectionsAsString)
+                                ? $"{ConversationText.NoConversations}{StringAndCharConstants.LineBreak}"
+                                : $"{connectionsAsString}{StringAndCharConstants.LineBreak}";
 
-                    case string command when (command.StartsWith(Commands.CommandListConnections)):
-                        // List all connections (conversations)
-                        string parties = _messageRouterManager.RoutingDataManager.ConnectionsToString();
-
-                        if (string.IsNullOrEmpty(parties))
-                        {
-                            replyActivity = activity.CreateReply("No conversations");
-                        }
-                        else
-                        {
-                            replyActivity = activity.CreateReply(parties);
+                            wasHandled = true;
                         }
 
-                        wasHandled = true;
-                        break;
+                        if (listAll || command.Parameters.Contains(Commands.CommandParameterResults))
+                        {
+                            // List all logged message router results
+                            string resultsAsString = _messageRouterManager.RoutingDataManager.GetLastMessageRouterResults();
 
-                    case string command when (command.StartsWith(Commands.CommandListLastMessageRouterResults)):
-                        // List all logged message router results
-                        string resultsAsString = _messageRouterManager.RoutingDataManager.GetLastMessageRouterResults();
-                        replyActivity = activity.CreateReply($"{(string.IsNullOrEmpty(resultsAsString) ? "No results" : resultsAsString)}");
-                        wasHandled = true;
+                            replyMessageText += string.IsNullOrEmpty(resultsAsString)
+                                ? $"{ConversationText.NoResults}{StringAndCharConstants.LineBreak}"
+                                : $"{resultsAsString}{StringAndCharConstants.LineBreak}";
+
+                            wasHandled = true;
+                        }
+
+                        if (!wasHandled)
+                        {
+                            replyMessageText = ConversationText.InvalidOrMissingCommandParameter;
+                        }
+
+                        replyActivity.Text = replyMessageText;
                         break;
 #endif
                     #endregion
 
                     default:
-                        replyActivity = activity.CreateReply($"Command \"{commandMessage}\" not recognized");
+                        replyActivity = activity.CreateReply(string.Format(ConversationText.CommandNotRecognized, command.BaseCommand));
                         break;
                 }
 
@@ -282,6 +279,75 @@ namespace IntermediatorBotSample.CommandHandling
         }
 
         /// <summary>
+        /// Tries to extract a command from the given message activity.
+        /// </summary>
+        /// <param name="messageActivity">The message activity possibly containing a command.</param>
+        /// <returns>A new created Command instance, if successful.
+        /// Null in case the message contained no command.
+        /// Note that if the Command instance was created, it will always have a non-null list of
+        /// parameters even if its size is zero.
+        /// </returns>
+        private Command ExtractCommand(IMessageActivity messageActivity)
+        {
+            Command command = null;
+            string messageText = messageActivity?.Text?.Trim();
+
+            if (!string.IsNullOrEmpty(messageText))
+            {
+                string cleanCommandMessage = null;
+
+                if (messageText.StartsWith($"{Commands.CommandKeyword} "))
+                {
+                    cleanCommandMessage = messageText.Replace(Commands.CommandKeyword, "").Trim();
+                }
+                else
+                {
+                    string botName = messageActivity.Recipient?.Name;
+
+                    if (!string.IsNullOrEmpty(botName))
+                    {
+                        if (messageText.StartsWith($"@{botName}"))
+                        {
+                            cleanCommandMessage = messageText.Replace($"@{botName}", "").Trim();
+                        }
+                        else if (messageText.StartsWith(botName))
+                        {
+                            cleanCommandMessage = messageText.Replace(botName, "").Trim();
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(cleanCommandMessage))
+                {
+                    string[] splitCommand = cleanCommandMessage.Split(' ');
+
+                    if (splitCommand.Count() == 0)
+                    {
+                        command = new Command(cleanCommandMessage);
+                    }
+                    else
+                    {
+                        command = new Command(splitCommand[0]);
+                    }
+
+                    if (splitCommand.Count() > 1)
+                    {
+                        // Extract the parameters
+                        for (int i = 1; i < splitCommand.Length; ++i)
+                        {
+                            if (!string.IsNullOrEmpty(splitCommand[i]))
+                            {
+                                command.Parameters.Add(splitCommand[i]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            return command;
+        }
+
+        /// <summary>
         /// Checks the given activity and determines whether the message was addressed directly to
         /// the bot or not.
         /// 
@@ -290,7 +356,7 @@ namespace IntermediatorBotSample.CommandHandling
         /// <param name="messageActivity">The message activity.</param>
         /// <param name="strict">Use false for channels that do not properly support mentions.</param>
         /// <returns>True, if the message was address directly to the bot. False otherwise.</returns>
-        protected bool WasBotAddressedDirectly(IMessageActivity messageActivity, bool strict = true)
+        private bool WasBotAddressedDirectly(IMessageActivity messageActivity, bool strict = true)
         {
             bool botWasMentioned = false;
 
@@ -336,203 +402,6 @@ namespace IntermediatorBotSample.CommandHandling
             return botWasMentioned;
         }
 
-        /// <summary>
-        /// Extracts the clean command message from the given activity by stripping the original
-        /// message from command keyword or bot mention depending on which one was used.
-        /// </summary>
-        /// <param name="messageActivity">The message activity containing the message.</param>
-        /// <returns>A clean command message.</returns>
-        protected string ExtractCleanCommandMessage(IMessageActivity messageActivity)
-        {
-            string cleanCommandMessage = null;
-            string message = messageActivity.Text?.Trim();
-
-            if (!string.IsNullOrEmpty(message))
-            {
-                if (message.StartsWith($"{Commands.CommandKeyword} "))
-                {
-                    cleanCommandMessage = message.Replace(Commands.CommandKeyword, "").Trim();
-                }
-                else
-                {
-                    string botName = messageActivity.Recipient?.Name;
-
-                    if (message.StartsWith(botName))
-                    {
-                        cleanCommandMessage = message.Replace(botName, "").Trim();
-                    }
-                    else if (message.Contains($"@{botName}"))
-                    {
-                        cleanCommandMessage = message.Replace($"@{botName}", "").Trim();
-                    }
-                }
-            }
-
-            return cleanCommandMessage;
-        }
-
-        /// <summary>
-        /// Tries to accept/reject a pending request.
-        /// </summary>
-        /// <param name="senderParty">The sender party (accepter/rejecter).</param>
-        /// <param name="commandMessage">The command message. Required for resolving the party to accept/reject.</param>
-        /// <param name="doAccept">If true, will try to accept the request. If false, will reject.</param>
-        /// <returns>Null, if successful. A user friendly error message otherwise.</returns>
-        private async Task<string> AcceptOrRejectRequestAsync(Party senderParty, string commandMessage, bool doAccept)
-        {
-            string errorMessage = null;
-            IRoutingDataManager routingDataManager = _messageRouterManager.RoutingDataManager;
-            Party connectedSenderParty = routingDataManager.FindConnectedPartyByChannel(senderParty.ChannelId, senderParty.ChannelAccount);
-
-            if (connectedSenderParty == null || !routingDataManager.IsConnected(senderParty, ConnectionProfile.Owner))
-            {
-                // The sender (accepter/rejecter) is NOT connected with another party
-                if (routingDataManager.GetPendingRequests().Count > 0)
-                {
-                    // The name of the user to accept should be the second word
-                    string[] splitMessage = commandMessage.Split(' ');
-
-                    if (splitMessage.Count() > 1 && !string.IsNullOrEmpty(splitMessage[1]))
-                    {
-                        Party partyToAcceptOrReject = null;
-
-                        try
-                        {
-                            partyToAcceptOrReject = routingDataManager.GetPendingRequests().Single(
-                                  party => (party.ChannelAccount != null
-                                      && !string.IsNullOrEmpty(party.ChannelAccount.Id)
-                                      && party.ChannelAccount.Id.Equals(splitMessage[1])));
-                        }
-                        catch (InvalidOperationException e)
-                        {
-                            errorMessage = $"Failed to find a pending request for user \"{splitMessage[1]}\": {e.Message}";
-                        }
-
-                        if (partyToAcceptOrReject != null)
-                        {
-                            MessageRouterResult messageRouterResult = null;
-
-                            if (doAccept)
-                            {
-                                messageRouterResult = await _messageRouterManager.ConnectAsync(
-                                    senderParty, partyToAcceptOrReject, !partyToAcceptOrReject.ChannelId.Contains("skype"));
-                            }
-                            else
-                            {
-                                messageRouterResult = _messageRouterManager.RejectPendingRequest(partyToAcceptOrReject, senderParty);
-                            }
-
-                            await _messageRouterResultHandler.HandleResultAsync(messageRouterResult);
-                        }
-                    }
-                    else
-                    {
-                        errorMessage = "User name missing";
-                    }
-                }
-                else
-                {
-                    errorMessage = "No pending requests";
-                }
-            }
-            else
-            {
-                // The sender (accepter/rejecter) is ALREADY connected with another party
-                Party otherParty = routingDataManager.GetConnectedCounterpart(connectedSenderParty);
-
-                if (otherParty != null)
-                {
-                    errorMessage = $"You are already connected with user \"{otherParty.ChannelAccount.Name}\"";
-                }
-                else
-                {
-                    errorMessage = "An error occured";
-                }
-            }
-
-            return errorMessage;
-        }
-
-        /// <summary>
-        /// Creates a card with all command options.
-        /// </summary>
-        /// <param name="activity">An activity instance.</param>
-        /// <returns>A newly created activity containing the card.</returns>
-        private Activity CreateCommandOptionsCard(Activity activity)
-        {
-            Activity messageActivity = activity.CreateReply();
-
-            HeroCard thumbnailCard = new HeroCard()
-            {
-                Title = "Command menu",
-                Subtitle = "Administrator options for controlling end user bot conversations",
-                Text = $"Select from the buttons below **or** type \"{Commands.CommandKeyword}\" or mention the bot (\"@{activity.Recipient.Name}\") followed by the command (e.g. \"{Commands.CommandDisconnect}\")",
-                Buttons = new List<CardAction>()
-                {
-                    new CardAction()
-                    {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandAddAggregationChannel),
-                        Type = ActionTypes.PostBack,
-                        Value = $"{Commands.CommandKeyword} {Commands.CommandAddAggregationChannel}"
-                    },
-                    new CardAction()
-                    {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandAcceptRequest),
-                        Type = ActionTypes.PostBack,
-                        Value = $"{Commands.CommandKeyword} {Commands.CommandAcceptRequest} *<request ID>*"
-                    },
-                    new CardAction()
-                    {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandRejectRequest),
-                        Type = ActionTypes.PostBack,
-                        Value = $"{Commands.CommandKeyword} {Commands.CommandRejectRequest} *<request ID>*"
-                    },
-                    new CardAction()
-                    {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandDisconnect),
-                        Type = ActionTypes.PostBack,
-                        Value = $"{Commands.CommandKeyword} {Commands.CommandDisconnect}"
-                    }
-#if DEBUG
-                    ,
-                    new CardAction()
-                    {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandDeleteAllRoutingData),
-                        Type = ActionTypes.PostBack,
-                        Value = $"{Commands.CommandKeyword} {Commands.CommandDeleteAllRoutingData}"
-                    },
-                    new CardAction()
-                    {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandListAllParties),
-                        Type = ActionTypes.PostBack,
-                        Value = $"{Commands.CommandKeyword} {Commands.CommandListAllParties}"
-                    },
-                    new CardAction()
-                    {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandListPendingRequests),
-                        Type = ActionTypes.PostBack,
-                        Value = $"{Commands.CommandKeyword} {Commands.CommandListPendingRequests}"
-                    },
-                    new CardAction()
-                    {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandListConnections),
-                        Type = ActionTypes.PostBack,
-                        Value = $"{Commands.CommandKeyword} {Commands.CommandListConnections}"
-                    },
-                    new CardAction()
-                    {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandListLastMessageRouterResults),
-                        Type = ActionTypes.PostBack,
-                        Value = $"{Commands.CommandKeyword} {Commands.CommandListLastMessageRouterResults}"
-                    }
-#endif
-                }
-            };
-
-            messageActivity.Attachments = new List<Attachment>() { thumbnailCard.ToAttachment() };
-            return messageActivity;
-        }
-
 #if DEBUG
         /// <summary>
         /// For debugging. Creates a string containing all the parties in the given list.
@@ -547,7 +416,7 @@ namespace IntermediatorBotSample.CommandHandling
             {
                 foreach (Party party in partyList)
                 {
-                    partiesAsString += $"{party.ToString()}{LineBreak}";
+                    partiesAsString += $"{party.ToString()}{StringAndCharConstants.LineBreak}";
                 }
             }
 

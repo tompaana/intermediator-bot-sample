@@ -1,53 +1,58 @@
-﻿using Microsoft.Bot.Builder.Dialogs;
+﻿using IntermediatorBot.Strings;
+using IntermediatorBotSample.CommandHandling;
+using Microsoft.Bot.Builder.Dialogs;
+using Microsoft.Bot.Connector;
 using System;
 using System.Threading.Tasks;
-using Microsoft.Bot.Connector;
-using IntermediatorBot.Strings;
-using IntermediatorBotSample.Controllers;
-using IntermediatorBotSample.CommandHandling;
+using Underscore.Bot.MessageRouting;
 
 namespace IntermediatorBotSample.Dialogs
 {
     /// <summary>
-    /// Simple echo dialog that tries to connect with a human, if the message contains a certain keyword.
+    /// Simple echo dialog that tries to connect with a human, if the message contains the specific command.
     /// </summary>
     [Serializable]
     public class RootDialog : IDialog<object>
     {
-        #pragma warning disable 1998
-        public async Task StartAsync(IDialogContext context)
+        public Task StartAsync(IDialogContext dialogContext)
         {
-            context.Wait(OnMessageReceivedAsync);
+            dialogContext.Wait(OnMessageReceivedAsync);
+            return Task.CompletedTask;
         }
-        #pragma warning restore 1998
 
         /// <summary>
-        /// Responds back to the sender with the message received or in case the message contains
-        /// a specific keyword, will try to connect with a human (in 1:1 conversation).
+        /// Responds back to the sender with the instructions or in case the message contains
+        /// the specific command, will try to connect with a human (in 1:1 conversation).
         /// </summary>
-        /// <param name="context"></param>
-        /// <param name="result"></param>
-        /// <returns></returns>
-        private async Task OnMessageReceivedAsync(IDialogContext context, IAwaitable<IMessageActivity> result)
+        /// <param name="dialogContext">The dialog context.</param>
+        /// <param name="result">The result containing the message sent by the user.</param>
+        private async Task OnMessageReceivedAsync(IDialogContext dialogContext, IAwaitable<IMessageActivity> result)
         {
             IMessageActivity messageActivity = await result;
-            string message = messageActivity.Text;
+            string messageText = messageActivity.Text;
 
-            if (!string.IsNullOrEmpty(message))
+            if (!string.IsNullOrEmpty(messageText))
             {
-                if (message.ToLower().Contains(MessagesController.CommandRequestConnection))
+                if (messageText.ToLower().Contains(Commands.CommandRequestConnection))
                 {
-                    WebApiConfig.MessageRouterManager.RequestConnection((messageActivity as Activity));
+                    MessageRouterResult messageRouterResult =
+                        WebApiConfig.MessageRouterManager.RequestConnection(
+                            (messageActivity as Activity), WebApiConfig.Settings.RejectConnectionRequestIfNoAggregationChannel);
+                    await WebApiConfig.MessageRouterResultHandler.HandleResultAsync(messageRouterResult);
                 }
                 else
                 {
-                    messageActivity = context.MakeMessage();
-                    messageActivity.Text = $"{ConversationText.EchoMessage}: {message}\n\rType \"{Commands.CommandKeyword} {Commands.CommandListOptions}\" to see all command options.\n\rType \"{MessagesController.CommandRequestConnection}\" to initiate conversation with human agent.";
-                    await context.PostAsync(messageActivity);
+                    messageActivity = dialogContext.MakeMessage();
+
+                    messageActivity.Text =
+                        $"* {string.Format(ConversationText.OptionsCommandHint, $"{Commands.CommandKeyword} {Commands.CommandListOptions}")}"
+                        + $"\n\r* {string.Format(ConversationText.ConnectRequestCommandHint, Commands.CommandRequestConnection)}";
+
+                    await dialogContext.PostAsync(messageActivity);
                 }
             }
 
-            context.Done(this);
+            dialogContext.Wait(OnMessageReceivedAsync);
         }
     }
 }

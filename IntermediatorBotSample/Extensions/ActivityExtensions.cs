@@ -1,5 +1,6 @@
-﻿using Microsoft.Bot.Connector;
-using System.Configuration;
+﻿using IntermediatorBotSample;
+using Microsoft.Bot.Connector;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace IntermediatorBot.Extensions
@@ -8,26 +9,21 @@ namespace IntermediatorBot.Extensions
     {
         /// <summary>
         /// Checks to see if the ChannelId property on the activity is contained within the list
-        /// of allowed channels for use by agents using the PermittedAgentsChannel setting in the
-        /// Web.config. If the app setting is empty or missing then the method returns true.
+        /// of allowed channels for use by the agents. If there is no setting, all channel IDs are
+        /// considered permitted.
         /// </summary>
         /// <param name="activity">The activity to check.</param>
-        /// <returns></returns>
+        /// <returns>True, if the channel ID of the activity is included in the permitted aggregation channels. False otherwise.</returns>
         public static bool IsFromPermittedAgentChannel(this Activity activity)
         {
-            var permittedAgentChannels =
-                ConfigurationManager.AppSettings.AllKeys.Contains("PermittedAgentChannels")
-                ? ConfigurationManager.AppSettings["PermittedAgentChannels"] : null;
+            string[] permittedAggregationChannelsAsStringArray = WebApiConfig.Settings.PermittedAggregationChannels;
+            IList<string> permittedAggregationChannels = permittedAggregationChannelsAsStringArray?.ToList();
 
-            var permittedAgentChannelsList = !string.IsNullOrEmpty(permittedAgentChannels)
-                ? permittedAgentChannels.ToLower().Split(',').ToList() : null;
-
-            if (permittedAgentChannels != null && permittedAgentChannels.Any())
+            if (permittedAggregationChannels != null
+                && permittedAggregationChannels.Any()
+                && !permittedAggregationChannels.Contains(activity.ChannelId.ToLower()))
             {
-                if (!permittedAgentChannels.Contains(activity.ChannelId.ToLower()))
-                {
-                    return false;
-                }
+                return false;
             }
 
             return true;
