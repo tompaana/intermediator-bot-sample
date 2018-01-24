@@ -1,5 +1,7 @@
 # Intermediator Bot Sample #
 
+[![Build status](https://ci.appveyor.com/api/projects/status/i1u8puahyxl79ha6?svg=true)](https://ci.appveyor.com/project/tompaana/intermediator-bot-sample)
+
 A bot build on [Microsoft Bot Framework](https://dev.botframework.com/) that routes messages between
 two users on different channels. This is sample utilizes the core functionality found in
 [Bot Message Routing (component) project](https://github.com/tompaana/bot-message-routing).
