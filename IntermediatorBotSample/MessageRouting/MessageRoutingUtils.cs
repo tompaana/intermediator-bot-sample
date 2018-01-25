@@ -14,8 +14,34 @@ namespace IntermediatorBotSample.MessageRouting
     /// </summary>
     public class MessageRoutingUtils
     {
-        private const string EmulatorChannelId = "emulator";
-        private const string SkypeChannelId = "skype";
+        private const string ChannelIdEmulator = "emulator";
+        private const string ChannelIdFacebook = "facebook";
+        private const string ChannelIdSkype = "skype";
+
+        /// <summary>
+        /// Do not try to create direct conversations when the owner is on one of these channels
+        /// </summary>
+        private readonly IList<string> NoDirectConversationsWithChannels = new List<string>()
+        {
+            ChannelIdEmulator,
+            ChannelIdFacebook,
+            ChannelIdSkype
+        };
+
+        /// <summary>
+        /// Broadcasts the given message to all aggregation channels.
+        /// </summary>
+        /// <param name="messageRouterManager">The message router manager instance.</param>
+        /// <param name="messageText">The message to broadcast.</param>
+        public static async Task BroadcastMessageToAggregationChannelsAsync(
+            MessageRouterManager messageRouterManager, string messageText)
+        {
+            foreach (Party aggregationChannel in
+                messageRouterManager.RoutingDataManager.GetAggregationParties())
+            {
+                await messageRouterManager.SendMessageToPartyByBotAsync(aggregationChannel, messageText);
+            }
+        }
 
         /// <summary>
         /// Tries to accept/reject a pending request.
@@ -85,18 +111,14 @@ namespace IntermediatorBotSample.MessageRouting
                     }
                     else
                     {
-                        // Do not try to create direct conversation in emulator or Skype 
                         bool createNewDirectConversation =
-                            !(senderParty.ChannelId.Contains(SkypeChannelId)
-                              || senderParty.ChannelId.Contains(EmulatorChannelId));
+                            !(NoDirectConversationsWithChannels.Contains(senderParty.ChannelId.ToLower()));
 
                         // Try to accept
                         messageRouterResult = await messageRouterManager.ConnectAsync(
                             senderParty,
                             partyToAcceptOrReject,
                             createNewDirectConversation);
-
-                        await messageRouterResultHandler.HandleResultAsync(messageRouterResult);
                     }
                 }
                 else
