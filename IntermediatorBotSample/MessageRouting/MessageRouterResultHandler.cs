@@ -11,6 +11,9 @@ using Underscore.Bot.Utils;
 
 namespace IntermediatorBotSample.MessageRouting
 {
+    /// <summary>
+    /// Handles results from operations executed by the message router mamanger.
+    /// </summary>
     public class MessageRouterResultHandler
     {
         private MessageRouterManager _messageRouterManager;
@@ -84,15 +87,8 @@ namespace IntermediatorBotSample.MessageRouting
 
             if (messageRouterResult.ConversationOwnerParty != null)
             {
-                try
-                {
-                    await _messageRouterManager.SendMessageToPartyByBotAsync(
-                        messageRouterResult.ConversationOwnerParty, errorMessage);
-                }
-                catch (UnauthorizedAccessException e)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Failed to send message: {e.Message}");
-                }
+                await _messageRouterManager.SendMessageToPartyByBotAsync(
+                    messageRouterResult.ConversationOwnerParty, errorMessage);
             }
         }
 
@@ -161,63 +157,57 @@ namespace IntermediatorBotSample.MessageRouting
             Party conversationOwnerParty = messageRouterResult.ConversationOwnerParty;
             Party conversationClientParty = messageRouterResult.ConversationClientParty;
 
-            string conversationOwnerName = conversationOwnerParty?.ChannelAccount.Name;
-            string conversationClientName = conversationClientParty?.ChannelAccount.Name;
+            string conversationOwnerName =
+                string.IsNullOrEmpty(conversationOwnerParty?.ChannelAccount.Name)
+                    ? StringAndCharConstants.NoUserNamePlaceholder
+                    : conversationOwnerParty?.ChannelAccount.Name;
+
+            string conversationClientName =
+                string.IsNullOrEmpty(conversationClientParty?.ChannelAccount.Name)
+                    ? StringAndCharConstants.NoUserNamePlaceholder
+                    : conversationClientParty?.ChannelAccount.Name;
 
             string messageToConversationOwner = string.Empty;
             string messageToConversationClient = string.Empty;
 
             if (messageRouterResult.Type == MessageRouterResultType.ConnectionRequested)
             {
-                if (conversationClientParty == null || conversationClientParty.ChannelAccount == null)
-                {
-                    await _messageRouterManager.BroadcastMessageToAggregationChannelsAsync(
-                        ConversationText.ConnectionRequestMadeButRequestorIsNull);
-                    throw new NullReferenceException(ConversationText.ConnectionRequestMadeButRequestorIsNull);
-                }
+                bool conversationClientPartyMissing =
+                    (conversationClientParty == null || conversationClientParty.ChannelAccount == null);
 
                 foreach (Party aggregationParty in _messageRouterManager.RoutingDataManager.GetAggregationParties())
                 {
-                    Party botParty = routingDataManager
-                        .FindBotPartyByChannelAndConversation(aggregationParty.ChannelId, aggregationParty.ConversationAccount);
+                    Party botParty = routingDataManager.FindBotPartyByChannelAndConversation(
+                        aggregationParty.ChannelId, aggregationParty.ConversationAccount);
 
                     if (botParty != null)
                     {
-                        IMessageActivity messageActivity = Activity.CreateMessageActivity();
-                        messageActivity.Conversation = aggregationParty.ConversationAccount;
-                        messageActivity.Recipient = aggregationParty.ChannelAccount;
-                        messageActivity.Attachments = new List<Attachment>
+                        if (conversationClientPartyMissing)
                         {
-                            CommandCardFactory.CreateRequestCard(
-                                conversationClientParty, botParty.ChannelAccount?.Name).ToAttachment()
-                        };
+                            await _messageRouterManager.SendMessageToPartyByBotAsync(
+                                aggregationParty, ConversationText.RequestorDetailsMissing);
+                        }
+                        else
+                        {
+                            IMessageActivity messageActivity = Activity.CreateMessageActivity();
+                            messageActivity.Conversation = aggregationParty.ConversationAccount;
+                            messageActivity.Recipient = aggregationParty.ChannelAccount;
+                            messageActivity.Attachments = new List<Attachment>
+                            {
+                                CommandCardFactory.CreateRequestCard(
+                                    conversationClientParty, botParty.ChannelAccount?.Name).ToAttachment()
+                            };
 
-                        try
-                        {
-                            await _messageRouterManager.SendMessageToPartyByBotAsync(aggregationParty, messageActivity);
-                        }
-                        catch (UnauthorizedAccessException e)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Failed to broadcast message: {e.Message}");
-                        }
-                    }
-                    else
-                    {
-                        try
-                        {
-                            await _messageRouterManager.BroadcastMessageToAggregationChannelsAsync(
-                                string.Format(
-                                    ConversationText.FailedToFindBotOnAggregationChannel,
-                                    aggregationParty.ConversationAccount.Name));
-                        }
-                        catch (UnauthorizedAccessException e)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Failed to send message: {e.Message}");
+                            await _messageRouterManager.SendMessageToPartyByBotAsync(
+                                aggregationParty, messageActivity);
                         }
                     }
                 }
 
-                messageToConversationClient = ConversationText.NotifyClientWaitForRequestHandling;
+                if (!conversationClientPartyMissing)
+                {
+                    messageToConversationClient = ConversationText.NotifyClientWaitForRequestHandling;
+                }
             }
             else if (messageRouterResult.Type == MessageRouterResultType.ConnectionAlreadyRequested)
             {
@@ -239,30 +229,18 @@ namespace IntermediatorBotSample.MessageRouting
                 messageToConversationClient = string.Format(ConversationText.NotifyClientDisconnected, conversationOwnerName);
             }
 
-            if (!string.IsNullOrEmpty(messageToConversationOwner) && conversationOwnerParty != null)
+            if (conversationOwnerParty != null
+                && !string.IsNullOrEmpty(messageToConversationOwner))
             {
-                try
-                {
-                    await _messageRouterManager.SendMessageToPartyByBotAsync(
-                        conversationOwnerParty, messageToConversationOwner);
-                }
-                catch (UnauthorizedAccessException e)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Failed to send message: {e.Message}");
-                }
+                await _messageRouterManager.SendMessageToPartyByBotAsync(
+                    conversationOwnerParty, messageToConversationOwner);
             }
 
-            if (!string.IsNullOrEmpty(messageToConversationClient) && conversationClientParty != null)
+            if (conversationClientParty != null
+                && !string.IsNullOrEmpty(messageToConversationClient))
             {
-                try
-                {
-                    await _messageRouterManager.SendMessageToPartyByBotAsync(
-                        conversationClientParty, messageToConversationClient);
-                }
-                catch (UnauthorizedAccessException e)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Failed to send message: {e.Message}");
-                }
+                await _messageRouterManager.SendMessageToPartyByBotAsync(
+                    conversationClientParty, messageToConversationClient);
             }
         }
     }

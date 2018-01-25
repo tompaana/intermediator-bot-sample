@@ -115,7 +115,7 @@ namespace IntermediatorBotSample.CommandHandling
             }
 
             string requestorChannelAccountName = string.IsNullOrEmpty(requestorParty.ChannelAccount.Name)
-                ? CommandMessageHandler.NoUserNamePlaceholder : requestorParty.ChannelAccount.Name;
+                ? StringAndCharConstants.NoUserNamePlaceholder : requestorParty.ChannelAccount.Name;
 
             string requestorChannelId = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(requestorParty.ChannelId);
             string requestorChannelAccountId = requestorParty.ChannelAccount.Id;
@@ -216,7 +216,7 @@ namespace IntermediatorBotSample.CommandHandling
                 }
 
                 string requestorChannelAccountName = string.IsNullOrEmpty(requestorParty.ChannelAccount.Name)
-                    ? CommandMessageHandler.NoUserNamePlaceholder : requestorParty.ChannelAccount.Name;
+                    ? StringAndCharConstants.NoUserNamePlaceholder : requestorParty.ChannelAccount.Name;
 
                 string requestorChannelId = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(requestorParty.ChannelId);
                 string requestorChannelAccountId = requestorParty.ChannelAccount.Id;

@@ -79,6 +79,9 @@ namespace IntermediatorBotSample.Controllers
                     }
                 }
 
+                // Uncomment to see the result in a reply (may be useful for debugging)
+                //await MessagingUtils.ReplyToActivityAsync(activity, messageRouterResult.ToString());
+
                 // Handle the result, if required
                 await messageRouterResultHandler.HandleResultAsync(messageRouterResult);
             }

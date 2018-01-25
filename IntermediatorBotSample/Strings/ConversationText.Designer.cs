@@ -556,6 +556,15 @@ namespace IntermediatorBot.Strings {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Request was made, but the details of the requestor party are missing.
+        /// </summary>
+        internal static string RequestorDetailsMissing {
+            get {
+                return ResourceManager.GetString("RequestorDetailsMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Requested by user &quot;{0}&quot; on channel &quot;{1}&quot;.
         /// </summary>
         internal static string RequestorDetailsTitle {
