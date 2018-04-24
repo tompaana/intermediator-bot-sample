@@ -17,8 +17,6 @@ namespace IntermediatorBotSample.CommandHandling
     /// </summary>
     public class CommandMessageHandler
     {
-        public static readonly string NoUserNamePlaceholder = "<no user name>";
-
         private MessageRouterManager _messageRouterManager;
         private MessageRouterResultHandler _messageRouterResultHandler;
 
@@ -176,8 +174,6 @@ namespace IntermediatorBotSample.CommandHandling
 #if DEBUG
                     case string baseCommand when (baseCommand.Equals(Commands.CommandDeleteAllRoutingData)):
                         // DELETE ALL ROUTING DATA
-                        await _messageRouterManager.BroadcastMessageToAggregationChannelsAsync(
-                            string.Format(ConversationText.DeletingAllDataWithCommandIssuer, senderParty.ChannelAccount?.Name));
                         replyActivity = activity.CreateReply(ConversationText.DeletingAllData);
                         _messageRouterManager.RoutingDataManager.DeleteAll();
                         wasHandled = true;

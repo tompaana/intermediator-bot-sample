@@ -4,6 +4,8 @@ namespace IntermediatorBot.Strings
 {
     public class StringAndCharConstants
     {
+        public static readonly string NoUserNamePlaceholder = "<no user name>";
+
         public static readonly string LineBreak = "\n\r";
         public static readonly char QuotationMark = '"';
 
