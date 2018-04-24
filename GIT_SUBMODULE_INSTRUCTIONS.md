@@ -13,3 +13,9 @@ If you need to pull the latest changes of the submodule, type:
 ```
 git submodule update --recursive --remote
 ```
+
+To use a specific branch, navigate to the submodule folder and type:
+
+```
+git checkout <branch name>
+```
