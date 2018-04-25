@@ -11,7 +11,13 @@ namespace IntermediatorBotSample
 {
     public class Startup
     {
-        public static BotSettings Settings
+        public static HandoffHelper HandoffHelper
+        {
+            get;
+            private set;
+        }
+
+        public static BotSettings BotSettings
         {
             get;
             private set;
@@ -31,7 +37,8 @@ namespace IntermediatorBotSample
                 .AddEnvironmentVariables();
             Configuration = builder.Build();
 
-            Settings = new BotSettings(Configuration);
+            BotSettings = new BotSettings(Configuration);
+            HandoffHelper = new HandoffHelper(BotSettings);
         }
 
         // This method gets called by the runtime. Use this method to add services to the container.
