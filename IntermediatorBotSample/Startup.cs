@@ -44,6 +44,7 @@ namespace IntermediatorBotSample
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddMvc();
             services.AddSingleton(_ => Configuration);
             services.AddBot<IntermediatorBot>(options =>
             {
@@ -58,10 +59,11 @@ namespace IntermediatorBotSample
             {
                 app.UseDeveloperExceptionPage();
             }
-
+            
             app.UseDefaultFiles();
             app.UseStaticFiles();
             app.UseBotFramework();
+            app.UseMvc();
         }
     }
 }
