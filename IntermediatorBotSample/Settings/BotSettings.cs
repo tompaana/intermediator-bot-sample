@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using System;
 using System.Configuration;
 using System.Linq;
 
@@ -17,6 +18,8 @@ namespace IntermediatorBotSample.Settings
         public static readonly string KeyRejectConnectionRequestIfNoAggregationChannel = "RejectConnectionRequestIfNoAggregationChannel";
         public static readonly string KeyPermittedAggregationChannels = "PermittedAggregationChannels";
 
+        private const string AppConfigurationSection = "AppConfiguration";
+
         /// <summary>
         /// Tries to resolve a setting value by the given key.
         /// </summary>
@@ -31,12 +34,7 @@ namespace IntermediatorBotSample.Settings
                     throw new ArgumentNullException("Key cannot be null or empty");
                 }
 
-                string settingValue = null;
-
-                if (ConfigurationManager.AppSettings.AllKeys.Contains(key))
-                {
-                    settingValue = ConfigurationManager.AppSettings[key];
-                }
+                string settingValue = _configuration.GetSection(AppConfigurationSection).GetValue<string>(key);
 
                 if (string.IsNullOrEmpty(settingValue))
                 {
@@ -81,6 +79,13 @@ namespace IntermediatorBotSample.Settings
 
                 return null;
             }
+        }
+
+        private IConfiguration _configuration;
+
+        public BotSettings(IConfiguration configuration)
+        {
+            _configuration = configuration;
         }
     }
 }

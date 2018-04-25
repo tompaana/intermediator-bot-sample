@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace IntermediatorBot.Strings
+namespace IntermediatorBotSample.Strings
 {
     public class StringAndCharConstants
     {

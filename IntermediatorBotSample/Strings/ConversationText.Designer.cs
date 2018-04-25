@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace IntermediatorBot.Strings {
+namespace IntermediatorBotSample.Strings {
     using System;
     
     
@@ -39,7 +39,7 @@ namespace IntermediatorBot.Strings {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("IntermediatorBot.Strings.ConversationText", typeof(ConversationText).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("IntermediatorBotSample.Strings.ConversationText", typeof(ConversationText).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;

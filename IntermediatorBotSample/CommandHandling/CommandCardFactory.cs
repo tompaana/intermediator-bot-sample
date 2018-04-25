@@ -1,5 +1,5 @@
-﻿using IntermediatorBot.Strings;
-using Microsoft.Bot.Connector;
+﻿using IntermediatorBotSample.Strings;
+using Microsoft.Bot.Schema;
 using System;
 using System.Collections.Generic;
 using System.Globalization;

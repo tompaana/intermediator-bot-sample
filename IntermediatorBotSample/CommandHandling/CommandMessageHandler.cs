@@ -1,4 +1,4 @@
-﻿using IntermediatorBot.Strings;
+﻿using IntermediatorBotSample.Strings;
 using IntermediatorBotSample.MessageRouting;
 using Microsoft.Bot.Connector;
 using System;
@@ -9,6 +9,7 @@ using Underscore.Bot.MessageRouting;
 using Underscore.Bot.MessageRouting.DataStore;
 using Underscore.Bot.Models;
 using Underscore.Bot.Utils;
+using Microsoft.Bot.Schema;
 
 namespace IntermediatorBotSample.CommandHandling
 {

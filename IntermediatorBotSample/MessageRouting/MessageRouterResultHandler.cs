@@ -1,4 +1,4 @@
-﻿using IntermediatorBot.Strings;
+﻿using IntermediatorBotSample.Strings;
 using IntermediatorBotSample.CommandHandling;
 using Microsoft.Bot.Connector;
 using System;
@@ -8,6 +8,7 @@ using Underscore.Bot.MessageRouting;
 using Underscore.Bot.MessageRouting.DataStore;
 using Underscore.Bot.Models;
 using Underscore.Bot.Utils;
+using Microsoft.Bot.Schema;
 
 namespace IntermediatorBotSample.MessageRouting
 {
@@ -102,7 +103,7 @@ namespace IntermediatorBotSample.MessageRouting
             string messageText = string.IsNullOrEmpty(messageRouterResult.ErrorMessage)
                 ? ConversationText.FailedToForwardMessage
                 : messageRouterResult.ErrorMessage;
-            await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, messageText);
+            await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity as Activity, messageText);
         }
 
         /// <summary>
@@ -121,7 +122,7 @@ namespace IntermediatorBotSample.MessageRouting
                     ConversationText.AddAggregationChannelCommandHint,
                     $"{Command.ResolveFullCommand(messageRouterResult.Activity.Recipient?.Name, Commands.CommandAddAggregationChannel)}");
 
-                await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, messageText);
+                await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity as Activity, messageText);
             }
             else
             {
@@ -137,7 +138,7 @@ namespace IntermediatorBotSample.MessageRouting
         {
             if (messageRouterResult.Activity != null)
             {
-                await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity, ConversationText.NoAgentsAvailable);
+                await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity as Activity, ConversationText.NoAgentsAvailable);
             }
             else
             {

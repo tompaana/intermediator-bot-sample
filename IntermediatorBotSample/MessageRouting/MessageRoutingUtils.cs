@@ -1,4 +1,4 @@
-﻿using IntermediatorBot.Strings;
+﻿using IntermediatorBotSample.Strings;
 using System;
 using System.Collections.Generic;
 using System.Linq;
