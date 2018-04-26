@@ -11,7 +11,7 @@ namespace IntermediatorBotSample
 {
     public class HandoffHelper
     {
-        public MessageRouterManager MessageRouter
+        public MessageRouter MessageRouter
         {
             get;
             protected set;
@@ -38,20 +38,20 @@ namespace IntermediatorBotSample
         public HandoffHelper(BotSettings botSettings)
         {
             string connectionString = botSettings[BotSettings.KeyRoutingDataStorageConnectionString];
-            IRoutingDataManager routingDataManager = null;
+            IRoutingDataStore routingDataStore = null;
 
             if (string.IsNullOrEmpty(connectionString))
             {
-                System.Diagnostics.Debug.WriteLine($"WARNING!!! No connection string found - using {nameof(LocalRoutingDataManager)}");
-                routingDataManager = new LocalRoutingDataManager();
+                System.Diagnostics.Debug.WriteLine($"WARNING!!! No connection string found - using {nameof(InMemoryRoutingDataStore)}");
+                routingDataStore = new InMemoryRoutingDataStore();
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"Found a connection string - using {nameof(AzureTableStorageRoutingDataManager)}");
-                routingDataManager = new AzureTableStorageRoutingDataManager(connectionString);
+                System.Diagnostics.Debug.WriteLine($"Found a connection string - using {nameof(AzureTableStorageRoutingDataStore)}");
+                routingDataStore = new AzureTableStorageRoutingDataStore(connectionString);
             }
 
-            MessageRouter = new MessageRouterManager(routingDataManager);
+            MessageRouter = new MessageRouter(routingDataStore);
             MessageRouterResultHandler = new MessageRouterResultHandler(MessageRouter);
             CommandMessageHandler = new CommandMessageHandler(MessageRouter, MessageRouterResultHandler);
             BackChannelMessageHandler = new BackChannelMessageHandler(MessageRouter.RoutingDataManager);

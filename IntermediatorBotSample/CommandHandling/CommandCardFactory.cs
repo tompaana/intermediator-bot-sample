@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Underscore.Bot.Models;
+using Underscore.Bot.Utils;
 
 namespace IntermediatorBotSample.CommandHandling
 {
@@ -104,21 +105,23 @@ namespace IntermediatorBotSample.CommandHandling
         /// <summary>
         /// Creates a connection (e.g. human agent) request card.
         /// </summary>
-        /// <param name="requestorParty">The party who requested a connection.</param>
+        /// <param name="requestor">The party who requested a connection.</param>
         /// <param name="botName">The name of the bot (optional).</param>
         /// <returns>A newly created request card.</returns>
-        public static HeroCard CreateRequestCard(Party requestorParty, string botName = null)
+        public static HeroCard CreateRequestCard(ConversationReference requestor, string botName = null)
         {
-            if (requestorParty.ChannelAccount == null)
+            ChannelAccount requestorChannelAccount = MessageRoutingUtils.GetChannelAccount(requestor);
+
+            if (requestorChannelAccount == null)
             {
                 throw new ArgumentNullException("The channel account of the requestor is null");
             }
 
-            string requestorChannelAccountName = string.IsNullOrEmpty(requestorParty.ChannelAccount.Name)
-                ? StringAndCharConstants.NoUserNamePlaceholder : requestorParty.ChannelAccount.Name;
+            string requestorChannelAccountName = string.IsNullOrEmpty(requestorChannelAccount.Name)
+                ? StringAndCharConstants.NoUserNamePlaceholder : requestorChannelAccount.Name;
 
-            string requestorChannelId = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(requestorParty.ChannelId);
-            string requestorChannelAccountId = requestorParty.ChannelAccount.Id;
+            string requestorChannelId = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(requestor.ChannelId);
+            string requestorChannelAccountId = requestorChannelAccount.Id;
 
             string acceptCommand =
                 Command.ResolveFullCommand(
@@ -157,18 +160,18 @@ namespace IntermediatorBotSample.CommandHandling
         /// <summary>
         /// Creates multiple request cards to be used e.g. in a carousel.
         /// </summary>
-        /// <param name="requestorParties">The list of requestor parties (pending requests).</param>
+        /// <param name="connectionRequests">The connection requests.</param>
         /// <param name="botName">The name of the bot (optional).</param>
         /// <returns>A list of request cards as attachments.</returns>
-        public static IList<Attachment> CreateMultipleRequestCards(IList<Party> requestorParties, string botName)
+        public static IList<Attachment> CreateMultipleRequestCards(IList<ConnectionRequest> connectionRequests, string botName)
         {
             IList<Attachment> attachments = new List<Attachment>();
 
-            foreach (Party requestorParty in requestorParties)
+            foreach (ConnectionRequest connectionRequest in connectionRequests)
             {
-                if (requestorParty.ChannelAccount != null)
+                if (MessageRoutingUtils.GetChannelAccount(connectionRequest.Requestor) != null)
                 {
-                    attachments.Add(CreateRequestCard(requestorParty, botName).ToAttachment());
+                    attachments.Add(CreateRequestCard(connectionRequest.Requestor, botName).ToAttachment());
                 }
             }
 
@@ -178,11 +181,12 @@ namespace IntermediatorBotSample.CommandHandling
         /// <summary>
         /// Creates a card for accepting/rejecting multiple requests.
         /// </summary>
-        /// <param name="requestorParties">The list of requestor parties (pending requests).</param>
+        /// <param name="connectionRequests">The connection requests.</param>
         /// <param name="doAccept">If true, will create an accept card. If false, will create a reject card.</param>
         /// <param name="botName">The name of the bot (optional).</param>
         /// <returns>The newly created card.</returns>
-        public static HeroCard CreateAcceptOrRejectCardForMultipleRequests(IList<Party> requestorParties, bool doAccept, string botName)
+        public static HeroCard CreateAcceptOrRejectCardForMultipleRequests(
+            IList<ConnectionRequest> connectionRequests, bool doAccept, string botName)
         {
             HeroCard card = new HeroCard()
             {
@@ -197,7 +201,7 @@ namespace IntermediatorBotSample.CommandHandling
             string command = null;
             card.Buttons = new List<CardAction>();
 
-            if (!doAccept && requestorParties.Count > 1)
+            if (!doAccept && connectionRequests.Count > 1)
             {
                 card.Buttons.Add(new CardAction()
                 {
@@ -208,18 +212,22 @@ namespace IntermediatorBotSample.CommandHandling
                 });
             }
 
-            foreach (Party requestorParty in requestorParties)
+            foreach (ConnectionRequest connectionRequest in connectionRequests)
             {
-                if (requestorParty.ChannelAccount == null)
+                ChannelAccount requestorChannelAccount =
+                    MessageRoutingUtils.GetChannelAccount(connectionRequest.Requestor);
+
+                if (requestorChannelAccount == null)
                 {
                     throw new ArgumentNullException("The channel account of the requestor is null");
                 }
 
-                string requestorChannelAccountName = string.IsNullOrEmpty(requestorParty.ChannelAccount.Name)
-                    ? StringAndCharConstants.NoUserNamePlaceholder : requestorParty.ChannelAccount.Name;
+                string requestorChannelAccountName = string.IsNullOrEmpty(requestorChannelAccount.Name)
+                    ? StringAndCharConstants.NoUserNamePlaceholder : requestorChannelAccount.Name;
 
-                string requestorChannelId = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(requestorParty.ChannelId);
-                string requestorChannelAccountId = requestorParty.ChannelAccount.Id;
+                string requestorChannelId =
+                    CultureInfo.CurrentCulture.TextInfo.ToTitleCase(connectionRequest.Requestor.ChannelId);
+                string requestorChannelAccountId = requestorChannelAccount.Id;
 
                 command = Command.ResolveFullCommand(
                     botName,

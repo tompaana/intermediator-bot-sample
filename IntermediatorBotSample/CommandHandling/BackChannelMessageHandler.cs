@@ -1,5 +1,6 @@
 ﻿using IntermediatorBotSample.Strings;
 using Microsoft.Bot.Schema;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using Underscore.Bot.MessageRouting;
@@ -35,7 +36,7 @@ namespace IntermediatorBotSample.CommandHandling
             protected set;
         }
 
-        private IRoutingDataManager _routingDataManager;
+        private RoutingDataManager _routingDataManager;
 
         /// <summary>
         /// Constructor.
@@ -43,7 +44,7 @@ namespace IntermediatorBotSample.CommandHandling
         /// <param name="routingDataManager">The routing data manager instance.</param>
         /// <param name="backchannelId">The ID for back channel messages. If null, the default value is used.</param>
         /// <param name="partyKey">The key identifying the serialized party data. If null, the default value is used.</param>
-        public BackChannelMessageHandler(IRoutingDataManager routingDataManager, string backChannelId = null, string partyKey = null)
+        public BackChannelMessageHandler(RoutingDataManager routingDataManager, string backChannelId = null, string partyKey = null)
         {
             _routingDataManager = routingDataManager
                 ?? throw new ArgumentNullException("Routing data manager instance must be given");
@@ -83,11 +84,11 @@ namespace IntermediatorBotSample.CommandHandling
                 else
                 {
                     // Handle accepted request and start 1:1 conversation
-                    Party conversationClientParty = null;
+                    ConversationReference requestor = null;
 
                     try
                     {
-                        conversationClientParty = ParsePartyFromChannelData(activity.ChannelData);
+                        requestor = ParseConversationReferenceFromChannelData(activity.ChannelData);
                     }
                     catch (Exception e)
                     {
@@ -96,12 +97,12 @@ namespace IntermediatorBotSample.CommandHandling
                             $"Failed to parse the party information from the back channel message: {e.Message}";
                     }
 
-                    if (conversationClientParty != null)
+                    if (requestor != null)
                     {
-                        Party conversationOwnerParty = MessagingUtils.CreateSenderParty(activity);
+                        ConversationReference agent = MessageRoutingUtils.CreateSenderConversationReference(activity);
 
-                        messageRouterResult = _routingDataManager.ConnectAndClearPendingRequest(
-                            conversationOwnerParty, conversationClientParty);
+                        messageRouterResult = _routingDataManager.ConnectAndRemoveConnectionRequest(
+                            new Connection(agent, requestor), requestor);
 
                         messageRouterResult.Activity = activity;
                     }
@@ -122,18 +123,29 @@ namespace IntermediatorBotSample.CommandHandling
         /// </summary>
         /// <param name="channelData">The channel data object to parse.</param>
         /// <returns>A deserialized party instance.</returns>
-        protected Party ParsePartyFromChannelData(object channelData)
+        protected ConversationReference ParseConversationReferenceFromChannelData(object channelData)
         {
-            string partyAsJsonString = ((JObject)channelData)[BackChannelId][PartyKey].ToString();
+            string conversationReferenceAsJsonString = ((JObject)channelData)[BackChannelId][PartyKey].ToString();
 
-            if (string.IsNullOrEmpty(partyAsJsonString))
+            if (string.IsNullOrEmpty(conversationReferenceAsJsonString))
             {
                 throw new NullReferenceException("Failed to find the party information from the channel data");
             }
 
-            partyAsJsonString = partyAsJsonString.Replace(StringAndCharConstants.EndOfLineInJsonResponse, string.Empty);
-            partyAsJsonString = partyAsJsonString.Replace(StringAndCharConstants.BackslashInJsonResponse, StringAndCharConstants.QuotationMark);
-            return Party.FromJsonString(partyAsJsonString);
+            conversationReferenceAsJsonString = conversationReferenceAsJsonString.Replace(StringAndCharConstants.EndOfLineInJsonResponse, string.Empty);
+            conversationReferenceAsJsonString = conversationReferenceAsJsonString.Replace(StringAndCharConstants.BackslashInJsonResponse, StringAndCharConstants.QuotationMark);
+
+            ConversationReference conversationReference = null;
+
+            try
+            {
+                conversationReference = JsonConvert.DeserializeObject<ConversationReference>(conversationReferenceAsJsonString);
+            }
+            catch (Exception)
+            {
+            }
+
+            return conversationReference;
         }
     }
 }

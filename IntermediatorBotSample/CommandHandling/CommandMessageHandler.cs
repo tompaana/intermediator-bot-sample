@@ -18,18 +18,18 @@ namespace IntermediatorBotSample.CommandHandling
     /// </summary>
     public class CommandMessageHandler
     {
-        private MessageRouterManager _messageRouterManager;
+        private MessageRouter _messageRouter;
         private MessageRouterResultHandler _messageRouterResultHandler;
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        /// <param name="messageRouterManager">The message router manager.</param>
+        /// <param name="messageRouter">The message router manager.</param>
         /// <param name="messageRouterResultHandler"/>A MessageRouterResultHandler instance for
         /// handling possible routing actions such as accepting a 1:1 conversation connection.</param>
-        public CommandMessageHandler(MessageRouterManager messageRouterManager, MessageRouterResultHandler messageRouterResultHandler)
+        public CommandMessageHandler(MessageRouter messageRouter, MessageRouterResultHandler messageRouterResultHandler)
         {
-            _messageRouterManager = messageRouterManager;
+            _messageRouter = messageRouter;
             _messageRouterResultHandler = messageRouterResultHandler;
         }
 
@@ -49,7 +49,7 @@ namespace IntermediatorBotSample.CommandHandling
 
             if (command != null)
             {
-                Party senderParty = MessagingUtils.CreateSenderParty(activity);
+                ConversationReference sender = MessageRoutingUtils.CreateSenderConversationReference(activity);
 
                 switch (command.BaseCommand.ToLower())
                 {
@@ -62,10 +62,10 @@ namespace IntermediatorBotSample.CommandHandling
 
                     case string baseCommand when (baseCommand.Equals(Commands.CommandAddAggregationChannel)):
                         // Establish the sender's channel/conversation as an aggreated one if not already exists
-                        Party aggregationPartyToAdd =
-                            new Party(activity.ServiceUrl, activity.ChannelId, null, activity.Conversation);
+                        ConversationReference aggregationChannelToAdd =
+                            new ConversationReference(null, null, null, activity.Conversation, activity.ChannelId, activity.ServiceUrl);
 
-                        if (_messageRouterManager.RoutingDataManager.AddAggregationParty(aggregationPartyToAdd))
+                        if (_messageRouter.RoutingDataManager.AddAggregationChannel(aggregationChannelToAdd))
                         {
                             replyActivity = activity.CreateReply(ConversationText.AggregationChannelSet);
                         }
@@ -79,12 +79,12 @@ namespace IntermediatorBotSample.CommandHandling
 
                     case string baseCommand when (baseCommand.Equals(Commands.CommandRemoveAggregationChannel)):
                         // Remove the sender's channel/conversation from the list of aggregation channels
-                        if (_messageRouterManager.RoutingDataManager.IsAssociatedWithAggregation(senderParty))
+                        if (_messageRouter.RoutingDataManager.IsAssociatedWithAggregation(sender))
                         {
-                            Party aggregationPartyToRemove =
-                                new Party(activity.ServiceUrl, activity.ChannelId, null, activity.Conversation);
+                            ConversationReference aggregationChannelToRemove =
+                                new ConversationReference(null, null, null, activity.Conversation, activity.ChannelId, activity.ServiceUrl);
 
-                            if (_messageRouterManager.RoutingDataManager.RemoveAggregationParty(aggregationPartyToRemove))
+                            if (_messageRouter.RoutingDataManager.RemoveAggregationChannel(aggregationChannelToRemove))
                             {
                                 replyActivity = activity.CreateReply(ConversationText.AggregationChannelRemoved);
                             }
@@ -103,17 +103,17 @@ namespace IntermediatorBotSample.CommandHandling
                         // Accept/reject conversation request
                         bool doAccept = baseCommand.Equals(Commands.CommandAcceptRequest);
 
-                        if (_messageRouterManager.RoutingDataManager.IsAssociatedWithAggregation(senderParty))
+                        if (_messageRouter.RoutingDataManager.IsAssociatedWithAggregation(sender))
                         {
                             // The party is associated with the aggregation and has the right to accept/reject
                             if (command.Parameters.Count == 0)
                             {
                                 replyActivity = activity.CreateReply();
 
-                                IList<Party> pendingRequests =
-                                    _messageRouterManager.RoutingDataManager.GetPendingRequests();
+                                IList<ConnectionRequest> connectionRequests =
+                                    _messageRouter.RoutingDataManager.GetConnectionRequests();
 
-                                if (pendingRequests.Count == 0)
+                                if (connectionRequests.Count == 0)
                                 {
                                     replyActivity.Text = ConversationText.NoPendingRequests;
                                 }
@@ -121,14 +121,14 @@ namespace IntermediatorBotSample.CommandHandling
                                 {
                                     replyActivity = CommandCardFactory.AddCardToActivity(
                                         replyActivity, CommandCardFactory.CreateAcceptOrRejectCardForMultipleRequests(
-                                            pendingRequests, doAccept, activity.Recipient?.Name));
+                                            connectionRequests, doAccept, activity.Recipient?.Name));
                                 }
                             }
                             else if (!doAccept
                                 && command.Parameters[0].Equals(Commands.CommandParameterAll))
                             {
-                                if (!await new MessageRoutingUtils().RejectAllPendingRequestsAsync(
-                                        _messageRouterManager, _messageRouterResultHandler))
+                                if (!await new MessageRoutingHelper().RejectAllPendingRequestsAsync(
+                                        _messageRouter, _messageRouterResultHandler))
                                 {
                                     replyActivity = activity.CreateReply();
                                     replyActivity.Text = ConversationText.FailedToRejectPendingRequests;
@@ -136,8 +136,8 @@ namespace IntermediatorBotSample.CommandHandling
                             }
                             else
                             {
-                                string errorMessage = await new MessageRoutingUtils().AcceptOrRejectRequestAsync(
-                                    _messageRouterManager, _messageRouterResultHandler, senderParty, doAccept, command.Parameters[0]);
+                                string errorMessage = await new MessageRoutingHelper().AcceptOrRejectRequestAsync(
+                                    _messageRouter, _messageRouterResultHandler, sender, doAccept, command.Parameters[0]);
 
                                 if (!string.IsNullOrEmpty(errorMessage))
                                 {
@@ -160,7 +160,7 @@ namespace IntermediatorBotSample.CommandHandling
 
                     case string baseCommand when (baseCommand.Equals(Commands.CommandDisconnect)):
                         // End the 1:1 conversation
-                        IList<MessageRouterResult> messageRouterResults = _messageRouterManager.Disconnect(senderParty);
+                        IList<MessageRouterResult> messageRouterResults = _messageRouter.Disconnect(sender);
 
                         foreach (MessageRouterResult messageRouterResult in messageRouterResults)
                         {
@@ -173,12 +173,6 @@ namespace IntermediatorBotSample.CommandHandling
 
                     #region Implementation of debugging commands
 #if DEBUG
-                    case string baseCommand when (baseCommand.Equals(Commands.CommandDeleteAllRoutingData)):
-                        // DELETE ALL ROUTING DATA
-                        replyActivity = activity.CreateReply(ConversationText.DeletingAllData);
-                        _messageRouterManager.RoutingDataManager.DeleteAll();
-                        wasHandled = true;
-                        break;
 
                     case string baseCommand when (baseCommand.Equals(Commands.CommandList)):
                         bool listAll = command.Parameters.Contains(Commands.CommandParameterAll);
@@ -188,14 +182,14 @@ namespace IntermediatorBotSample.CommandHandling
                         if (listAll || command.Parameters.Contains(Commands.CommandParameterParties))
                         {
                             // List user and bot parties
-                            IRoutingDataManager routingDataManager = _messageRouterManager.RoutingDataManager;
-                            string partiesAsString = PartyListToString(routingDataManager.GetUserParties());
+                            RoutingDataManager routingDataManager = _messageRouter.RoutingDataManager;
+                            string partiesAsString = ConversationReferenceToString(routingDataManager.GetUsers());
 
                             replyMessageText += string.IsNullOrEmpty(partiesAsString)
                                 ? $"{ConversationText.NoUsersStored}{StringAndCharConstants.LineBreak}"
                                 : $"{ConversationText.Users}:{StringAndCharConstants.LineBreak}{partiesAsString}{StringAndCharConstants.LineBreak}";
 
-                            partiesAsString = PartyListToString(routingDataManager.GetBotParties());
+                            partiesAsString = ConversationReferenceToString(routingDataManager.GetBotInstances());
 
                             replyMessageText += string.IsNullOrEmpty(partiesAsString)
                                 ? $"{ConversationText.NoBotsStored}{StringAndCharConstants.LineBreak}"
@@ -209,7 +203,7 @@ namespace IntermediatorBotSample.CommandHandling
                             // List all pending requests
                             IList<Attachment> attachments =
                                 CommandCardFactory.CreateMultipleRequestCards(
-                                    _messageRouterManager.RoutingDataManager.GetPendingRequests(), activity.Recipient?.Name);
+                                    _messageRouter.RoutingDataManager.GetConnectionRequests(), activity.Recipient?.Name);
 
                             if (attachments.Count > 0)
                             {
@@ -229,25 +223,13 @@ namespace IntermediatorBotSample.CommandHandling
                         if (listAll || command.Parameters.Contains(Commands.CommandParameterConnections))
                         {
                             // List all connections (conversations)
-                            string connectionsAsString = _messageRouterManager.RoutingDataManager.ConnectionsToString();
+                            /*string connectionsAsString = _messageRouter.RoutingDataManager.ConnectionsToString();
 
                             replyMessageText += string.IsNullOrEmpty(connectionsAsString)
                                 ? $"{ConversationText.NoConversations}{StringAndCharConstants.LineBreak}"
                                 : $"{connectionsAsString}{StringAndCharConstants.LineBreak}";
 
-                            wasHandled = true;
-                        }
-
-                        if (listAll || command.Parameters.Contains(Commands.CommandParameterResults))
-                        {
-                            // List all logged message router results
-                            string resultsAsString = _messageRouterManager.RoutingDataManager.GetLastMessageRouterResults();
-
-                            replyMessageText += string.IsNullOrEmpty(resultsAsString)
-                                ? $"{ConversationText.NoResults}{StringAndCharConstants.LineBreak}"
-                                : $"{resultsAsString}{StringAndCharConstants.LineBreak}";
-
-                            wasHandled = true;
+                            wasHandled = true;*/
                         }
 
                         if (!wasHandled)
@@ -363,9 +345,9 @@ namespace IntermediatorBotSample.CommandHandling
 
                 foreach (Mention mention in mentions)
                 {
-                    foreach (Party botParty in _messageRouterManager.RoutingDataManager.GetBotParties())
+                    foreach (ConversationReference bot in _messageRouter.RoutingDataManager.GetBotInstances())
                     {
-                        if (mention.Mentioned.Id.Equals(botParty.ChannelAccount.Id))
+                        if (mention.Mentioned.Id.Equals(MessageRoutingUtils.GetChannelAccount(bot).Id))
                         {
                             botWasMentioned = true;
                             break;
@@ -403,17 +385,17 @@ namespace IntermediatorBotSample.CommandHandling
         /// <summary>
         /// For debugging. Creates a string containing all the parties in the given list.
         /// </summary>
-        /// <param name="partyList">A list of parties.</param>
+        /// <param name="conversationReferences">A list of parties.</param>
         /// <returns>The given parties as string.</returns>
-        private string PartyListToString(IList<Party> partyList)
+        private string ConversationReferenceToString(IList<ConversationReference> conversationReferences)
         {
             string partiesAsString = string.Empty;
 
-            if (partyList != null && partyList.Count > 0)
+            if (conversationReferences != null && conversationReferences.Count > 0)
             {
-                foreach (Party party in partyList)
+                foreach (ConversationReference conversationReference in conversationReferences)
                 {
-                    partiesAsString += $"{party.ToString()}{StringAndCharConstants.LineBreak}";
+                    partiesAsString += $"{conversationReference.ToString()}{StringAndCharConstants.LineBreak}";
                 }
             }
 
