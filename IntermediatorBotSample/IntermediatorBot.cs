@@ -14,28 +14,25 @@ namespace IntermediatorBotSample
         public async Task OnTurn(ITurnContext context)
         {
             Activity activity = context.Activity;
+            
 
             if (activity.Type is ActivityTypes.Message)
             {
-                MessageRouterManager messageRouterManager = Startup.HandoffHelper.MessageRouter;
+                MessageRouterManager messageRouterManager             = Startup.HandoffHelper.MessageRouter;
                 MessageRouterResultHandler messageRouterResultHandler = Startup.HandoffHelper.MessageRouterResultHandler;
-                bool rejectConnectionRequestIfNoAggregationChannel =
-                    Startup.BotSettings.RejectConnectionRequestIfNoAggregationChannel;
+                bool rejectConnectionRequestIfNoAggregationChannel    = Startup.BotSettings.RejectConnectionRequestIfNoAggregationChannel;
 
                 messageRouterManager.MakeSurePartiesAreTracked(activity);
 
                 // First check for commands (both from back channel and the ones directly typed)
-                MessageRouterResult messageRouterResult =
-                    Startup.HandoffHelper.BackChannelMessageHandler.HandleBackChannelMessage(activity);
+                MessageRouterResult messageRouterResult = Startup.HandoffHelper.BackChannelMessageHandler.HandleBackChannelMessage(activity);
 
-                if (messageRouterResult.Type != MessageRouterResultType.Connected
-                    && await Startup.HandoffHelper.CommandMessageHandler.HandleCommandAsync(activity) == false)
+                if (messageRouterResult.Type != MessageRouterResultType.Connected && await Startup.HandoffHelper.CommandMessageHandler.HandleCommandAsync(activity) == false)
                 {
                     // No valid back channel (command) message or typed command detected
 
                     // Let the message router manager instance handle the activity
-                    messageRouterResult = await messageRouterManager.HandleActivityAsync(
-                        activity, false, rejectConnectionRequestIfNoAggregationChannel);
+                    messageRouterResult = await messageRouterManager.HandleActivityAsync( activity, false, rejectConnectionRequestIfNoAggregationChannel);
 
                     if (messageRouterResult.Type == MessageRouterResultType.NoActionTaken)
                     {
@@ -48,11 +45,9 @@ namespace IntermediatorBotSample
                         // the check in the dialog too...
                         //
                         // Here's an example:
-                        if (!string.IsNullOrEmpty(activity.Text)
-                            && activity.Text.ToLower().Contains(Commands.CommandRequestConnection))
+                        if (!string.IsNullOrEmpty(activity.Text) && activity.Text.ToLower().Contains(Commands.CommandRequestConnection))
                         {
-                            messageRouterResult = messageRouterManager.RequestConnection(
-                                activity, rejectConnectionRequestIfNoAggregationChannel);
+                            messageRouterResult = messageRouterManager.RequestConnection(activity, rejectConnectionRequestIfNoAggregationChannel);
                         }
                         else
                         {

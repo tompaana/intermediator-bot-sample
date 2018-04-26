@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Bot.Schema;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -13,51 +14,36 @@ namespace IntermediatorBotSample.Controllers.Api
     [Route("api/[controller]")]    
     public class ConversationsController : Controller
     {
-        private class DemoUserInformation : UserInformation
-        {
-            [JsonProperty(PropertyName = "isvip")]
-            public bool IsVip { get; set; }
 
+        // Services        
+        private readonly IConversationManager _conversationManager;
+
+
+        public ConversationsController(IConversationManager conversationManager)
+        {            
+            _conversationManager = conversationManager;
         }
-        private readonly IExceptionHandler _exceptionHandler;
 
-
-        public ConversationsController(IExceptionHandler exceptionHandler)
+        [HttpPost("{channelId}/{conversationId}/{userId}/history")]
+        public void Post(string channelId, string conversationId, string userId)
         {
-            _exceptionHandler = exceptionHandler;
+            // _conversationManager.TransmitMessageHistory(channelId, conversationId, userId);
+
+            throw new NotImplementedException();
+        }
+
+
+        [HttpDelete("{channelId}/{conversationId}")]
+        public void Delete(string channelId, string conversationId)
+        {
+            _conversationManager.DeleteConversation(channelId, conversationId);
         }
 
 
         [HttpGet]
-        public IEnumerable<Conversation> Get(int convId, int top)            
+        public IEnumerable<Conversation> Get(int top = 10)            
         {
-            var channels = new[] { "facebook", "skype", "skype for business", "directline" };
-            var random = new RandomGenerator();
-
-            // 
-
-            // return _exceptionHandler.GetAsync( () =>  _conversationManager.GetTopConversations(convId,top));
-
-            return Builder<Conversation>.CreateListOfSize(5)
-                .All()
-                    .With(o =>  o.ConversationInformation   = Builder<ConversationInformation>.CreateNew()
-                    .With(ci => ci.MessagesCount = random.Next(2, 30))
-                    .With(ci => ci.SentimentScore = random.Next(0.0d, 1.0d))
-                    .Build())
-                    .With(o =>  o.ConversationReference     = Builder<ConversationReference>.CreateNew()
-                    .With(cr => cr.ChannelId = channels[random.Next(0, channels.Count())])                    
-                    .Build())
-                    .With(o =>  o.UserInformation           = Builder<DemoUserInformation>.CreateNew()                    
-                    .Build())
-                .Build()
-                .ToList();
+            return _conversationManager.GetConversations(top);
         }
-
-
-        //TODO: Retrieve ALL the conversation
-
-        //TOOD: Forward conersation
-
-        //TODO: DELETE Conversation = immediate kill by conversationId
     }
 }
