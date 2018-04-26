@@ -17,13 +17,13 @@ namespace IntermediatorBotSample.MessageRouting
     /// </summary>
     public class MessageRouterResultHandler
     {
-        private MessageRouterManager _messageRouterManager;
+        private MessageRouter _messageRouter;
 
-        public MessageRouterResultHandler(MessageRouterManager messageRouterManager)
+        public MessageRouterResultHandler(MessageRouter messageRouter)
         {
-            _messageRouterManager = messageRouterManager
+            _messageRouter = messageRouter
                 ?? throw new ArgumentNullException(
-                    $"The message router manager ({nameof(messageRouterManager)}) cannot be null");
+                    $"The message router manager ({nameof(messageRouter)}) cannot be null");
         }
 
         /// <summary>
@@ -37,10 +37,6 @@ namespace IntermediatorBotSample.MessageRouting
             {
                 throw new ArgumentNullException($"The given result ({nameof(messageRouterResult)}) is null");
             }
-
-        #if DEBUG
-            _messageRouterManager.RoutingDataManager.AddMessageRouterResult(messageRouterResult);
-        #endif
 
             string message = string.Empty;
 
@@ -86,10 +82,10 @@ namespace IntermediatorBotSample.MessageRouting
 
             System.Diagnostics.Debug.WriteLine(errorMessage);
 
-            if (messageRouterResult.ConversationOwnerParty != null)
+            if (messageRouterResult.ConversationReferences.Count > 0)
             {
-                await _messageRouterManager.SendMessageToPartyByBotAsync(
-                    messageRouterResult.ConversationOwnerParty, errorMessage);
+                await _messageRouter.SendMessageAsync(
+                    messageRouterResult.ConversationReferences[0], errorMessage);
             }
         }
 
@@ -103,7 +99,7 @@ namespace IntermediatorBotSample.MessageRouting
             string messageText = string.IsNullOrEmpty(messageRouterResult.ErrorMessage)
                 ? ConversationText.FailedToForwardMessage
                 : messageRouterResult.ErrorMessage;
-            await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity as Activity, messageText);
+            await MessageRoutingUtils.ReplyToActivityAsync(messageRouterResult.Activity as Activity, messageText);
         }
 
         /// <summary>
@@ -122,7 +118,7 @@ namespace IntermediatorBotSample.MessageRouting
                     ConversationText.AddAggregationChannelCommandHint,
                     $"{Command.ResolveFullCommand(messageRouterResult.Activity.Recipient?.Name, Commands.CommandAddAggregationChannel)}");
 
-                await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity as Activity, messageText);
+                await MessageRoutingUtils.ReplyToActivityAsync(messageRouterResult.Activity as Activity, messageText);
             }
             else
             {
@@ -138,7 +134,7 @@ namespace IntermediatorBotSample.MessageRouting
         {
             if (messageRouterResult.Activity != null)
             {
-                await MessagingUtils.ReplyToActivityAsync(messageRouterResult.Activity as Activity, ConversationText.NoAgentsAvailable);
+                await MessageRoutingUtils.ReplyToActivityAsync(messageRouterResult.Activity as Activity, ConversationText.NoAgentsAvailable);
             }
             else
             {
@@ -153,20 +149,22 @@ namespace IntermediatorBotSample.MessageRouting
         /// <param name="messageRouterResult">The result to handle.</param>
         protected virtual async Task HandleConnectionChangedResultAsync(MessageRouterResult messageRouterResult)
         {
-            IRoutingDataManager routingDataManager = _messageRouterManager.RoutingDataManager;
+            RoutingDataManager routingDataManager = _messageRouter.RoutingDataManager;
 
-            Party conversationOwnerParty = messageRouterResult.ConversationOwnerParty;
-            Party conversationClientParty = messageRouterResult.ConversationClientParty;
+            ConversationReference agent = messageRouterResult.ConversationReferences[0];
+            ConversationReference client = messageRouterResult.ConversationReferences[1];
+            ChannelAccount agentChannelAccount = MessageRoutingUtils.GetChannelAccount(agent);
+            ChannelAccount clientChannelAccount = MessageRoutingUtils.GetChannelAccount(client);
 
             string conversationOwnerName =
-                string.IsNullOrEmpty(conversationOwnerParty?.ChannelAccount.Name)
+                string.IsNullOrEmpty(agentChannelAccount.Name)
                     ? StringAndCharConstants.NoUserNamePlaceholder
-                    : conversationOwnerParty?.ChannelAccount.Name;
+                    : agentChannelAccount.Name;
 
             string conversationClientName =
-                string.IsNullOrEmpty(conversationClientParty?.ChannelAccount.Name)
+                string.IsNullOrEmpty(clientChannelAccount.Name)
                     ? StringAndCharConstants.NoUserNamePlaceholder
-                    : conversationClientParty?.ChannelAccount.Name;
+                    : clientChannelAccount.Name;
 
             string messageToConversationOwner = string.Empty;
             string messageToConversationClient = string.Empty;
@@ -174,33 +172,33 @@ namespace IntermediatorBotSample.MessageRouting
             if (messageRouterResult.Type == MessageRouterResultType.ConnectionRequested)
             {
                 bool conversationClientPartyMissing =
-                    (conversationClientParty == null || conversationClientParty.ChannelAccount == null);
+                    (client == null || clientChannelAccount == null);
 
-                foreach (Party aggregationParty in _messageRouterManager.RoutingDataManager.GetAggregationParties())
+                foreach (ConversationReference aggregationChannel in _messageRouter.RoutingDataManager.GetAggregationChannels())
                 {
-                    Party botParty = routingDataManager.FindBotPartyByChannelAndConversation(
-                        aggregationParty.ChannelId, aggregationParty.ConversationAccount);
+                    ConversationReference botConversationReference =
+                        routingDataManager.FindBotConversationReferenceByChannelAndConversation(
+                            aggregationChannel.ChannelId, aggregationChannel.Conversation);
 
-                    if (botParty != null)
+                    if (botConversationReference != null)
                     {
                         if (conversationClientPartyMissing)
                         {
-                            await _messageRouterManager.SendMessageToPartyByBotAsync(
-                                aggregationParty, ConversationText.RequestorDetailsMissing);
+                            await _messageRouter.SendMessageAsync(
+                                aggregationChannel, ConversationText.RequestorDetailsMissing);
                         }
                         else
                         {
                             IMessageActivity messageActivity = Activity.CreateMessageActivity();
-                            messageActivity.Conversation = aggregationParty.ConversationAccount;
-                            messageActivity.Recipient = aggregationParty.ChannelAccount;
+                            messageActivity.Conversation = aggregationChannel.Conversation;
+                            messageActivity.Recipient = MessageRoutingUtils.GetChannelAccount(aggregationChannel);
                             messageActivity.Attachments = new List<Attachment>
                             {
                                 CommandCardFactory.CreateRequestCard(
-                                    conversationClientParty, botParty.ChannelAccount?.Name).ToAttachment()
+                                    client, MessageRoutingUtils.GetChannelAccount(botConversationReference)?.Name).ToAttachment()
                             };
 
-                            await _messageRouterManager.SendMessageToPartyByBotAsync(
-                                aggregationParty, messageActivity);
+                            await _messageRouter.SendMessageAsync(aggregationChannel, messageActivity);
                         }
                     }
                 }
@@ -230,18 +228,16 @@ namespace IntermediatorBotSample.MessageRouting
                 messageToConversationClient = string.Format(ConversationText.NotifyClientDisconnected, conversationOwnerName);
             }
 
-            if (conversationOwnerParty != null
+            if (agent != null
                 && !string.IsNullOrEmpty(messageToConversationOwner))
             {
-                await _messageRouterManager.SendMessageToPartyByBotAsync(
-                    conversationOwnerParty, messageToConversationOwner);
+                await _messageRouter.SendMessageAsync(agent, messageToConversationOwner);
             }
 
-            if (conversationClientParty != null
+            if (client != null
                 && !string.IsNullOrEmpty(messageToConversationClient))
             {
-                await _messageRouterManager.SendMessageToPartyByBotAsync(
-                    conversationClientParty, messageToConversationClient);
+                await _messageRouter.SendMessageAsync(client, messageToConversationClient);
             }
         }
     }

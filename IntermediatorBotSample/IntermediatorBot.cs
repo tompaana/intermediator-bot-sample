@@ -6,6 +6,7 @@ using Microsoft.Bot.Schema;
 using System;
 using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting;
+using Underscore.Bot.Utils;
 
 namespace IntermediatorBotSample
 {
@@ -17,12 +18,12 @@ namespace IntermediatorBotSample
 
             if (activity.Type is ActivityTypes.Message)
             {
-                MessageRouterManager messageRouterManager = Startup.HandoffHelper.MessageRouter;
+                MessageRouter messageRouter = Startup.HandoffHelper.MessageRouter;
                 MessageRouterResultHandler messageRouterResultHandler = Startup.HandoffHelper.MessageRouterResultHandler;
                 bool rejectConnectionRequestIfNoAggregationChannel =
                     Startup.BotSettings.RejectConnectionRequestIfNoAggregationChannel;
 
-                messageRouterManager.MakeSurePartiesAreTracked(activity);
+                messageRouter.StoreConversationReferences(activity);
 
                 // First check for commands (both from back channel and the ones directly typed)
                 MessageRouterResult messageRouterResult =
@@ -34,7 +35,7 @@ namespace IntermediatorBotSample
                     // No valid back channel (command) message or typed command detected
 
                     // Let the message router manager instance handle the activity
-                    messageRouterResult = await messageRouterManager.HandleActivityAsync(
+                    messageRouterResult = await messageRouter.HandleActivityAsync(
                         activity, false, rejectConnectionRequestIfNoAggregationChannel);
 
                     if (messageRouterResult.Type == MessageRouterResultType.NoActionTaken)
@@ -51,8 +52,8 @@ namespace IntermediatorBotSample
                         if (!string.IsNullOrEmpty(activity.Text)
                             && activity.Text.ToLower().Contains(Commands.CommandRequestConnection))
                         {
-                            messageRouterResult = messageRouterManager.RequestConnection(
-                                activity, rejectConnectionRequestIfNoAggregationChannel);
+                            messageRouterResult = messageRouter.CreateConnectionRequest(
+                                MessageRoutingUtils.CreateSenderConversationReference(activity), rejectConnectionRequestIfNoAggregationChannel);
                         }
                         else
                         {

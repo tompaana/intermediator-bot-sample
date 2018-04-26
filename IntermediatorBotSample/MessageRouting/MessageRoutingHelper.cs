@@ -1,4 +1,5 @@
 ﻿using IntermediatorBotSample.Strings;
+using Microsoft.Bot.Schema;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,13 +7,14 @@ using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting;
 using Underscore.Bot.MessageRouting.DataStore;
 using Underscore.Bot.Models;
+using Underscore.Bot.Utils;
 
 namespace IntermediatorBotSample.MessageRouting
 {
     /// <summary>
     /// Contains message routing related utility methods.
     /// </summary>
-    public class MessageRoutingUtils
+    public class MessageRoutingHelper
     {
         private const string ChannelIdEmulator = "emulator";
         private const string ChannelIdFacebook = "facebook";
@@ -31,45 +33,44 @@ namespace IntermediatorBotSample.MessageRouting
         /// <summary>
         /// Broadcasts the given message to all aggregation channels.
         /// </summary>
-        /// <param name="messageRouterManager">The message router manager instance.</param>
+        /// <param name="messageRouter">The message router manager instance.</param>
         /// <param name="messageText">The message to broadcast.</param>
         public static async Task BroadcastMessageToAggregationChannelsAsync(
-            MessageRouterManager messageRouterManager, string messageText)
+            MessageRouter messageRouter, string messageText)
         {
-            foreach (Party aggregationChannel in
-                messageRouterManager.RoutingDataManager.GetAggregationParties())
+            foreach (ConversationReference aggregationChannel in
+                messageRouter.RoutingDataManager.GetAggregationChannels())
             {
-                await messageRouterManager.SendMessageToPartyByBotAsync(aggregationChannel, messageText);
+                await messageRouter.SendMessageAsync(aggregationChannel, messageText);
             }
         }
 
         /// <summary>
         /// Tries to accept/reject a pending request.
         /// </summary>
-        /// <param name="messageRouterManager">The message router manager.</param>
+        /// <param name="messageRouter">The message router manager.</param>
         /// <param name="messageRouterResultHandler">The message router result handler.</param>
-        /// <param name="senderParty">The sender party (accepter/rejecter).</param>
+        /// <param name="sender">The sender party (accepter/rejecter).</param>
         /// <param name="doAccept">If true, will try to accept the request. If false, will reject.</param>
         /// <param name="channelAccountIdOfPartyToAcceptOrReject">The channel account ID of the party whose request to accep/reject.</param>
         /// <returns>Null, if an accept/reject operation was executed successfully.
         /// A user friendly error message otherwise.</returns>
         public async Task<string> AcceptOrRejectRequestAsync(
-            MessageRouterManager messageRouterManager, MessageRouterResultHandler messageRouterResultHandler,
-            Party senderParty, bool doAccept, string channelAccountIdOfPartyToAcceptOrReject)
+            MessageRouter messageRouter, MessageRouterResultHandler messageRouterResultHandler,
+            ConversationReference sender, bool doAccept, string channelAccountIdOfPartyToAcceptOrReject)
         {
             string errorMessage = null;
 
-            IRoutingDataManager routingDataManager = messageRouterManager.RoutingDataManager;
-            Party partyToAcceptOrReject = null;
+            RoutingDataManager routingDataManager = messageRouter.RoutingDataManager;
+            ConnectionRequest connectionRequest = null;
 
-            if (routingDataManager.GetPendingRequests().Count > 0)
+            if (routingDataManager.GetConnectionRequests().Count > 0)
             {
                 try
                 {
-                    partyToAcceptOrReject = routingDataManager.GetPendingRequests().Single(
-                          party => (party.ChannelAccount != null
-                              && !string.IsNullOrEmpty(party.ChannelAccount.Id)
-                              && party.ChannelAccount.Id.Equals(channelAccountIdOfPartyToAcceptOrReject)));
+                    connectionRequest = routingDataManager.GetConnectionRequests().Single(request =>
+                            (MessageRoutingUtils.GetChannelAccount(request.Requestor) != null
+                              && MessageRoutingUtils.GetChannelAccount(request.Requestor).Id.Equals(channelAccountIdOfPartyToAcceptOrReject)));
                 }
                 catch (InvalidOperationException e)
                 {
@@ -80,15 +81,15 @@ namespace IntermediatorBotSample.MessageRouting
                 }
             }
 
-            if (partyToAcceptOrReject != null)
+            if (connectionRequest != null)
             {
-                Party connectedSenderParty =
-                routingDataManager.FindConnectedPartyByChannel(
-                    senderParty.ChannelId, senderParty.ChannelAccount);
+                ConversationReference connectedSenderParty =
+                    routingDataManager.FindConnectedConversationReferenceByChannel(
+                        sender.ChannelId, MessageRoutingUtils.GetChannelAccount(sender));
 
                 bool senderIsConnected =
                     (connectedSenderParty != null
-                    && routingDataManager.IsConnected(connectedSenderParty, ConnectionProfile.Owner));
+                    && routingDataManager.IsConnected(connectedSenderParty));
 
                 MessageRouterResult messageRouterResult = null;
 
@@ -97,12 +98,12 @@ namespace IntermediatorBotSample.MessageRouting
                     if (senderIsConnected)
                     {
                         // The sender (accepter/rejecter) is ALREADY connected with another party
-                        Party otherParty = routingDataManager.GetConnectedCounterpart(connectedSenderParty);
+                        ConversationReference otherParty = routingDataManager.GetConnectedCounterpart(connectedSenderParty);
 
                         if (otherParty != null)
                         {
                             errorMessage = string.Format(
-                                ConversationText.AlreadyConnectedWithUser, otherParty.ChannelAccount?.Name);
+                                ConversationText.AlreadyConnectedWithUser, MessageRoutingUtils.GetChannelAccount(otherParty)?.Name);
                         }
                         else
                         {
@@ -112,19 +113,19 @@ namespace IntermediatorBotSample.MessageRouting
                     else
                     {
                         bool createNewDirectConversation =
-                            !(NoDirectConversationsWithChannels.Contains(senderParty.ChannelId.ToLower()));
+                            !(NoDirectConversationsWithChannels.Contains(sender.ChannelId.ToLower()));
 
                         // Try to accept
-                        messageRouterResult = await messageRouterManager.ConnectAsync(
-                            senderParty,
-                            partyToAcceptOrReject,
+                        messageRouterResult = await messageRouter.ConnectAsync(
+                            sender,
+                            connectionRequest.Requestor,
                             createNewDirectConversation);
                     }
                 }
                 else
                 {
                     // Note: Rejecting is OK even if the sender is alreay connected
-                    messageRouterResult = messageRouterManager.RejectPendingRequest(partyToAcceptOrReject, senderParty);
+                    messageRouterResult = messageRouter.RejectConnectionRequest(connectionRequest.Requestor, sender);
                 }
 
                 if (messageRouterResult != null)
@@ -143,22 +144,22 @@ namespace IntermediatorBotSample.MessageRouting
         /// <summary>
         /// Tries to reject all pending requests.
         /// </summary>
-        /// <param name="messageRouterManager">The message router manager.</param>
+        /// <param name="messageRouter">The message router manager.</param>
         /// <param name="messageRouterResultHandler">The message router result handler.</param>
         /// <returns>True, if successful. False otherwise.</returns>
         public async Task<bool> RejectAllPendingRequestsAsync(
-            MessageRouterManager messageRouterManager, MessageRouterResultHandler messageRouterResultHandler)
+            MessageRouter messageRouter, MessageRouterResultHandler messageRouterResultHandler)
         {
             bool wasSuccessful = false;
-            IList<Party> pendingRequests = messageRouterManager.RoutingDataManager.GetPendingRequests();
+            IList<ConnectionRequest> connectionRequests = messageRouter.RoutingDataManager.GetConnectionRequests();
 
-            if (pendingRequests.Count > 0)
+            if (connectionRequests.Count > 0)
             {
                 IList<MessageRouterResult> messageRouterResults = new List<MessageRouterResult>();
 
-                foreach (Party pendingRequest in pendingRequests)
+                foreach (ConnectionRequest connectionRequest in connectionRequests)
                 {
-                    messageRouterResults.Add(messageRouterManager.RejectPendingRequest(pendingRequest));
+                    messageRouterResults.Add(messageRouter.RejectConnectionRequest(connectionRequest.Requestor));
                 }
 
                 foreach (MessageRouterResult messageRouterResult in messageRouterResults)
