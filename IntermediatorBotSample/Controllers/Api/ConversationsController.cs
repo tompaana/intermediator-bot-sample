@@ -15,15 +15,30 @@ namespace IntermediatorBotSample.Controllers.Api
     public class ConversationsController : Controller
     {
         [HttpGet]
-        public IEnumerable<Conversation> Get()
+        public IEnumerable<Conversation> Get(int convId, int top)
         {
-            return Builder<Conversation>.CreateListOfSize(2)
+            var channels = new[] { "facebook", "skype", "skype for business", "directline" };
+            var random = new RandomGenerator();
+
+            return Builder<Conversation>.CreateListOfSize(5)
                 .All()
-                    .With(o =>  o.ConversationInformation   = Builder<ConversationInformation>.CreateNew().Build())
-                    .With(o =>  o.ConversationReference     = Builder<ConversationReference>.CreateNew().Build())
-                    .With(o =>  o.UserInformation           = Builder<UserInformation>.CreateNew().Build())
+                    .With(o =>  o.ConversationInformation   = Builder<ConversationInformation>.CreateNew()
+                    .With(ci => ci.MessagesCount = random.Next(2, 30))
+                    .With(ci => ci.SentimentScore = random.Next(0.0d, 1.0d))
+                    .Build())
+                    .With(o =>  o.ConversationReference     = Builder<ConversationReference>.CreateNew()
+                    .With(cr => cr.ChannelId = channels[random.Next(0, channels.Count())])                    
+                    .Build())
+                    .With(o =>  o.UserInformation           = Builder<UserInformation>.CreateNew()                    
+                    .Build())
                 .Build()
                 .ToList();
         }
+
+        //TODO: Retrieve ALL the conversation
+
+        //TOOD: Forward conersation
+
+        //TODO: DELETE Conversation = immediate kill by conversationId
     }
 }
