@@ -5,6 +5,7 @@ using Microsoft.Bot.Builder.BotFramework;
 using Microsoft.Bot.Builder.Integration.AspNet.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using StructureMap;
 using System;
 
 namespace IntermediatorBotSample
@@ -17,16 +18,19 @@ namespace IntermediatorBotSample
             private set;
         }
 
+
         public static BotSettings BotSettings
         {
             get;
             private set;
         }
 
+
         public IConfiguration Configuration
         {
             get;
         }
+
 
         public Startup(IHostingEnvironment env)
         {
@@ -41,16 +45,27 @@ namespace IntermediatorBotSample
             HandoffHelper = new HandoffHelper(BotSettings);
         }
 
+
         // This method gets called by the runtime. Use this method to add services to the container.
-        public void ConfigureServices(IServiceCollection services)
+        public IServiceProvider ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc();
+            services.AddMvc()
+                .AddControllersAsServices();
             services.AddSingleton(_ => Configuration);
             services.AddBot<IntermediatorBot>(options =>
             {
                 options.CredentialProvider = new ConfigurationCredentialProvider(Configuration);
             });
+            return ConfigureIoC(services);
         }
+
+
+        public IServiceProvider ConfigureIoC(IServiceCollection services)
+        {
+            var container = new Container(new RuntimeRegistry(services));
+            return container.GetInstance<IServiceProvider>();
+        }
+
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
