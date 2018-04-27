@@ -3,8 +3,8 @@ using Microsoft.Bot.Schema;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using Underscore.Bot.MessageRouting.DataStore;
 using Underscore.Bot.Models;
-using Underscore.Bot.Utils;
 
 namespace IntermediatorBotSample.CommandHandling
 {
@@ -110,7 +110,7 @@ namespace IntermediatorBotSample.CommandHandling
         /// <returns>A newly created request card.</returns>
         public static HeroCard CreateRequestCard(ConversationReference requestor, string botName = null)
         {
-            ChannelAccount requestorChannelAccount = MessageRoutingUtils.GetChannelAccount(requestor);
+            ChannelAccount requestorChannelAccount = RoutingDataManager.GetChannelAccount(requestor);
 
             if (requestorChannelAccount == null)
             {
@@ -169,7 +169,7 @@ namespace IntermediatorBotSample.CommandHandling
 
             foreach (ConnectionRequest connectionRequest in connectionRequests)
             {
-                if (MessageRoutingUtils.GetChannelAccount(connectionRequest.Requestor) != null)
+                if (RoutingDataManager.GetChannelAccount(connectionRequest.Requestor) != null)
                 {
                     attachments.Add(CreateRequestCard(connectionRequest.Requestor, botName).ToAttachment());
                 }
@@ -215,7 +215,7 @@ namespace IntermediatorBotSample.CommandHandling
             foreach (ConnectionRequest connectionRequest in connectionRequests)
             {
                 ChannelAccount requestorChannelAccount =
-                    MessageRoutingUtils.GetChannelAccount(connectionRequest.Requestor);
+                    RoutingDataManager.GetChannelAccount(connectionRequest.Requestor);
 
                 if (requestorChannelAccount == null)
                 {

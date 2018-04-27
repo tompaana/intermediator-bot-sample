@@ -4,8 +4,8 @@ using Microsoft.WindowsAzure.Storage.Table;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Underscore.Bot.MessageRouting.DataStore;
 using Underscore.Bot.MessageRouting.DataStore.Azure;
-using Underscore.Bot.Utils;
 
 namespace IntermediatorBotSample.ConversationHistory
 {
@@ -57,7 +57,7 @@ namespace IntermediatorBotSample.ConversationHistory
 
             foreach (MessageLog messageLog in messageLogs)
             {
-                if (MessageRoutingUtils.HasMatchingChannelAccounts(user, messageLog.User))
+                if (RoutingDataManager.HasMatchingChannelAccounts(user, messageLog.User))
                 {
                     return messageLog;
                 }
