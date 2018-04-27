@@ -69,8 +69,8 @@ namespace IntermediatorBotSample.MessageRouting
                 try
                 {
                     connectionRequest = routingDataManager.GetConnectionRequests().Single(request =>
-                            (MessageRoutingUtils.GetChannelAccount(request.Requestor) != null
-                              && MessageRoutingUtils.GetChannelAccount(request.Requestor).Id.Equals(channelAccountIdOfPartyToAcceptOrReject)));
+                            (RoutingDataManager.GetChannelAccount(request.Requestor) != null
+                              && RoutingDataManager.GetChannelAccount(request.Requestor).Id.Equals(channelAccountIdOfPartyToAcceptOrReject)));
                 }
                 catch (InvalidOperationException e)
                 {
@@ -84,8 +84,8 @@ namespace IntermediatorBotSample.MessageRouting
             if (connectionRequest != null)
             {
                 ConversationReference connectedSenderParty =
-                    routingDataManager.FindConnectedConversationReferenceByChannel(
-                        sender.ChannelId, MessageRoutingUtils.GetChannelAccount(sender));
+                    routingDataManager.FindConnectedConversationReference(
+                        sender.ChannelId, RoutingDataManager.GetChannelAccount(sender));
 
                 bool senderIsConnected =
                     (connectedSenderParty != null
@@ -103,7 +103,7 @@ namespace IntermediatorBotSample.MessageRouting
                         if (otherParty != null)
                         {
                             errorMessage = string.Format(
-                                ConversationText.AlreadyConnectedWithUser, MessageRoutingUtils.GetChannelAccount(otherParty)?.Name);
+                                ConversationText.AlreadyConnectedWithUser, RoutingDataManager.GetChannelAccount(otherParty)?.Name);
                         }
                         else
                         {

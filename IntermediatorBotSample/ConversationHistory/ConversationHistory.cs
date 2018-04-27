@@ -7,8 +7,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using Underscore.Bot.MessageRouting.DataStore;
 using Underscore.Bot.MessageRouting.DataStore.Azure;
-using Underscore.Bot.Utils;
 
 //string rowKey = MessageRoutingUtils.GetChannelAccount(log.User).Id;
 namespace IntermediatorBotSample.ConversationHistory
@@ -62,7 +62,7 @@ namespace IntermediatorBotSample.ConversationHistory
 
             foreach (MessageLog messageLog in messageLogs)
             {
-                if (MessageRoutingUtils.HasMatchingChannelAccounts(user, messageLog.User))
+                if (RoutingDataManager.HasMatchingChannelAccounts(user, messageLog.User))
                 {
                     return messageLog;
                 }

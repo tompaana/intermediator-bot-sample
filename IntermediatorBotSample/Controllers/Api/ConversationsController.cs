@@ -1,20 +1,14 @@
-﻿using FizzWare.NBuilder;
-using IntermediatorBotSample.Contracts;
+﻿using IntermediatorBotSample.Contracts;
 using IntermediatorBotSample.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Bot.Schema;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace IntermediatorBotSample.Controllers.Api
 {
     [Route("api/[controller]")]    
     public class ConversationsController : Controller
     {
-
         // Services        
         private readonly IConversationManager _conversationManager;
 
@@ -24,12 +18,11 @@ namespace IntermediatorBotSample.Controllers.Api
             _conversationManager = conversationManager;
         }
 
+
         [HttpPost("{channelId}/{conversationId}/{userId}/history")]
         public void Post(string channelId, string conversationId, string userId)
         {
-            // _conversationManager.TransmitMessageHistory(channelId, conversationId, userId);
-
-            throw new NotImplementedException();
+            _conversationManager.TransmitMessageHistoryProactively(channelId, conversationId, userId);
         }
 
 

@@ -8,5 +8,7 @@ namespace IntermediatorBotSample.Contracts
         IEnumerable<Conversation> GetConversations(int top);
 
         void DeleteConversation(string channelId, string conversationId);
+
+        void TransmitMessageHistoryProactively(string channelId, string conversationId, string userId);
     }
 }

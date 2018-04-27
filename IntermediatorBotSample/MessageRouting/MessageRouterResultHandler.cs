@@ -153,8 +153,8 @@ namespace IntermediatorBotSample.MessageRouting
 
             ConversationReference agent = messageRouterResult.ConversationReferences[0];
             ConversationReference client = messageRouterResult.ConversationReferences[1];
-            ChannelAccount agentChannelAccount = MessageRoutingUtils.GetChannelAccount(agent);
-            ChannelAccount clientChannelAccount = MessageRoutingUtils.GetChannelAccount(client);
+            ChannelAccount agentChannelAccount = RoutingDataManager.GetChannelAccount(agent);
+            ChannelAccount clientChannelAccount = RoutingDataManager.GetChannelAccount(client);
 
             string conversationOwnerName =
                 string.IsNullOrEmpty(agentChannelAccount.Name)
@@ -177,8 +177,8 @@ namespace IntermediatorBotSample.MessageRouting
                 foreach (ConversationReference aggregationChannel in _messageRouter.RoutingDataManager.GetAggregationChannels())
                 {
                     ConversationReference botConversationReference =
-                        routingDataManager.FindBotConversationReferenceByChannelAndConversation(
-                            aggregationChannel.ChannelId, aggregationChannel.Conversation);
+                        routingDataManager.FindConversationReference(
+                            aggregationChannel.ChannelId, aggregationChannel.Conversation.Id, true);
 
                     if (botConversationReference != null)
                     {
@@ -191,11 +191,11 @@ namespace IntermediatorBotSample.MessageRouting
                         {
                             IMessageActivity messageActivity = Activity.CreateMessageActivity();
                             messageActivity.Conversation = aggregationChannel.Conversation;
-                            messageActivity.Recipient = MessageRoutingUtils.GetChannelAccount(aggregationChannel);
+                            messageActivity.Recipient = RoutingDataManager.GetChannelAccount(aggregationChannel);
                             messageActivity.Attachments = new List<Attachment>
                             {
                                 CommandCardFactory.CreateRequestCard(
-                                    client, MessageRoutingUtils.GetChannelAccount(botConversationReference)?.Name).ToAttachment()
+                                    client, RoutingDataManager.GetChannelAccount(botConversationReference)?.Name).ToAttachment()
                             };
 
                             await _messageRouter.SendMessageAsync(aggregationChannel, messageActivity);
