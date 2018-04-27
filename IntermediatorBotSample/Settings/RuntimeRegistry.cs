@@ -14,7 +14,8 @@ namespace IntermediatorBotSample.Settings
                 x.AssembliesAndExecutablesFromApplicationBaseDirectory();
                 x.WithDefaultConventions();
             });
-            For<IRoutingDataManager>().Use<LocalRoutingDataManager>();
+
+            For<IRoutingDataStore>().Use<InMemoryRoutingDataStore>();
 
             this.Populate(services);
         }       
