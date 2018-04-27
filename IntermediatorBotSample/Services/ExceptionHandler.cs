@@ -6,6 +6,19 @@ namespace IntermediatorBotSample.Services
 {
     public class ExceptionHandler : IExceptionHandler
     {
+        public void Execute(Action unsafeAction)
+        {
+            try
+            {
+                unsafeAction.Invoke();
+            }
+            catch
+            {
+                //TODO: Handle Exceptions here
+            }
+        }
+
+
         public async Task ExecuteAsync(Func<Task> unsafeFunction)
         {
             try
@@ -16,6 +29,20 @@ namespace IntermediatorBotSample.Services
             {
                 //TODO: General exception handling here
             }
+        }
+
+
+        public TContract Get<TContract>(Func<TContract> unsafeFunction)
+        {
+            try
+            {
+                return unsafeFunction.Invoke();
+            }
+            catch
+            {
+                //TODO: Exceptionhandling goes here
+            }
+            return default(TContract);
         }
 
 

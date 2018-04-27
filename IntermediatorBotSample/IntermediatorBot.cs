@@ -15,22 +15,20 @@ namespace IntermediatorBotSample
         public async Task OnTurn(ITurnContext context)
         {
             Activity activity = context.Activity;
+            
 
             if (activity.Type is ActivityTypes.Message)
             {
                 MessageRouter messageRouter = Startup.HandoffHelper.MessageRouter;
                 MessageRouterResultHandler messageRouterResultHandler = Startup.HandoffHelper.MessageRouterResultHandler;
-                bool rejectConnectionRequestIfNoAggregationChannel =
-                    Startup.BotSettings.RejectConnectionRequestIfNoAggregationChannel;
+                bool rejectConnectionRequestIfNoAggregationChannel    = Startup.BotSettings.RejectConnectionRequestIfNoAggregationChannel;
 
                 messageRouter.StoreConversationReferences(activity);
 
                 // First check for commands (both from back channel and the ones directly typed)
-                MessageRouterResult messageRouterResult =
-                    Startup.HandoffHelper.BackChannelMessageHandler.HandleBackChannelMessage(activity);
+                MessageRouterResult messageRouterResult = Startup.HandoffHelper.BackChannelMessageHandler.HandleBackChannelMessage(activity);
 
-                if (messageRouterResult.Type != MessageRouterResultType.Connected
-                    && await Startup.HandoffHelper.CommandMessageHandler.HandleCommandAsync(activity) == false)
+                if (messageRouterResult.Type != MessageRouterResultType.Connected && await Startup.HandoffHelper.CommandMessageHandler.HandleCommandAsync(activity) == false)
                 {
                     // No valid back channel (command) message or typed command detected
 
@@ -49,8 +47,7 @@ namespace IntermediatorBotSample
                         // the check in the dialog too...
                         //
                         // Here's an example:
-                        if (!string.IsNullOrEmpty(activity.Text)
-                            && activity.Text.ToLower().Contains(Commands.CommandRequestConnection))
+                        if (!string.IsNullOrEmpty(activity.Text) && activity.Text.ToLower().Contains(Commands.CommandRequestConnection))
                         {
                             messageRouterResult = messageRouter.CreateConnectionRequest(
                                 MessageRoutingUtils.CreateSenderConversationReference(activity), rejectConnectionRequestIfNoAggregationChannel);

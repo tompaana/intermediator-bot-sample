@@ -41,7 +41,7 @@ namespace IntermediatorBotSample
                 .AddEnvironmentVariables();
             Configuration = builder.Build();
 
-            BotSettings = new BotSettings(Configuration);
+            BotSettings   = new BotSettings(Configuration);
             HandoffHelper = new HandoffHelper(BotSettings);
         }
 
@@ -63,6 +63,7 @@ namespace IntermediatorBotSample
         public IServiceProvider ConfigureIoC(IServiceCollection services)
         {
             var container = new Container(new RuntimeRegistry(services));
+            container.Configure(c => c.For<BotSettings>().Use(BotSettings));
             return container.GetInstance<IServiceProvider>();
         }
 

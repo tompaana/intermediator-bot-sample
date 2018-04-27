@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using StructureMap;
+using Underscore.Bot.MessageRouting.DataStore;
+using Underscore.Bot.MessageRouting.DataStore.Local;
 
 namespace IntermediatorBotSample.Settings
 {
@@ -12,7 +14,9 @@ namespace IntermediatorBotSample.Settings
                 x.AssembliesAndExecutablesFromApplicationBaseDirectory();
                 x.WithDefaultConventions();
             });
+            For<IRoutingDataManager>().Use<LocalRoutingDataManager>();
+
             this.Populate(services);
-        }
+        }       
     }
 }
