@@ -19,6 +19,20 @@ namespace IntermediatorBotSample.Services
         }
 
 
+        public TContract Get<TContract>(Func<TContract> unsafeFunction)
+        {
+            try
+            {
+                return unsafeFunction.Invoke();
+            }
+            catch
+            {
+                //TODO: Exceptionhandling goes here
+            }
+            return default(TContract);
+        }
+
+
         public async Task<TContract> GetAsync<TContract>(Func<Task<TContract>> unsafeFunction)
         {
             try
