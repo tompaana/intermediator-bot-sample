@@ -26,9 +26,28 @@ namespace IntermediatorBotSample.Services
 
         public void DeleteConversation(string channelId, string conversationId)
         {
-            // Get ChannelAccountId and use it in the disconnect message
-            
-            // _exceptionHandler.ExecuteAsync(() => _handoffHelper.MessageRouter.Disconnect());            
+            // Get all connections
+            var allConnections        = _exceptionHandler.Get(() => _routingDataStore.GetConnections());
+
+            // Find the first matching connection that contains channelId and conversationId
+            var connection            = allConnections?.FirstOrDefault(c => 
+            (  c.ConversationReference1.ChannelId == channelId && c.ConversationReference1.Conversation.Id == conversationId)
+            || c.ConversationReference2.ChannelId == channelId && c.ConversationReference2.Conversation.Id == conversationId);
+
+
+            var conversationReference1 = connection?.ConversationReference1;
+            var conversationReference2 = connection?.ConversationReference2;
+
+            // Finally delete both, if found
+            if (conversationReference1 != null)
+            {
+                _exceptionHandler.Execute(() => _handoffHelper.MessageRouter.Disconnect(conversationReference1));
+            }
+
+            if(conversationReference2 != null)
+            {
+                _exceptionHandler.Execute(() => _handoffHelper.MessageRouter.Disconnect(conversationReference2));
+            }
         }
 
 
