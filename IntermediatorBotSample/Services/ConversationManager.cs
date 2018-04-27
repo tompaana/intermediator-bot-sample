@@ -13,13 +13,13 @@ namespace IntermediatorBotSample.Services
     public class ConversationManager : IConversationManager
     {
         private readonly IExceptionHandler   _exceptionHandler;
-        private readonly IRoutingDataManager _routingDataManager;
+        private readonly IRoutingDataStore   _routingDataStore;
         private readonly HandoffHelper       _handoffHelper;
 
-        public ConversationManager(IExceptionHandler exceptionHandler, IRoutingDataManager routingDataManager, BotSettings botSettings)
+        public ConversationManager(IExceptionHandler exceptionHandler, IRoutingDataStore routingDataStore, BotSettings botSettings)
         {
             _exceptionHandler   = exceptionHandler;
-            _routingDataManager = routingDataManager;
+            _routingDataStore   = routingDataStore;
             _handoffHelper      = new HandoffHelper(botSettings); 
         }
 
@@ -27,7 +27,7 @@ namespace IntermediatorBotSample.Services
         public void DeleteConversation(string channelId, string conversationId)
         {
             // Get ChannelAccountId and use it in the disconnect message
-
+            
             // _exceptionHandler.ExecuteAsync(() => _handoffHelper.MessageRouter.Disconnect());            
         }
 
@@ -40,7 +40,7 @@ namespace IntermediatorBotSample.Services
             var channels           = new[] { "facebook", "skype", "skype for business", "directline" };
             var random             = new RandomGenerator();
             
-            //TODO: var connectionRequests = _exceptionHandler.GetAsync(() => _routingDataManager.GetConnectionRequests());
+            var connectionRequests = _exceptionHandler.Get(() => _routingDataStore.GetConnectionRequests());
 
             return Builder<Conversation>.CreateListOfSize(top)
                 .All()

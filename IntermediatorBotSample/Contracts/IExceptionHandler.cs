@@ -13,6 +13,13 @@ namespace IntermediatorBotSample.Contracts
 
 
         /// <summary>
+        /// Executes a synchronous action and applies a general catch handler
+        /// </summary>
+        /// <param name="unsafeAction">the potentially unsafe action to execute</param>        
+        void Execute(Action unsafeAction);
+
+
+        /// <summary>
         /// Executes an asynchronous method that returns an object of type TContract and applies a general catch handler
         /// </summary>
         /// <param name="unsafeFunction">the potentially unsafe function to execute</param>        

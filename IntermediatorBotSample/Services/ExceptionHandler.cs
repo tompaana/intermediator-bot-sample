@@ -6,6 +6,19 @@ namespace IntermediatorBotSample.Services
 {
     public class ExceptionHandler : IExceptionHandler
     {
+        public void Execute(Action unsafeAction)
+        {
+            try
+            {
+                unsafeAction.Invoke();
+            }
+            catch
+            {
+                //TODO: Handle Exceptions here
+            }
+        }
+
+
         public async Task ExecuteAsync(Func<Task> unsafeFunction)
         {
             try
