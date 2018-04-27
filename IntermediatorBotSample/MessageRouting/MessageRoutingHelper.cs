@@ -84,7 +84,7 @@ namespace IntermediatorBotSample.MessageRouting
             if (connectionRequest != null)
             {
                 ConversationReference connectedSenderParty =
-                    routingDataManager.FindConnectedConversationReferenceByChannel(
+                    routingDataManager.FindConnectedConversationReference(
                         sender.ChannelId, RoutingDataManager.GetChannelAccount(sender));
 
                 bool senderIsConnected =

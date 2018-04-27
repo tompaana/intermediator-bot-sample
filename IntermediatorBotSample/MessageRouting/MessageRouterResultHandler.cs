@@ -177,7 +177,7 @@ namespace IntermediatorBotSample.MessageRouting
                 foreach (ConversationReference aggregationChannel in _messageRouter.RoutingDataManager.GetAggregationChannels())
                 {
                     ConversationReference botConversationReference =
-                        routingDataManager.FindConversationReferenceByChannelIdAndConversationId(
+                        routingDataManager.FindConversationReference(
                             aggregationChannel.ChannelId, aggregationChannel.Conversation.Id, true);
 
                     if (botConversationReference != null)
