@@ -1,18 +1,22 @@
-﻿using Microsoft.Bot.Schema;
+﻿using IntermediatorBotSample.Models;
+using Microsoft.Bot.Schema;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting.DataStore.Azure;
 using Underscore.Bot.Utils;
 
+//string rowKey = MessageRoutingUtils.GetChannelAccount(log.User).Id;
 namespace IntermediatorBotSample.ConversationHistory
 {
     public class ConversationHistory
     {
         private const string ConversationHistoryTableName = "ConversationHistory";
-
+        private const string partitionKey = "botHandOff";
         private CloudTable _messageLogsTable;
         private IList<MessageLog> _inMemoryMessageLogs;
 
@@ -24,12 +28,12 @@ namespace IntermediatorBotSample.ConversationHistory
         {
             if (string.IsNullOrEmpty(connectionString))
             {
-                System.Diagnostics.Debug.WriteLine("WARNING!!! No connection string - storing message logs in memory");
+                Debug.WriteLine("WARNING!!! No connection string - storing message logs in memory");
                 _inMemoryMessageLogs = new List<MessageLog>();
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("Using Azure Table Storage for storing message logs");
+                Debug.WriteLine("Using Azure Table Storage for storing message logs");
                 _messageLogsTable = AzureStorageHelper.GetTable(connectionString, ConversationHistoryTableName);
                 MakeSureConversationHistoryTableExistsAsync().RunSynchronously();
             }
@@ -40,7 +44,8 @@ namespace IntermediatorBotSample.ConversationHistory
         {
             if (_messageLogsTable != null)
             {
-                // TODO: Retrieve the logs from the cloud table
+                var entities = GetAllEntitiesFromTable(_messageLogsTable).Result;
+                return GetAllMessageLogsFromEntities(entities);
             }
 
             return _inMemoryMessageLogs;
@@ -53,7 +58,7 @@ namespace IntermediatorBotSample.ConversationHistory
         /// <returns>The message log of the user or null, if not found.</returns>
         public MessageLog GetMessageLog(ConversationReference user)
         {
-            IList<MessageLog> messageLogs = GetMessageLogs();
+            var messageLogs = GetMessageLogs();
 
             foreach (MessageLog messageLog in messageLogs)
             {
@@ -62,7 +67,6 @@ namespace IntermediatorBotSample.ConversationHistory
                     return messageLog;
                 }
             }
-
             return null;
         }
 
@@ -71,9 +75,17 @@ namespace IntermediatorBotSample.ConversationHistory
         /// </summary>
         /// <param name="activity">The activity to add.</param>
         /// <param name="user">The user associated with the message.</param>
-        public void AddMessage(Activity activity, ConversationReference user)
+        public void AddMessageLog(Microsoft.Bot.Schema.Activity activity, ConversationReference user)
         {
-            // TODO
+            if (_messageLogsTable != null)
+            {
+                // Add to AzureTable
+            }
+
+            else
+            {
+                // Add to InMemory storage
+            }
         }
 
         /// <summary>
@@ -100,6 +112,25 @@ namespace IntermediatorBotSample.ConversationHistory
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to create table '{_messageLogsTable.Name}' (perhaps it already exists): {e.Message}");
             }
+        }
+
+        private async Task<IList<MessageLogEntity>> GetAllEntitiesFromTable(CloudTable table)
+        {
+            var query = new TableQuery<MessageLogEntity>()
+                .Where(TableQuery.GenerateFilterCondition(
+                    "PartitionKey", QueryComparisons.Equal, partitionKey));
+            return await table.ExecuteTableQueryAsync(query);
+        }
+
+        private List<MessageLog> GetAllMessageLogsFromEntities(IList<MessageLogEntity> entities)
+        {
+            var messageLogs = new List<MessageLog>();
+            foreach (var entity in entities)
+            {
+                var messageLog = JsonConvert.DeserializeObject<MessageLog>(entity.Body);
+                messageLogs.Add(messageLog);
+            }
+            return messageLogs;
         }
     }
 }
