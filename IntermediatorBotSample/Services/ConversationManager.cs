@@ -4,49 +4,40 @@ using IntermediatorBotSample.Models;
 using IntermediatorBotSample.Settings;
 using Microsoft.Bot.Schema;
 using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Underscore.Bot.MessageRouting.DataStore;
+using CH = IntermediatorBotSample.ConversationHistory;
 
 namespace IntermediatorBotSample.Services
 {
     public class ConversationManager : IConversationManager
     {
-        private readonly IExceptionHandler   _exceptionHandler;
-        private readonly IRoutingDataStore   _routingDataStore;
-        private readonly HandoffHelper       _handoffHelper;
+        private readonly IExceptionHandler      _exceptionHandler;
+        private readonly HandoffHelper          _handoffHelper;
+        private readonly CH.ConversationHistory _conversationHistory;
+        private readonly RoutingDataManager     _routingDataManager;
 
-        public ConversationManager(IExceptionHandler exceptionHandler, IRoutingDataStore routingDataStore, BotSettings botSettings)
+        public ConversationManager(IExceptionHandler exceptionHandler, RoutingDataManager routingDataManager, BotSettings botSettings, CH.ConversationHistory conversationHistory)
         {
-            _exceptionHandler   = exceptionHandler;
-            _routingDataStore   = routingDataStore;
-            _handoffHelper      = new HandoffHelper(botSettings); 
+            _exceptionHandler    = exceptionHandler;
+            _handoffHelper       = new HandoffHelper(botSettings);
+            _conversationHistory = conversationHistory;
+            _routingDataManager  = routingDataManager;
         }
 
 
         public void DeleteConversation(string channelId, string conversationId)
         {
-            // Get all connections
-            var allConnections        = _exceptionHandler.Get(() => _routingDataStore.GetConnections());
+            var conversationReference = 
+                _exceptionHandler.Get(() => 
+                    _routingDataManager.FindConversationReference(channelId, conversationId)
+                );
 
-            // Find the first matching connection that contains channelId and conversationId
-            var connection            = allConnections?.FirstOrDefault(c => 
-            (  c.ConversationReference1.ChannelId == channelId && c.ConversationReference1.Conversation.Id == conversationId)
-            || c.ConversationReference2.ChannelId == channelId && c.ConversationReference2.Conversation.Id == conversationId);
-
-
-            var conversationReference1 = connection?.ConversationReference1;
-            var conversationReference2 = connection?.ConversationReference2;
-
-            // Finally delete both, if found
-            if (conversationReference1 != null)
+            if (conversationReference != null)
             {
-                _exceptionHandler.Execute(() => _handoffHelper.MessageRouter.Disconnect(conversationReference1));
-            }
-
-            if(conversationReference2 != null)
-            {
-                _exceptionHandler.Execute(() => _handoffHelper.MessageRouter.Disconnect(conversationReference2));
+                _exceptionHandler.Execute(() => _handoffHelper.MessageRouter.Disconnect(conversationReference));
             }
         }
 
@@ -58,8 +49,8 @@ namespace IntermediatorBotSample.Services
 
             var channels           = new[] { "facebook", "skype", "skype for business", "directline" };
             var random             = new RandomGenerator();
-            
-            var connectionRequests = _exceptionHandler.Get(() => _routingDataStore.GetConnectionRequests());
+
+            var connectionRequests = _exceptionHandler.Get(() => _routingDataManager.GetConnections());
 
             return Builder<Conversation>.CreateListOfSize(top)
                 .All()
@@ -77,6 +68,25 @@ namespace IntermediatorBotSample.Services
                     .Build())
                 .Build()
                 .ToList();
+        }
+
+
+        public void TransmitMessageHistoryProactively(string channelId, string conversationId, string userId)
+        {
+            if (string.IsNullOrEmpty(channelId) || string.IsNullOrEmpty(conversationId) || string.IsNullOrEmpty(userId))
+                return;
+
+            var conversationRefence = _exceptionHandler.Get(() => 
+                _routingDataManager
+                    .FindConversationReference(channelId, conversationId)
+            );
+
+            if (conversationRefence == null)
+                return;
+
+            var messageLog = _conversationHistory.GetMessageLog(conversationRefence);
+
+            //TODO: Grab hold of the bot and make it proactively transmit the messageLog
         }
 
 
