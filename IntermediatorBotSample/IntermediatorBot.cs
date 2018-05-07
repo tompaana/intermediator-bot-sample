@@ -6,7 +6,6 @@ using Microsoft.Bot.Schema;
 using System;
 using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting;
-using Underscore.Bot.Utils;
 
 namespace IntermediatorBotSample
 {
@@ -50,7 +49,7 @@ namespace IntermediatorBotSample
                         if (!string.IsNullOrEmpty(activity.Text) && activity.Text.ToLower().Contains(Commands.CommandRequestConnection))
                         {
                             messageRouterResult = messageRouter.CreateConnectionRequest(
-                                MessageRoutingUtils.CreateSenderConversationReference(activity), rejectConnectionRequestIfNoAggregationChannel);
+                                MessageRouter.CreateSenderConversationReference(activity), rejectConnectionRequestIfNoAggregationChannel);
                         }
                         else
                         {

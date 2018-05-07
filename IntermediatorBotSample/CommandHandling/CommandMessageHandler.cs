@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting;
 using Underscore.Bot.MessageRouting.DataStore;
 using Underscore.Bot.Models;
-using Underscore.Bot.Utils;
 using Microsoft.Bot.Schema;
 
 namespace IntermediatorBotSample.CommandHandling
@@ -49,7 +48,7 @@ namespace IntermediatorBotSample.CommandHandling
 
             if (command != null)
             {
-                ConversationReference sender = MessageRoutingUtils.CreateSenderConversationReference(activity);
+                ConversationReference sender = MessageRouter.CreateSenderConversationReference(activity);
 
                 switch (command.BaseCommand.ToLower())
                 {

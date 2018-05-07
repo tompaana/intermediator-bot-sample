@@ -6,7 +6,6 @@ using System;
 using Underscore.Bot.MessageRouting;
 using Underscore.Bot.MessageRouting.DataStore;
 using Underscore.Bot.Models;
-using Underscore.Bot.Utils;
 
 namespace IntermediatorBotSample.CommandHandling
 {
@@ -99,7 +98,7 @@ namespace IntermediatorBotSample.CommandHandling
 
                     if (requestor != null)
                     {
-                        ConversationReference agent = MessageRoutingUtils.CreateSenderConversationReference(activity);
+                        ConversationReference agent = MessageRouter.CreateSenderConversationReference(activity);
 
                         messageRouterResult = _routingDataManager.ConnectAndRemoveConnectionRequest(
                             new Connection(agent, requestor), requestor);
