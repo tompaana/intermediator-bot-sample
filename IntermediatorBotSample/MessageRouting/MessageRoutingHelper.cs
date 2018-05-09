@@ -68,8 +68,8 @@ namespace IntermediatorBotSample.MessageRouting
                 try
                 {
                     connectionRequest = routingDataManager.GetConnectionRequests().Single(request =>
-                            (RoutingDataManager.GetChannelAccount(request.Requestor) != null
-                              && RoutingDataManager.GetChannelAccount(request.Requestor).Id.Equals(channelAccountIdOfPartyToAcceptOrReject)));
+                            (RoutingDataManager.GetChannelAccount(request.Requestor, out bool isBot) != null
+                              && RoutingDataManager.GetChannelAccount(request.Requestor, out isBot).Id.Equals(channelAccountIdOfPartyToAcceptOrReject)));
                 }
                 catch (InvalidOperationException e)
                 {
@@ -82,27 +82,33 @@ namespace IntermediatorBotSample.MessageRouting
 
             if (connectionRequest != null)
             {
-                ConversationReference connectedSenderParty =
-                    routingDataManager.FindConnectedConversationReference(
-                        sender.ChannelId, RoutingDataManager.GetChannelAccount(sender));
+                Connection connection = routingDataManager.FindConnection(sender);
+                ConversationReference senderInConnection = null;
+                ConversationReference counterpart = null;
 
-                bool senderIsConnected =
-                    (connectedSenderParty != null
-                    && routingDataManager.IsConnected(connectedSenderParty));
+                if (RoutingDataManager.HaveMatchingChannelAccounts(sender, connection.ConversationReference1))
+                {
+                    senderInConnection = connection.ConversationReference1;
+                    counterpart = connection.ConversationReference2;
+                }
+                else
+                {
+                    senderInConnection = connection.ConversationReference2;
+                    counterpart = connection.ConversationReference1;
+                }
 
                 MessageRouterResult messageRouterResult = null;
 
                 if (doAccept)
                 {
-                    if (senderIsConnected)
+                    if (senderInConnection != null)
                     {
                         // The sender (accepter/rejecter) is ALREADY connected with another party
-                        ConversationReference otherParty = routingDataManager.GetConnectedCounterpart(connectedSenderParty);
-
-                        if (otherParty != null)
+                        if (counterpart != null)
                         {
                             errorMessage = string.Format(
-                                ConversationText.AlreadyConnectedWithUser, RoutingDataManager.GetChannelAccount(otherParty)?.Name);
+                                ConversationText.AlreadyConnectedWithUser,
+                                RoutingDataManager.GetChannelAccount(counterpart, out bool isBot)?.Name);
                         }
                         else
                         {

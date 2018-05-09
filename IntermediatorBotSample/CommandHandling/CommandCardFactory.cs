@@ -110,7 +110,7 @@ namespace IntermediatorBotSample.CommandHandling
         /// <returns>A newly created request card.</returns>
         public static HeroCard CreateRequestCard(ConversationReference requestor, string botName = null)
         {
-            ChannelAccount requestorChannelAccount = RoutingDataManager.GetChannelAccount(requestor);
+            ChannelAccount requestorChannelAccount = RoutingDataManager.GetChannelAccount(requestor, out bool isBot);
 
             if (requestorChannelAccount == null)
             {
@@ -169,7 +169,7 @@ namespace IntermediatorBotSample.CommandHandling
 
             foreach (ConnectionRequest connectionRequest in connectionRequests)
             {
-                if (RoutingDataManager.GetChannelAccount(connectionRequest.Requestor) != null)
+                if (RoutingDataManager.GetChannelAccount(connectionRequest.Requestor, out bool isBot) != null)
                 {
                     attachments.Add(CreateRequestCard(connectionRequest.Requestor, botName).ToAttachment());
                 }
@@ -215,7 +215,7 @@ namespace IntermediatorBotSample.CommandHandling
             foreach (ConnectionRequest connectionRequest in connectionRequests)
             {
                 ChannelAccount requestorChannelAccount =
-                    RoutingDataManager.GetChannelAccount(connectionRequest.Requestor);
+                    RoutingDataManager.GetChannelAccount(connectionRequest.Requestor, out bool isBot);
 
                 if (requestorChannelAccount == null)
                 {

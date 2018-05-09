@@ -3,9 +3,7 @@ using Microsoft.Bot.Schema;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting.DataStore;
 using Underscore.Bot.MessageRouting.DataStore.Azure;
@@ -28,12 +26,12 @@ namespace IntermediatorBotSample.ConversationHistory
         {
             if (string.IsNullOrEmpty(connectionString))
             {
-                Debug.WriteLine("WARNING!!! No connection string - storing message logs in memory");
+                System.Diagnostics.Debug.WriteLine("WARNING!!! No connection string - storing message logs in memory");
                 _inMemoryMessageLogs = new List<MessageLog>();
             }
             else
             {
-                Debug.WriteLine("Using Azure Table Storage for storing message logs");
+                System.Diagnostics.Debug.WriteLine("Using Azure Table Storage for storing message logs");
                 _messageLogsTable = AzureStorageHelper.GetTable(connectionString, ConversationHistoryTableName);
                 MakeSureConversationHistoryTableExistsAsync().RunSynchronously();
             }
@@ -62,7 +60,7 @@ namespace IntermediatorBotSample.ConversationHistory
 
             foreach (MessageLog messageLog in messageLogs)
             {
-                if (RoutingDataManager.HasMatchingChannelAccounts(user, messageLog.User))
+                if (RoutingDataManager.HaveMatchingChannelAccounts(user, messageLog.User))
                 {
                     return messageLog;
                 }

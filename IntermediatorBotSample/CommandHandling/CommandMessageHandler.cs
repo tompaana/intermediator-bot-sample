@@ -346,7 +346,7 @@ namespace IntermediatorBotSample.CommandHandling
                 {
                     foreach (ConversationReference bot in _messageRouter.RoutingDataManager.GetBotInstances())
                     {
-                        if (mention.Mentioned.Id.Equals(RoutingDataManager.GetChannelAccount(bot).Id))
+                        if (mention.Mentioned.Id.Equals(RoutingDataManager.GetChannelAccount(bot, out bool isBot).Id))
                         {
                             botWasMentioned = true;
                             break;
