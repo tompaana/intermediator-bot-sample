@@ -79,6 +79,8 @@ namespace IntermediatorBotSample.CommandHandling
             {
                 Parameters = new List<string>();
             }
+
+            BotName = botName;
         }
 
         /// <summary>
