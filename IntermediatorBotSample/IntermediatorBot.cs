@@ -46,7 +46,7 @@ namespace IntermediatorBotSample
                         // the check in the dialog too...
                         //
                         // Here's an example:
-                        if (!string.IsNullOrEmpty(activity.Text) && activity.Text.ToLower().Contains(Commands.CommandRequestConnection))
+                        if (!string.IsNullOrEmpty(activity.Text) && activity.Text.ToLower().Contains("human"))
                         {
                             messageRouterResult = messageRouter.CreateConnectionRequest(
                                 MessageRouter.CreateSenderConversationReference(activity), rejectConnectionRequestIfNoAggregationChannel);

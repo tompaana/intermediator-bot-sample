@@ -1,36 +1,24 @@
-﻿using System;
+﻿using Microsoft.Bot.Schema;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace IntermediatorBotSample.CommandHandling
 {
     /// <summary>
-    /// Constants for commands.
+    /// The commands.
     /// </summary>
-    public struct Commands
+    public enum Commands
     {
-        public const string CommandKeyword = "command"; // Used if the channel does not support mentions
-
-        public const string CommandListOptions = "options";
-        public const string CommandAddAggregationChannel = "watch";
-        public const string CommandRemoveAggregationChannel = "unwatch";
-        public const string CommandAcceptRequest = "accept";
-        public const string CommandRejectRequest = "reject";
-        public const string CommandDisconnect = "disconnect";
-
-        public const string CommandParameterAll = "*";
-
-#if DEBUG // Commands for debugging
-        public const string CommandDeleteAllRoutingData = "reset";
-        public const string CommandList = "list";
-
-        public const string CommandParameterParties = "parties";
-        public const string CommandParameterRequests = "requests";
-        public const string CommandParameterConnections = "connections";
-        public const string CommandParameterResults = "results";
-#endif
-
-        public const string CommandRequestConnection = "human"; // For "customers"
+        Undefined = 0,
+        CreateRequest,
+        AcceptRequest,
+        RejectRequest,
+        Disconnect,
+        Watch, // Adds aggregation channel
+        Unwatch, // Removes aggregation channel
+        ShowOptions
     }
 
     /// <summary>
@@ -38,10 +26,13 @@ namespace IntermediatorBotSample.CommandHandling
     /// </summary>
     public class Command
     {
+        public const string CommandKeyword = "command"; // Used if the channel does not support mentions
+        public const string CommandParameterAll = "*";
+
         /// <summary>
         /// The actual command such as "watch" or "unwatch".
         /// </summary>
-        public string BaseCommand
+        public Commands BaseCommand
         {
             get;
             protected set;
@@ -56,11 +47,26 @@ namespace IntermediatorBotSample.CommandHandling
             protected set;
         }
 
-        public Command(string baseCommand, string[] parameters = null)
+        /// <summary>
+        /// The bot name.
+        /// </summary>
+        public string BotName
         {
-            if (string.IsNullOrEmpty(baseCommand))
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="baseCommand">The actual command.</param>
+        /// <param name="parameters">The command parameters.</param>
+        /// <param name="botName">The bot name (optional).</param>
+        public Command(Commands baseCommand, string[] parameters = null, string botName = null)
+        {
+            if (baseCommand == Commands.Undefined)
             {
-                throw new ArgumentNullException("The base command cannot be null");
+                throw new ArgumentNullException("The base command must be defined");
             }
 
             BaseCommand = baseCommand;
@@ -76,67 +82,122 @@ namespace IntermediatorBotSample.CommandHandling
         }
 
         /// <summary>
-        /// Resolves the full command string.
+        /// Tries to parse the given string into a command object.
         /// </summary>
-        /// <param name="botName">The bot name (handle). If null or empty, the basic commmand keyword is used.</param>
-        /// <param name="command">The command.</param>
-        /// <returns>The generated full command string.</returns>
-        public static string ResolveFullCommand(string botName, Command command)
+        /// <param name="commandAsString">The command as string.</param>
+        /// <returns>A newly created command instance based on the string content or null, if no command found.</returns>
+        public static Command FromString(string commandAsString)
         {
-            if (command == null)
+            if (string.IsNullOrWhiteSpace(commandAsString))
             {
-                throw new ArgumentNullException("The command cannot be null");
+                return null;
             }
 
-            string fullCommand = string.Empty;
+            string[] commandAsStringArray = commandAsString.Split(' ');
 
-            if (string.IsNullOrEmpty(botName))
+            Command command = null;
+            int baseCommandIndex = -1;
+
+            for (int i = 0; i < commandAsStringArray.Length; ++i)
             {
-                fullCommand = $"{Commands.CommandKeyword} {command.ToString()}";
-            }
-            else
-            {
-                fullCommand = $"@{botName} {command.ToString()}";
-            }
+                Commands baseCommand = StringToCommand(commandAsStringArray[i].Trim());
 
-            return fullCommand;
-        }
-
-        /// <summary>
-        /// Resolves the full command string.
-        /// </summary>
-        /// <param name="botName">The bot name (handle). If null or empty, the basic commmand keyword is used.</param>
-        /// <param name="baseCommand">The base command.</param>
-        /// <param name="parameters">The command parameters (if any).</param>
-        /// <returns>The generated full command string.</returns>
-        public static string ResolveFullCommand(string botName, string baseCommand, string[] parameters = null)
-        {
-            if (string.IsNullOrEmpty(baseCommand))
-            {
-                throw new ArgumentNullException("The base command is missing");
-            }
-
-            return ResolveFullCommand(botName, new Command(baseCommand, parameters));
-        }
-
-        public override string ToString()
-        {
-            string commandAsString = string.Empty;
-
-            if (!string.IsNullOrEmpty(BaseCommand))
-            {
-                commandAsString = BaseCommand;
-
-                if (Parameters != null && Parameters.Count > 0)
+                if (baseCommand != Commands.Undefined)
                 {
-                    foreach (string parameter in Parameters)
+                    command = new Command(baseCommand);
+                    baseCommandIndex = i;
+                    break;
+                }
+            }
+
+            if (command != null)
+            {
+                if (baseCommandIndex == 1
+                    && !string.IsNullOrWhiteSpace(commandAsStringArray[baseCommandIndex - 1])
+                    && !commandAsStringArray[baseCommandIndex - 1].Equals(CommandKeyword))
+                {
+                    command.BotName = commandAsStringArray[baseCommandIndex - 1];
+                    command.BotName = command.BotName.Replace('@', ' ').Trim();
+                }
+
+                for (int i = baseCommandIndex + 1; i < commandAsStringArray.Length; ++i)
+                {
+                    if (!string.IsNullOrWhiteSpace(commandAsStringArray[i]))
                     {
-                        commandAsString += $" {parameter}";
+                        command.Parameters.Add(commandAsStringArray[i].Trim());
                     }
                 }
             }
 
-            return commandAsString;
+            return command;
+        }
+
+        /// <summary>
+        /// For convenience.
+        /// Tries to parse the text content in the given message activity to a command object.
+        /// </summary>
+        /// <param name="messageActivity">The message activity whose text content to parse.</param>
+        /// <returns>A newly created command instance or null, if no command found.</returns>
+        public static Command FromMessageActivity(IMessageActivity messageActivity)
+        {
+            return FromString(messageActivity.Text?.Trim());
+        }
+
+        public string ToString(bool addCommandKeywordOrBotName = true)
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+
+            if (addCommandKeywordOrBotName)
+            {
+                if (string.IsNullOrWhiteSpace(BotName))
+                {
+                    stringBuilder.Append(CommandKeyword);
+                }
+                else
+                {
+                    stringBuilder.Append("@");
+                    stringBuilder.Append(BotName);
+                }
+
+                stringBuilder.Append(' ');
+            }
+
+            stringBuilder.Append(CommandToString(BaseCommand));
+
+            if (Parameters != null && Parameters.Count > 0)
+            {
+                foreach (string parameter in Parameters)
+                {
+                    stringBuilder.Append(' ');
+                    stringBuilder.Append(parameter);
+                }
+            }
+
+            return stringBuilder.ToString();
+        }
+
+        public override string ToString()
+        {
+            return ToString(true);
+        }
+
+        /// <param name="command">The command (enum).</param>
+        /// <returns>The command as string.</returns>
+        public static string CommandToString(Commands command)
+        {
+            return command.ToString();
+        }
+
+        /// <param name="commandAsString">The command as string.</param>
+        /// <returns>The command (enum).</returns>
+        public static Commands StringToCommand(string commandAsString)
+        {
+            if (Enum.TryParse(commandAsString, out Commands command))
+            {
+                return command;
+            }
+
+            return Commands.Undefined;
         }
     }
 }

@@ -27,75 +27,42 @@ namespace IntermediatorBotSample.CommandHandling
 
                 Text = string.Format(
                     ConversationText.CommandMenuInstructions,
-                    Commands.CommandKeyword,
+                    Command.CommandKeyword,
                     botName,
-                    Command.ResolveFullCommand(botName, Commands.CommandAcceptRequest, new string[] { "<user ID>" })),
+                    new Command(Commands.AcceptRequest, new string[] { "<user ID>" }, botName).ToString()),
 
                 Buttons = new List<CardAction>()
                 {
                     new CardAction()
                     {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandAddAggregationChannel),
+                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Command.CommandToString(Commands.Watch)),
                         Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandAddAggregationChannel)
+                        Value = new Command(Commands.Watch, null, botName).ToString()
                     },
                     new CardAction()
                     {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandRemoveAggregationChannel),
+                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Command.CommandToString(Commands.Unwatch)),
                         Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandRemoveAggregationChannel)
+                        Value = new Command(Commands.Unwatch, null, botName).ToString()
                     },
                     new CardAction()
                     {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandAcceptRequest),
+                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Command.CommandToString(Commands.AcceptRequest)),
                         Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandAcceptRequest)
+                        Value = new Command(Commands.AcceptRequest, null, botName).ToString()
                     },
                     new CardAction()
                     {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandRejectRequest),
+                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Command.CommandToString(Commands.RejectRequest)),
                         Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandRejectRequest)
+                        Value = new Command(Commands.RejectRequest, null, botName).ToString()
                     },
                     new CardAction()
                     {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandDisconnect),
+                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Command.CommandToString(Commands.Disconnect)),
                         Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandDisconnect)
+                        Value = new Command(Commands.Disconnect, null, botName).ToString()
                     }
-#if DEBUG
-                    ,
-                    new CardAction()
-                    {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandDeleteAllRoutingData),
-                        Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandDeleteAllRoutingData)
-                    },
-                    new CardAction()
-                    {
-                        Title = $"{CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandList)} {Commands.CommandParameterParties}",
-                        Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandList, new string[] { Commands.CommandParameterParties })
-                    },
-                    new CardAction()
-                    {
-                        Title = $"{CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandList)} {Commands.CommandParameterRequests}",
-                        Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandList, new string[] { Commands.CommandParameterRequests })
-                    },
-                    new CardAction()
-                    {
-                        Title = $"{CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandList)} {Commands.CommandParameterConnections}",
-                        Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandList, new string[] { Commands.CommandParameterConnections })
-                    },
-                    new CardAction()
-                    {
-                        Title = $"{CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandList)} {Commands.CommandParameterResults}",
-                        Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandList, new string[] { Commands.CommandParameterResults })
-                    }
-#endif
                 }
             };
 
@@ -124,12 +91,10 @@ namespace IntermediatorBotSample.CommandHandling
             string requestorChannelAccountId = requestorChannelAccount.Id;
 
             string acceptCommand =
-                Command.ResolveFullCommand(
-                    botName, Commands.CommandAcceptRequest, new string[] { requestorChannelAccountId });
+                new Command(Commands.AcceptRequest, new string[] { requestorChannelAccountId }, botName).ToString();
 
             string rejectCommand =
-                Command.ResolveFullCommand(
-                    botName, Commands.CommandRejectRequest, new string[] { requestorChannelAccountId });
+                new Command(Commands.RejectRequest, new string[] { requestorChannelAccountId }, botName).ToString();
 
             HeroCard card = new HeroCard()
             {
@@ -207,8 +172,7 @@ namespace IntermediatorBotSample.CommandHandling
                 {
                     Title = ConversationText.RejectAll,
                     Type = ActionTypes.ImBack,
-                    Value = Command.ResolveFullCommand(
-                        botName, Commands.CommandRejectRequest, new string[] { Commands.CommandParameterAll })
+                    Value = new Command(Commands.RejectRequest, new string[] { Command.CommandParameterAll }, botName).ToString()
                 });
             }
 
@@ -229,10 +193,9 @@ namespace IntermediatorBotSample.CommandHandling
                     CultureInfo.CurrentCulture.TextInfo.ToTitleCase(connectionRequest.Requestor.ChannelId);
                 string requestorChannelAccountId = requestorChannelAccount.Id;
 
-                command = Command.ResolveFullCommand(
-                    botName,
-                    (doAccept ? Commands.CommandAcceptRequest : Commands.CommandRejectRequest),
-                    new string[] { requestorChannelAccountId });
+                command = new Command(
+                    (doAccept ? Commands.AcceptRequest : Commands.RejectRequest),
+                    new string[] { requestorChannelAccountId }, botName).ToString();
 
                 card.Buttons.Add(new CardAction()
                 {

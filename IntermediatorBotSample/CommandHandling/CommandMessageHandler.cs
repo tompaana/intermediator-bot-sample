@@ -44,22 +44,22 @@ namespace IntermediatorBotSample.CommandHandling
         {
             bool wasHandled = false;
             Activity replyActivity = null;
-            Command command = ExtractCommand(activity);
+            Command command = Command.FromMessageActivity(activity);
 
             if (command != null)
             {
                 ConversationReference sender = MessageRouter.CreateSenderConversationReference(activity);
 
-                switch (command.BaseCommand.ToLower())
+                switch (command.BaseCommand)
                 {
-                    case string baseCommand when (baseCommand.Equals(Commands.CommandListOptions)):
+                    case Commands.ShowOptions:
                         // Present all command options in a card
                         replyActivity = CommandCardFactory.AddCardToActivity(
                                 activity.CreateReply(), CommandCardFactory.CreateCommandOptionsCard(activity.Recipient?.Name));
                         wasHandled = true;
                         break;
 
-                    case string baseCommand when (baseCommand.Equals(Commands.CommandAddAggregationChannel)):
+                    case Commands.Watch:
                         // Establish the sender's channel/conversation as an aggreated one if not already exists
                         ConversationReference aggregationChannelToAdd =
                             new ConversationReference(null, null, null, activity.Conversation, activity.ChannelId, activity.ServiceUrl);
@@ -76,7 +76,7 @@ namespace IntermediatorBotSample.CommandHandling
                         wasHandled = true;
                         break;
 
-                    case string baseCommand when (baseCommand.Equals(Commands.CommandRemoveAggregationChannel)):
+                    case Commands.Unwatch:
                         // Remove the sender's channel/conversation from the list of aggregation channels
                         if (_messageRouter.RoutingDataManager.IsAssociatedWithAggregation(sender))
                         {
@@ -97,10 +97,10 @@ namespace IntermediatorBotSample.CommandHandling
 
                         break;
 
-                    case string baseCommand when (baseCommand.Equals(Commands.CommandAcceptRequest)
-                                                  || baseCommand.Equals(Commands.CommandRejectRequest)):
+                    case Commands.AcceptRequest:
+                    case Commands.RejectRequest:
                         // Accept/reject conversation request
-                        bool doAccept = baseCommand.Equals(Commands.CommandAcceptRequest);
+                        bool doAccept = (command.BaseCommand == Commands.AcceptRequest);
 
                         if (_messageRouter.RoutingDataManager.IsAssociatedWithAggregation(sender))
                         {
@@ -124,7 +124,7 @@ namespace IntermediatorBotSample.CommandHandling
                                 }
                             }
                             else if (!doAccept
-                                && command.Parameters[0].Equals(Commands.CommandParameterAll))
+                                && command.Parameters[0].Equals(Command.CommandParameterAll))
                             {
                                 if (!await new MessageRoutingHelper().RejectAllPendingRequestsAsync(
                                         _messageRouter, _messageRouterResultHandler))
@@ -157,7 +157,7 @@ namespace IntermediatorBotSample.CommandHandling
                         wasHandled = true;
                         break;
 
-                    case string baseCommand when (baseCommand.Equals(Commands.CommandDisconnect)):
+                    case Commands.Disconnect:
                         // End the 1:1 conversation
                         IList<MessageRouterResult> messageRouterResults = _messageRouter.Disconnect(sender);
 
@@ -168,78 +168,6 @@ namespace IntermediatorBotSample.CommandHandling
 
                         wasHandled = true;
                         break;
-
-
-                    #region Implementation of debugging commands
-#if DEBUG
-
-                    case string baseCommand when (baseCommand.Equals(Commands.CommandList)):
-                        bool listAll = command.Parameters.Contains(Commands.CommandParameterAll);
-                        replyActivity = activity.CreateReply();
-                        string replyMessageText = string.Empty;
-
-                        if (listAll || command.Parameters.Contains(Commands.CommandParameterParties))
-                        {
-                            // List user and bot parties
-                            RoutingDataManager routingDataManager = _messageRouter.RoutingDataManager;
-                            string partiesAsString = ConversationReferenceToString(routingDataManager.GetUsers());
-
-                            replyMessageText += string.IsNullOrEmpty(partiesAsString)
-                                ? $"{ConversationText.NoUsersStored}{StringAndCharConstants.LineBreak}"
-                                : $"{ConversationText.Users}:{StringAndCharConstants.LineBreak}{partiesAsString}{StringAndCharConstants.LineBreak}";
-
-                            partiesAsString = ConversationReferenceToString(routingDataManager.GetBotInstances());
-
-                            replyMessageText += string.IsNullOrEmpty(partiesAsString)
-                                ? $"{ConversationText.NoBotsStored}{StringAndCharConstants.LineBreak}"
-                                : $"{ConversationText.Bots}:{StringAndCharConstants.LineBreak}{partiesAsString}{StringAndCharConstants.LineBreak}";
-
-                            wasHandled = true;
-                        }
-
-                        if (listAll || command.Parameters.Contains(Commands.CommandParameterRequests))
-                        {
-                            // List all pending requests
-                            IList<Attachment> attachments =
-                                CommandCardFactory.CreateMultipleRequestCards(
-                                    _messageRouter.RoutingDataManager.GetConnectionRequests(), activity.Recipient?.Name);
-
-                            if (attachments.Count > 0)
-                            {
-                                replyMessageText += string.Format(ConversationText.PendingRequestsFoundWithCount, attachments.Count);
-                                replyMessageText += StringAndCharConstants.LineBreak;
-                                replyActivity.AttachmentLayout = AttachmentLayoutTypes.Carousel;
-                                replyActivity.Attachments = attachments;
-                            }
-                            else
-                            {
-                                replyMessageText += $"{ConversationText.NoPendingRequests}{StringAndCharConstants.LineBreak}";
-                            }
-
-                            wasHandled = true;
-                        }
-
-                        if (listAll || command.Parameters.Contains(Commands.CommandParameterConnections))
-                        {
-                            // List all connections (conversations)
-                            /*string connectionsAsString = _messageRouter.RoutingDataManager.ConnectionsToString();
-
-                            replyMessageText += string.IsNullOrEmpty(connectionsAsString)
-                                ? $"{ConversationText.NoConversations}{StringAndCharConstants.LineBreak}"
-                                : $"{connectionsAsString}{StringAndCharConstants.LineBreak}";
-
-                            wasHandled = true;*/
-                        }
-
-                        if (!wasHandled)
-                        {
-                            replyMessageText = ConversationText.InvalidOrMissingCommandParameter;
-                        }
-
-                        replyActivity.Text = replyMessageText;
-                        break;
-#endif
-                    #endregion
 
                     default:
                         replyActivity = activity.CreateReply(string.Format(ConversationText.CommandNotRecognized, command.BaseCommand));
@@ -254,75 +182,6 @@ namespace IntermediatorBotSample.CommandHandling
             }
 
             return wasHandled;
-        }
-
-        /// <summary>
-        /// Tries to extract a command from the given message activity.
-        /// </summary>
-        /// <param name="messageActivity">The message activity possibly containing a command.</param>
-        /// <returns>A new created Command instance, if successful.
-        /// Null in case the message contained no command.
-        /// Note that if the Command instance was created, it will always have a non-null list of
-        /// parameters even if its size is zero.
-        /// </returns>
-        private Command ExtractCommand(IMessageActivity messageActivity)
-        {
-            Command command = null;
-            string messageText = messageActivity?.Text?.Trim();
-
-            if (!string.IsNullOrEmpty(messageText))
-            {
-                string cleanCommandMessage = null;
-
-                if (messageText.StartsWith($"{Commands.CommandKeyword} "))
-                {
-                    cleanCommandMessage = messageText.Replace(Commands.CommandKeyword, "").Trim();
-                }
-                else
-                {
-                    string botName = messageActivity.Recipient?.Name;
-
-                    if (!string.IsNullOrEmpty(botName))
-                    {
-                        if (messageText.StartsWith($"@{botName}"))
-                        {
-                            cleanCommandMessage = messageText.Replace($"@{botName}", "").Trim();
-                        }
-                        else if (messageText.StartsWith(botName))
-                        {
-                            cleanCommandMessage = messageText.Replace(botName, "").Trim();
-                        }
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(cleanCommandMessage))
-                {
-                    string[] splitCommand = cleanCommandMessage.Split(' ');
-
-                    if (splitCommand.Count() == 0)
-                    {
-                        command = new Command(cleanCommandMessage);
-                    }
-                    else
-                    {
-                        command = new Command(splitCommand[0]);
-                    }
-
-                    if (splitCommand.Count() > 1)
-                    {
-                        // Extract the parameters
-                        for (int i = 1; i < splitCommand.Length; ++i)
-                        {
-                            if (!string.IsNullOrEmpty(splitCommand[i]))
-                            {
-                                command.Parameters.Add(splitCommand[i]);
-                            }
-                        }
-                    }
-                }
-            }
-
-            return command;
         }
 
         /// <summary>
