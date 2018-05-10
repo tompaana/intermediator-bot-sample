@@ -18,16 +18,15 @@ namespace IntermediatorBotSample
 
             if (activity.Type is ActivityTypes.Message)
             {
-                MessageRouter messageRouter = Startup.HandoffHelper.MessageRouter;
-                MessageRouterResultHandler messageRouterResultHandler = Startup.HandoffHelper.MessageRouterResultHandler;
+                MessageRouter messageRouter = Startup.HandoffMiddleware.MessageRouter;
+                MessageRouterResultHandler messageRouterResultHandler = Startup.HandoffMiddleware.MessageRouterResultHandler;
                 bool rejectConnectionRequestIfNoAggregationChannel    = Startup.BotSettings.RejectConnectionRequestIfNoAggregationChannel;
 
                 messageRouter.StoreConversationReferences(activity);
 
-                // First check for commands (both from back channel and the ones directly typed)
-                MessageRouterResult messageRouterResult = Startup.HandoffHelper.BackChannelMessageHandler.HandleBackChannelMessage(activity);
+                MessageRouterResult messageRouterResult = null;
 
-                if (messageRouterResult.Type != MessageRouterResultType.Connected && await Startup.HandoffHelper.CommandMessageHandler.HandleCommandAsync(activity) == false)
+                if (await Startup.HandoffMiddleware.CommandHandler.HandleCommandAsync(activity) == false)
                 {
                     // No valid back channel (command) message or typed command detected
 

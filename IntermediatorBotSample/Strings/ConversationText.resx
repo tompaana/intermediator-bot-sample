@@ -295,6 +295,6 @@
     <value>Users</value>
   </data>
   <data name="RequestorDetailsMissing" xml:space="preserve">
-    <value>Request was made, but the details of the requestor party are missing</value>
+    <value>Request was made, but the details of the requestor are missing</value>
   </data>
 </root>

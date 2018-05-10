@@ -1,5 +1,4 @@
-﻿using IntermediatorBotSample.Models;
-using Microsoft.Bot.Schema;
+﻿using Microsoft.Bot.Schema;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;

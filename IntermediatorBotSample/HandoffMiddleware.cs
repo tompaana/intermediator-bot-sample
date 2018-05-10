@@ -1,7 +1,9 @@
 ﻿using IntermediatorBotSample.CommandHandling;
 using IntermediatorBotSample.MessageRouting;
 using IntermediatorBotSample.Settings;
+using Microsoft.Bot.Builder;
 using System;
+using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting;
 using Underscore.Bot.MessageRouting.DataStore;
 using Underscore.Bot.MessageRouting.DataStore.Azure;
@@ -9,7 +11,7 @@ using Underscore.Bot.MessageRouting.DataStore.Local;
 
 namespace IntermediatorBotSample
 {
-    public class HandoffHelper
+    public class HandoffMiddleware : IMiddleware
     {
         public MessageRouter MessageRouter
         {
@@ -23,21 +25,21 @@ namespace IntermediatorBotSample
             protected set;
         }
 
-        public CommandMessageHandler CommandMessageHandler
+        public CommandHandler CommandHandler
         {
             get;
             protected set;
         }
 
-        public BackChannelMessageHandler BackChannelMessageHandler
+        public ConversationHistory.ConversationHistory ConversationHistory
         {
             get;
             protected set;
         }
 
-        public HandoffHelper(BotSettings botSettings)
+        public HandoffMiddleware(BotSettings botSettings)
         {
-            string connectionString = botSettings[BotSettings.KeyRoutingDataStorageConnectionString];
+            string connectionString = botSettings[BotSettings.KeyRoutingDataStoreConnectionString];
             IRoutingDataStore routingDataStore = null;
 
             if (string.IsNullOrEmpty(connectionString))
@@ -53,8 +55,13 @@ namespace IntermediatorBotSample
 
             MessageRouter = new MessageRouter(routingDataStore);
             MessageRouterResultHandler = new MessageRouterResultHandler(MessageRouter);
-            CommandMessageHandler = new CommandMessageHandler(MessageRouter, MessageRouterResultHandler);
-            BackChannelMessageHandler = new BackChannelMessageHandler(MessageRouter.RoutingDataManager);
+            CommandHandler = new CommandHandler(MessageRouter, MessageRouterResultHandler);
+            ConversationHistory = new ConversationHistory.ConversationHistory(connectionString);
+        }
+
+        public Task OnTurn(ITurnContext context, MiddlewareSet.NextDelegate next)
+        {
+            throw new NotImplementedException();
         }
     }
 }

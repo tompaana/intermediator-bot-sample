@@ -11,9 +11,9 @@ using Underscore.Bot.Models;
 namespace IntermediatorBotSample.MessageRouting
 {
     /// <summary>
-    /// Contains message routing related utility methods.
+    /// Contains utility methods for accepting and rejecting connection requests.
     /// </summary>
-    public class MessageRoutingHelper
+    public class ConnectionRequestHandler
     {
         private const string ChannelIdEmulator = "emulator";
         private const string ChannelIdFacebook = "facebook";
@@ -30,24 +30,9 @@ namespace IntermediatorBotSample.MessageRouting
         };
 
         /// <summary>
-        /// Broadcasts the given message to all aggregation channels.
+        /// Tries to accept/reject a pending connection request.
         /// </summary>
-        /// <param name="messageRouter">The message router manager instance.</param>
-        /// <param name="messageText">The message to broadcast.</param>
-        public static async Task BroadcastMessageToAggregationChannelsAsync(
-            MessageRouter messageRouter, string messageText)
-        {
-            foreach (ConversationReference aggregationChannel in
-                messageRouter.RoutingDataManager.GetAggregationChannels())
-            {
-                await messageRouter.SendMessageAsync(aggregationChannel, messageText);
-            }
-        }
-
-        /// <summary>
-        /// Tries to accept/reject a pending request.
-        /// </summary>
-        /// <param name="messageRouter">The message router manager.</param>
+        /// <param name="messageRouter">The message router.</param>
         /// <param name="messageRouterResultHandler">The message router result handler.</param>
         /// <param name="sender">The sender party (accepter/rejecter).</param>
         /// <param name="doAccept">If true, will try to accept the request. If false, will reject.</param>
@@ -67,9 +52,11 @@ namespace IntermediatorBotSample.MessageRouting
             {
                 try
                 {
+                    // Find the connection request based on the channel account ID of the requestor
                     connectionRequest = routingDataManager.GetConnectionRequests().Single(request =>
                             (RoutingDataManager.GetChannelAccount(request.Requestor, out bool isBot) != null
-                              && RoutingDataManager.GetChannelAccount(request.Requestor, out isBot).Id.Equals(channelAccountIdOfPartyToAcceptOrReject)));
+                              && RoutingDataManager.GetChannelAccount(request.Requestor, out isBot).Id
+                                .Equals(channelAccountIdOfPartyToAcceptOrReject)));
                 }
                 catch (InvalidOperationException e)
                 {
@@ -103,7 +90,7 @@ namespace IntermediatorBotSample.MessageRouting
                 {
                     if (senderInConnection != null)
                     {
-                        // The sender (accepter/rejecter) is ALREADY connected with another party
+                        // The sender (accepter/rejecter) is ALREADY connected to another party
                         if (counterpart != null)
                         {
                             errorMessage = string.Format(
@@ -149,7 +136,7 @@ namespace IntermediatorBotSample.MessageRouting
         /// <summary>
         /// Tries to reject all pending requests.
         /// </summary>
-        /// <param name="messageRouter">The message router manager.</param>
+        /// <param name="messageRouter">The message router.</param>
         /// <param name="messageRouterResultHandler">The message router result handler.</param>
         /// <returns>True, if successful. False otherwise.</returns>
         public async Task<bool> RejectAllPendingRequestsAsync(

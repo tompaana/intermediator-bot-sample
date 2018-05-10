@@ -7,6 +7,9 @@ namespace IntermediatorBotSample.ConversationHistory
 {
     public class MessageLog
     {
+        /// <summary>
+        /// The messages in the log.
+        /// </summary>
         public IList<Activity> Activities
         {
             get;
@@ -54,8 +57,9 @@ namespace IntermediatorBotSample.ConversationHistory
             {
                 messageLog = JsonConvert.DeserializeObject<MessageLog>(messageLogAsJsonString);
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                System.Diagnostics.Debug.WriteLine($"Failed to deserialize message log: {e.Message}");
             }
 
             return messageLog;

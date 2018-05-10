@@ -12,19 +12,17 @@ namespace IntermediatorBotSample
 {
     public class Startup
     {
-        public static HandoffHelper HandoffHelper
+        public static HandoffMiddleware HandoffMiddleware
         {
             get;
             private set;
         }
-
 
         public static BotSettings BotSettings
         {
             get;
             private set;
         }
-
 
         public IConfiguration Configuration
         {
@@ -41,10 +39,9 @@ namespace IntermediatorBotSample
                 .AddEnvironmentVariables();
             Configuration = builder.Build();
 
-            BotSettings   = new BotSettings(Configuration);
-            HandoffHelper = new HandoffHelper(BotSettings);
+            BotSettings = new BotSettings(Configuration);
+            HandoffMiddleware = new HandoffMiddleware(BotSettings);
         }
-
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public IServiceProvider ConfigureServices(IServiceCollection services)
@@ -59,14 +56,12 @@ namespace IntermediatorBotSample
             return ConfigureIoC(services);
         }
 
-
         public IServiceProvider ConfigureIoC(IServiceCollection services)
         {
-            var container = new Container(new RuntimeRegistry(services));
+            var container = new Container();
             container.Configure(c => c.For<BotSettings>().Use(BotSettings));
             return container.GetInstance<IServiceProvider>();
         }
-
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)

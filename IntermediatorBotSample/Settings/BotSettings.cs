@@ -1,12 +1,10 @@
 ﻿using Microsoft.Extensions.Configuration;
 using System;
-using System.Configuration;
-using System.Linq;
 
 namespace IntermediatorBotSample.Settings
 {
     /// <summary>
-    /// Provider of the bot settings.
+    /// The bot settings provider.
     /// </summary>
     public class BotSettings
     {
@@ -14,7 +12,7 @@ namespace IntermediatorBotSample.Settings
         public static readonly string KeyBotId = "BotId";
         public static readonly string KeyMicrosoftAppId = "MicrosoftAppId";
         public static readonly string KeyMicrosoftAppPassword = "MicrosoftAppPassword";
-        public static readonly string KeyRoutingDataStorageConnectionString = "RoutingDataStorageConnectionString";
+        public static readonly string KeyRoutingDataStoreConnectionString = "RoutingDataStoreConnectionString";
         public static readonly string KeyRejectConnectionRequestIfNoAggregationChannel = "RejectConnectionRequestIfNoAggregationChannel";
         public static readonly string KeyPermittedAggregationChannels = "PermittedAggregationChannels";
 
@@ -42,6 +40,14 @@ namespace IntermediatorBotSample.Settings
                 }
 
                 return settingValue;
+            }
+        }
+
+        public string RoutingDataStoreConnectionString
+        {
+            get
+            {
+                return this[KeyRoutingDataStoreConnectionString];
             }
         }
 
