@@ -2,7 +2,7 @@
 using IntermediatorBotSample.MessageRouting;
 using IntermediatorBotSample.Settings;
 using Microsoft.Bot.Builder;
-using System;
+using Microsoft.Bot.Schema;
 using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting;
 using Underscore.Bot.MessageRouting.DataStore;
@@ -37,9 +37,12 @@ namespace IntermediatorBotSample
             protected set;
         }
 
+        private BotSettings _botSettings;
+
         public HandoffMiddleware(BotSettings botSettings)
         {
-            string connectionString = botSettings[BotSettings.KeyRoutingDataStoreConnectionString];
+            _botSettings = botSettings;
+            string connectionString = _botSettings[BotSettings.KeyRoutingDataStoreConnectionString];
             IRoutingDataStore routingDataStore = null;
 
             if (string.IsNullOrEmpty(connectionString))
@@ -59,9 +62,50 @@ namespace IntermediatorBotSample
             ConversationHistory = new ConversationHistory.ConversationHistory(connectionString);
         }
 
-        public Task OnTurn(ITurnContext context, MiddlewareSet.NextDelegate next)
+        public async Task OnTurn(ITurnContext context, MiddlewareSet.NextDelegate next)
         {
-            throw new NotImplementedException();
+            Activity activity = context.Activity;
+
+            if (activity.Type is ActivityTypes.Message)
+            {
+                bool rejectConnectionRequestIfNoAggregationChannel =
+                    _botSettings.RejectConnectionRequestIfNoAggregationChannel;
+
+                MessageRouter.StoreConversationReferences(activity);
+
+                MessageRouterResult messageRouterResult = null;
+
+                if (await CommandHandler.HandleCommandAsync(activity) == false)
+                {
+                    // No command detected/handled
+
+                    // Let the message router handle the activity
+                    messageRouterResult = await MessageRouter.HandleActivityAsync(
+                        activity, false, rejectConnectionRequestIfNoAggregationChannel);
+
+                    if (messageRouterResult.Type == MessageRouterResultType.NoActionTaken)
+                    {
+                        // No action was taken by the message router. This means that the user
+                        // is not connected (in a 1:1 conversation) with a human
+                        // (e.g. customer service agent) yet.
+
+                        if (!string.IsNullOrWhiteSpace(activity.Text)
+                            && activity.Text.ToLower().Contains("human"))
+                        {
+                            // Create a connection request on behalf of the sender
+                            messageRouterResult = MessageRouter.CreateConnectionRequest(
+                                MessageRouter.CreateSenderConversationReference(activity),
+                                rejectConnectionRequestIfNoAggregationChannel);
+                        }
+                    }
+                }
+
+                // Uncomment to see the result in a reply (may be useful for debugging)
+                //await MessageRouter.ReplyToActivityAsync(activity, messageRouterResult.ToString());
+
+                // Handle the result, if required
+                await MessageRouterResultHandler.HandleResultAsync(messageRouterResult);
+            }
         }
     }
 }
