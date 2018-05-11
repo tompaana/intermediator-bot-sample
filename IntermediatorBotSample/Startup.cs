@@ -45,7 +45,7 @@ namespace IntermediatorBotSample
                 options.Middleware.Add(new HandoffMiddleware(new BotSettings(Configuration)));
             });
 
-            services.AddLocalization(o => o.ResourcesPath = "Resources");
+            /*services.AddLocalization(o => o.ResourcesPath = "Resources");
 
             services.Configure<RequestLocalizationOptions>(options =>
             {
@@ -64,7 +64,7 @@ namespace IntermediatorBotSample
                 // These are the cultures the app supports for UI strings, 
                 // i.e. we have localized resources for
                 options.SupportedUICultures = supportedCultures;
-            });
+            });*/
         }
 
         /// <summary>
