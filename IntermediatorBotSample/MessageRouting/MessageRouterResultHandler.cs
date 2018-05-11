@@ -26,7 +26,7 @@ namespace IntermediatorBotSample.MessageRouting
         }
 
         /// <summary>
-        /// Handles all message router results.
+        /// Handles the given message router result.
         /// </summary>
         /// <param name="messageRouterResult">The result to handle.</param>
         public virtual async Task HandleResultAsync(AbstractMessageRouterResult messageRouterResult)
@@ -46,14 +46,14 @@ namespace IntermediatorBotSample.MessageRouting
             }
             else if (messageRouterResult is MessageRoutingResult)
             {
-
+                await HandleMessageRoutingResultAsync(messageRouterResult as MessageRoutingResult);
             }
         }
 
         /// <summary>
-        /// 
+        /// Handles the given connection request result.
         /// </summary>
-        /// <param name="connectionRequestResult"></param>
+        /// <param name="connectionRequestResult">The result to handle.</param>
         protected virtual async Task HandleConnectionRequestResultAsync(
             ConnectionRequestResult connectionRequestResult)
         {
@@ -133,10 +133,9 @@ namespace IntermediatorBotSample.MessageRouting
         }
 
         /// <summary>
-        /// 
+        /// Handles the given connection result.
         /// </summary>
-        /// <param name="connectionResult"></param>
-        /// <returns></returns>
+        /// <param name="connectionResult">The result to handle.</param>
         protected virtual async Task HandleConnectionResultAsync(ConnectionResult connectionResult)
         {
             Connection connection = connectionResult.Connection;
@@ -203,10 +202,9 @@ namespace IntermediatorBotSample.MessageRouting
         }
 
         /// <summary>
-        /// 
+        /// Handles the given message routing result.
         /// </summary>
-        /// <param name="messageRoutingResult"></param>
-        /// <returns></returns>
+        /// <param name="messageRoutingResult">The result to handle.</param>
         protected virtual async Task HandleMessageRoutingResultAsync(
             MessageRoutingResult messageRoutingResult)
         {
