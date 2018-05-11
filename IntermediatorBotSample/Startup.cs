@@ -14,23 +14,10 @@ namespace IntermediatorBotSample
 {
     public class Startup
     {
-        public static HandoffMiddleware HandoffMiddleware
-        {
-            get;
-            private set;
-        }
-
-        public static BotSettings BotSettings
-        {
-            get;
-            private set;
-        }
-
         public IConfiguration Configuration
         {
             get;
         }
-
 
         public Startup(IHostingEnvironment env)
         {
@@ -39,18 +26,15 @@ namespace IntermediatorBotSample
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
                 .AddEnvironmentVariables();
-            Configuration = builder.Build();
 
-            BotSettings = new BotSettings(Configuration);
-            HandoffMiddleware = new HandoffMiddleware(BotSettings);
+            Configuration = builder.Build();
         }
 
         /// <summary>
         /// This method gets called by the runtime. Use this method to add services to the container.
         /// </summary>
         /// <param name="services"></param>
-        /// <returns></returns>
-        public IServiceProvider ConfigureServices(IServiceCollection services)
+        public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().AddControllersAsServices();
             services.AddSingleton(_ => Configuration);
@@ -58,9 +42,10 @@ namespace IntermediatorBotSample
             services.AddBot<IntermediatorBot>(options =>
             {
                 options.CredentialProvider = new ConfigurationCredentialProvider(Configuration);
+                options.Middleware.Add(new HandoffMiddleware(new BotSettings(Configuration)));
             });
 
-            services.AddLocalization(o => o.ResourcesPath = "Strings");
+            services.AddLocalization(o => o.ResourcesPath = "Resources");
 
             services.Configure<RequestLocalizationOptions>(options =>
             {
@@ -80,15 +65,6 @@ namespace IntermediatorBotSample
                 // i.e. we have localized resources for
                 options.SupportedUICultures = supportedCultures;
             });
-
-            return ConfigureIoC(services);
-        }
-
-        public IServiceProvider ConfigureIoC(IServiceCollection services)
-        {
-            var container = new Container();
-            container.Configure(c => c.For<BotSettings>().Use(BotSettings));
-            return container.GetInstance<IServiceProvider>();
         }
 
         /// <summary>

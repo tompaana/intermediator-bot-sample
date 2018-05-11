@@ -29,7 +29,8 @@ namespace IntermediatorBotSample.MessageRouting
         /// Handles the given message router result.
         /// </summary>
         /// <param name="messageRouterResult">The result to handle.</param>
-        public virtual async Task HandleResultAsync(AbstractMessageRouterResult messageRouterResult)
+        /// <returns>True, if the result was handled. False, if no action was taken.</returns>
+        public virtual async Task<bool> HandleResultAsync(AbstractMessageRouterResult messageRouterResult)
         {
             if (messageRouterResult == null)
             {
@@ -38,23 +39,28 @@ namespace IntermediatorBotSample.MessageRouting
 
             if (messageRouterResult is ConnectionRequestResult)
             {
-                await HandleConnectionRequestResultAsync(messageRouterResult as ConnectionRequestResult);
+                return await HandleConnectionRequestResultAsync(messageRouterResult as ConnectionRequestResult);
             }
-            else if (messageRouterResult is ConnectionResult)
+
+            if (messageRouterResult is ConnectionResult)
             {
-                await HandleConnectionResultAsync(messageRouterResult as ConnectionResult);
+                return await HandleConnectionResultAsync(messageRouterResult as ConnectionResult);
             }
-            else if (messageRouterResult is MessageRoutingResult)
+
+            if (messageRouterResult is MessageRoutingResult)
             {
-                await HandleMessageRoutingResultAsync(messageRouterResult as MessageRoutingResult);
+                return await HandleMessageRoutingResultAsync(messageRouterResult as MessageRoutingResult);
             }
+
+            return false;
         }
 
         /// <summary>
         /// Handles the given connection request result.
         /// </summary>
         /// <param name="connectionRequestResult">The result to handle.</param>
-        protected virtual async Task HandleConnectionRequestResultAsync(
+        /// <returns>True, if the result was handled. False, if no action was taken.</returns>
+        protected virtual async Task<bool> HandleConnectionRequestResultAsync(
             ConnectionRequestResult connectionRequestResult)
         {
             ConnectionRequest connectionRequest = connectionRequestResult?.ConnectionRequest;
@@ -62,7 +68,7 @@ namespace IntermediatorBotSample.MessageRouting
             if (connectionRequest == null || connectionRequest.Requestor == null)
             {
                 System.Diagnostics.Debug.WriteLine("No client to inform about the connection request result");
-                return;
+                return false;
             }
 
             switch (connectionRequestResult.Type)
@@ -94,12 +100,12 @@ namespace IntermediatorBotSample.MessageRouting
 
                     await _messageRouter.SendMessageAsync(
                         connectionRequest.Requestor, Strings.NotifyClientWaitForRequestHandling);
-                    break;
+                    return true;
 
                 case ConnectionRequestResultType.AlreadyExists:
                     await _messageRouter.SendMessageAsync(
                         connectionRequest.Requestor, Strings.NotifyClientDuplicateRequest);
-                    break;
+                    return true;
 
                 case ConnectionRequestResultType.Rejected:
                     if (connectionRequestResult.Rejecter != null)
@@ -110,12 +116,12 @@ namespace IntermediatorBotSample.MessageRouting
 
                     await _messageRouter.SendMessageAsync(
                         connectionRequest.Requestor, Strings.NotifyClientRequestRejected);
-                    break;
+                    return true;
 
                 case ConnectionRequestResultType.NotSetup:
                     await _messageRouter.SendMessageAsync(
                         connectionRequest.Requestor, Strings.NoAgentsAvailable);
-                    break;
+                    return true;
 
                 case ConnectionRequestResultType.Error:
                     if (connectionRequestResult.Rejecter != null)
@@ -125,18 +131,21 @@ namespace IntermediatorBotSample.MessageRouting
                             string.Format(Strings.ConnectionRequestResultErrorWithResult, connectionRequestResult.ErrorMessage));
                     }
 
-                    break;
+                    return true;
 
                 default:
                     break;
             }
+
+            return false;
         }
 
         /// <summary>
         /// Handles the given connection result.
         /// </summary>
         /// <param name="connectionResult">The result to handle.</param>
-        protected virtual async Task HandleConnectionResultAsync(ConnectionResult connectionResult)
+        /// <returns>True, if the result was handled. False, if no action was taken.</returns>
+        protected virtual async Task<bool> HandleConnectionResultAsync(ConnectionResult connectionResult)
         {
             Connection connection = connectionResult.Connection;
             
@@ -162,7 +171,7 @@ namespace IntermediatorBotSample.MessageRouting
                         }
                     }
 
-                    break;
+                    return true;
 
                 case ConnectionResultType.Disconnected:
                     if (connection != null)
@@ -184,7 +193,7 @@ namespace IntermediatorBotSample.MessageRouting
                         }
                     }
 
-                    break;
+                    return true;
 
                 case ConnectionResultType.Error:
                     if (connection.ConversationReference1 != null)
@@ -194,18 +203,21 @@ namespace IntermediatorBotSample.MessageRouting
                             string.Format(Strings.ConnectionResultErrorWithResult, connectionResult.ErrorMessage));
                     }
 
-                    break;
+                    return true;
 
                 default:
                     break;
             }
+
+            return false;
         }
 
         /// <summary>
         /// Handles the given message routing result.
         /// </summary>
         /// <param name="messageRoutingResult">The result to handle.</param>
-        protected virtual async Task HandleMessageRoutingResultAsync(
+        /// <returns>True, if the result was handled. False, if no action was taken.</returns>
+        protected virtual async Task<bool> HandleMessageRoutingResultAsync(
             MessageRoutingResult messageRoutingResult)
         {
             ConversationReference agent = messageRoutingResult?.Connection?.ConversationReference1;
@@ -229,11 +241,13 @@ namespace IntermediatorBotSample.MessageRouting
                         await _messageRouter.SendMessageAsync(agent, errorMessage);
                     }
 
-                    break;
+                    return true;
 
                 default:
                     break;
             }
+
+            return false;
         }
 
         /// <summary>
