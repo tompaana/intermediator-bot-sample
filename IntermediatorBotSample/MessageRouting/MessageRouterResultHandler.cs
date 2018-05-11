@@ -1,18 +1,18 @@
-﻿using IntermediatorBotSample.Strings;
-using IntermediatorBotSample.CommandHandling;
-using Microsoft.Bot.Connector;
+﻿using IntermediatorBotSample.CommandHandling;
+using IntermediatorBotSample.Resources;
+using Microsoft.Bot.Schema;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting;
 using Underscore.Bot.MessageRouting.DataStore;
-using Underscore.Bot.Models;
-using Microsoft.Bot.Schema;
+using Underscore.Bot.MessageRouting.Models;
+using Underscore.Bot.MessageRouting.Results;
 
 namespace IntermediatorBotSample.MessageRouting
 {
     /// <summary>
-    /// Handles results from operations executed by the message router mamanger.
+    /// Handles the message router results.
     /// </summary>
     public class MessageRouterResultHandler
     {
@@ -22,222 +22,250 @@ namespace IntermediatorBotSample.MessageRouting
         {
             _messageRouter = messageRouter
                 ?? throw new ArgumentNullException(
-                    $"The message router manager ({nameof(messageRouter)}) cannot be null");
+                    $"({nameof(messageRouter)}) cannot be null");
         }
 
         /// <summary>
-        /// From IMessageRouterResultHandler.
+        /// Handles all message router results.
         /// </summary>
         /// <param name="messageRouterResult">The result to handle.</param>
-        /// <returns></returns>
-        public virtual async Task HandleResultAsync(MessageRouterResult messageRouterResult)
+        public virtual async Task HandleResultAsync(AbstractMessageRouterResult messageRouterResult)
         {
             if (messageRouterResult == null)
             {
                 throw new ArgumentNullException($"The given result ({nameof(messageRouterResult)}) is null");
             }
 
-            string message = string.Empty;
-
-            switch (messageRouterResult.Type)
+            if (messageRouterResult is ConnectionRequestResult)
             {
-                case MessageRouterResultType.NoActionTaken:
-                case MessageRouterResultType.OK:
-                    // No need to do anything
+                await HandleConnectionRequestResultAsync(messageRouterResult as ConnectionRequestResult);
+            }
+            else if (messageRouterResult is ConnectionResult)
+            {
+                await HandleConnectionResultAsync(messageRouterResult as ConnectionResult);
+            }
+            else if (messageRouterResult is MessageRoutingResult)
+            {
+
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="connectionRequestResult"></param>
+        protected virtual async Task HandleConnectionRequestResultAsync(
+            ConnectionRequestResult connectionRequestResult)
+        {
+            ConnectionRequest connectionRequest = connectionRequestResult?.ConnectionRequest;
+
+            if (connectionRequest == null || connectionRequest.Requestor == null)
+            {
+                System.Diagnostics.Debug.WriteLine("No client to inform about the connection request result");
+                return;
+            }
+
+            switch (connectionRequestResult.Type)
+            {
+                case ConnectionRequestResultType.Created:
+                    foreach (ConversationReference aggregationChannel
+                        in _messageRouter.RoutingDataManager.GetAggregationChannels())
+                    {
+                        ConversationReference botConversationReference =
+                            _messageRouter.RoutingDataManager.FindConversationReference(
+                                aggregationChannel.ChannelId, aggregationChannel.Conversation.Id, null, true);
+
+                        if (botConversationReference != null)
+                        {
+                            IMessageActivity messageActivity = Activity.CreateMessageActivity();
+                            messageActivity.Conversation = aggregationChannel.Conversation;
+                            messageActivity.Recipient = RoutingDataManager.GetChannelAccount(aggregationChannel, out bool isBot);
+                            messageActivity.Attachments = new List<Attachment>
+                            {
+                                CommandCardFactory.CreateRequestCard(
+                                    connectionRequest.Requestor,
+                                    RoutingDataManager.GetChannelAccount(
+                                        botConversationReference, out isBot)?.Name).ToAttachment()
+                            };
+
+                            await _messageRouter.SendMessageAsync(aggregationChannel, messageActivity);
+                        }
+                    }
+
+                    await _messageRouter.SendMessageAsync(
+                        connectionRequest.Requestor, Strings.NotifyClientWaitForRequestHandling);
                     break;
-                case MessageRouterResultType.ConnectionRequested:
-                case MessageRouterResultType.ConnectionAlreadyRequested:
-                case MessageRouterResultType.ConnectionRejected:
-                case MessageRouterResultType.Connected:
-                case MessageRouterResultType.Disconnected:
-                    await HandleConnectionChangedResultAsync(messageRouterResult);
+
+                case ConnectionRequestResultType.AlreadyExists:
+                    await _messageRouter.SendMessageAsync(
+                        connectionRequest.Requestor, Strings.NotifyClientDuplicateRequest);
                     break;
-                case MessageRouterResultType.NoAgentsAvailable:
-                    await HandleNoAgentsAvailableResultAsync(messageRouterResult);
+
+                case ConnectionRequestResultType.Rejected:
+                    if (connectionRequestResult.Rejecter != null)
+                    {
+                        await _messageRouter.SendMessageAsync(
+                            connectionRequestResult.Rejecter, Strings.NotifyOwnerRequestRejected);
+                    }
+
+                    await _messageRouter.SendMessageAsync(
+                        connectionRequest.Requestor, Strings.NotifyClientRequestRejected);
                     break;
-                case MessageRouterResultType.NoAggregationChannel:
-                    await HandleNoAggregationChannelResultAsync(messageRouterResult);
+
+                case ConnectionRequestResultType.NotSetup:
+                    await _messageRouter.SendMessageAsync(
+                        connectionRequest.Requestor, Strings.NoAgentsAvailable);
                     break;
-                case MessageRouterResultType.FailedToForwardMessage:
-                    await HandleFailedToForwardMessageAsync(messageRouterResult);
+
+                case ConnectionRequestResultType.Error:
+                    if (connectionRequestResult.Rejecter != null)
+                    {
+                        await _messageRouter.SendMessageAsync(
+                            connectionRequestResult.Rejecter,
+                            string.Format(Strings.ConnectionRequestResultErrorWithResult, connectionRequestResult.ErrorMessage));
+                    }
+
                     break;
-                case MessageRouterResultType.Error:
-                    await HandleErrorAsync(messageRouterResult);
-                    break;
+
                 default:
                     break;
             }
         }
 
         /// <summary>
-        /// Tries to notify the conversation owner (agent) about the error.
+        /// 
         /// </summary>
-        /// <param name="messageRouterResult">The result to handle.</param>
-        protected virtual async Task HandleErrorAsync(MessageRouterResult messageRouterResult)
+        /// <param name="connectionResult"></param>
+        /// <returns></returns>
+        protected virtual async Task HandleConnectionResultAsync(ConnectionResult connectionResult)
         {
-            string errorMessage = string.IsNullOrEmpty(messageRouterResult.ErrorMessage)
-                ? string.Format(ConversationText.ErrorOccuredWithResult, messageRouterResult.Type.ToString())
-                : $"{messageRouterResult.ErrorMessage} ({messageRouterResult.Type})";
-
-            System.Diagnostics.Debug.WriteLine(errorMessage);
-
-            if (messageRouterResult.ConversationReferences.Count > 0)
+            Connection connection = connectionResult.Connection;
+            
+            switch (connectionResult.Type)
             {
-                await _messageRouter.SendMessageAsync(
-                    messageRouterResult.ConversationReferences[0], errorMessage);
-            }
-        }
-
-        /// <summary>
-        /// Notifies the conversation client (customer) or the conversation owner (agent) that
-        /// there was a problem forwarding their message.
-        /// </summary>
-        /// <param name="messageRouterResult">The result to handle.</param>
-        protected virtual async Task HandleFailedToForwardMessageAsync(MessageRouterResult messageRouterResult)
-        {
-            string messageText = string.IsNullOrEmpty(messageRouterResult.ErrorMessage)
-                ? ConversationText.FailedToForwardMessage
-                : messageRouterResult.ErrorMessage;
-            await MessageRouter.ReplyToActivityAsync(messageRouterResult.Activity as Activity, messageText);
-        }
-
-        /// <summary>
-        /// Notifies the user that there are no aggregation channels set up.
-        /// </summary>
-        /// <param name="messageRouterResult">The result to handle.</param>
-        protected virtual async Task HandleNoAggregationChannelResultAsync(MessageRouterResult messageRouterResult)
-        {
-            if (messageRouterResult.Activity != null)
-            {
-                string messageText = string.IsNullOrEmpty(messageRouterResult.ErrorMessage)
-                    ? string.Format(ConversationText.NoAggregationChannel)
-                    : messageRouterResult.ErrorMessage;
-                messageText += $" - ";
-                messageText += string.Format(
-                    ConversationText.AddAggregationChannelCommandHint,
-                    $"{new Command(Commands.Watch, null, messageRouterResult.Activity.Recipient?.Name).ToString()}");
-
-                await MessageRouter.ReplyToActivityAsync(messageRouterResult.Activity as Activity, messageText);
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("The activity of the result is null");
-            }
-        }
-
-        /// <summary>
-        /// Notifies the conversation client (customer) that no agents are available.
-        /// </summary>
-        /// <param name="messageRouterResult">The result to handle.</param>
-        protected virtual async Task HandleNoAgentsAvailableResultAsync(MessageRouterResult messageRouterResult)
-        {
-            if (messageRouterResult.Activity != null)
-            {
-                await MessageRouter.ReplyToActivityAsync(messageRouterResult.Activity as Activity, ConversationText.NoAgentsAvailable);
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("The activity of the result is null");
-            }
-        }
-
-        /// <summary>
-        /// Notifies both the conversation owner (agent) and the conversation client (customer)
-        /// about the connection status change.
-        /// </summary>
-        /// <param name="messageRouterResult">The result to handle.</param>
-        protected virtual async Task HandleConnectionChangedResultAsync(MessageRouterResult messageRouterResult)
-        {
-            RoutingDataManager routingDataManager = _messageRouter.RoutingDataManager;
-
-            ConversationReference agent = messageRouterResult.ConversationReferences[0];
-            ConversationReference client = messageRouterResult.ConversationReferences[1];
-            ChannelAccount agentChannelAccount = RoutingDataManager.GetChannelAccount(agent, out bool isBot);
-            ChannelAccount clientChannelAccount = RoutingDataManager.GetChannelAccount(client, out isBot);
-
-            string conversationOwnerName =
-                string.IsNullOrEmpty(agentChannelAccount.Name)
-                    ? StringAndCharConstants.NoUserNamePlaceholder
-                    : agentChannelAccount.Name;
-
-            string conversationClientName =
-                string.IsNullOrEmpty(clientChannelAccount.Name)
-                    ? StringAndCharConstants.NoUserNamePlaceholder
-                    : clientChannelAccount.Name;
-
-            string messageToConversationOwner = string.Empty;
-            string messageToConversationClient = string.Empty;
-
-            if (messageRouterResult.Type == MessageRouterResultType.ConnectionRequested)
-            {
-                bool conversationClientPartyMissing =
-                    (client == null || clientChannelAccount == null);
-
-                foreach (ConversationReference aggregationChannel in _messageRouter.RoutingDataManager.GetAggregationChannels())
-                {
-                    ConversationReference botConversationReference =
-                        routingDataManager.FindConversationReference(
-                            aggregationChannel.ChannelId, aggregationChannel.Conversation.Id, null, true);
-
-                    if (botConversationReference != null)
+                case ConnectionResultType.Connected:
+                    if (connection != null)
                     {
-                        if (conversationClientPartyMissing)
+                        if (connection.ConversationReference1 != null)
                         {
                             await _messageRouter.SendMessageAsync(
-                                aggregationChannel, ConversationText.RequestorDetailsMissing);
+                                connection.ConversationReference1,
+                                string.Format(Strings.NotifyOwnerConnected,
+                                    GetNameOrId(connection.ConversationReference2)));
                         }
-                        else
-                        {
-                            IMessageActivity messageActivity = Activity.CreateMessageActivity();
-                            messageActivity.Conversation = aggregationChannel.Conversation;
-                            messageActivity.Recipient = RoutingDataManager.GetChannelAccount(aggregationChannel, out isBot);
-                            messageActivity.Attachments = new List<Attachment>
-                            {
-                                CommandCardFactory.CreateRequestCard(
-                                    client, RoutingDataManager.GetChannelAccount(botConversationReference, out isBot)?.Name).ToAttachment()
-                            };
 
-                            await _messageRouter.SendMessageAsync(aggregationChannel, messageActivity);
+                        if (connection.ConversationReference2 != null)
+                        {
+                            await _messageRouter.SendMessageAsync(
+                                connection.ConversationReference2,
+                                string.Format(Strings.NotifyOwnerConnected,
+                                    GetNameOrId(connection.ConversationReference1)));
                         }
                     }
-                }
 
-                if (!conversationClientPartyMissing)
+                    break;
+
+                case ConnectionResultType.Disconnected:
+                    if (connection != null)
+                    {
+                        if (connection.ConversationReference1 != null)
+                        {
+                            await _messageRouter.SendMessageAsync(
+                                connection.ConversationReference1,
+                                string.Format(Strings.NotifyOwnerDisconnected,
+                                    GetNameOrId(connection.ConversationReference2)));
+                        }
+
+                        if (connection.ConversationReference2 != null)
+                        {
+                            await _messageRouter.SendMessageAsync(
+                                connection.ConversationReference2,
+                                string.Format(Strings.NotifyClientDisconnected,
+                                    GetNameOrId(connection.ConversationReference1)));
+                        }
+                    }
+
+                    break;
+
+                case ConnectionResultType.Error:
+                    if (connection.ConversationReference1 != null)
+                    {
+                        await _messageRouter.SendMessageAsync(
+                            connection.ConversationReference1,
+                            string.Format(Strings.ConnectionResultErrorWithResult, connectionResult.ErrorMessage));
+                    }
+
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="messageRoutingResult"></param>
+        /// <returns></returns>
+        protected virtual async Task HandleMessageRoutingResultAsync(
+            MessageRoutingResult messageRoutingResult)
+        {
+            ConversationReference agent = messageRoutingResult?.Connection?.ConversationReference1;
+
+            switch (messageRoutingResult.Type)
+            {
+                case MessageRoutingResultType.NoActionTaken:
+                case MessageRoutingResultType.MessageRouted:
+                    // No need to do anything
+                    break;
+
+                case MessageRoutingResultType.FailedToRouteMessage:
+                case MessageRoutingResultType.Error:
+                    if (agent != null)
+                    {
+                        string errorMessage = string.IsNullOrWhiteSpace(messageRoutingResult.ErrorMessage)
+                            ? Strings.FailedToForwardMessage
+                            : messageRoutingResult.ErrorMessage;
+
+
+                        await _messageRouter.SendMessageAsync(agent, errorMessage);
+                    }
+
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Tries to resolve the name of the given user/bot instance.
+        /// Will fallback to ID, if no name specified.
+        /// </summary>
+        /// <param name="conversationReference">The conversation reference, whose details to resolve.</param>
+        /// <returns>The name or the ID of the given user/bot instance.</returns>
+        protected virtual string GetNameOrId(ConversationReference conversationReference)
+        {
+            if (conversationReference != null)
+            {
+                ChannelAccount channelAccount =
+                    RoutingDataManager.GetChannelAccount(conversationReference, out bool isBot);
+
+                if (channelAccount != null)
                 {
-                    messageToConversationClient = ConversationText.NotifyClientWaitForRequestHandling;
+                    if (!string.IsNullOrWhiteSpace(channelAccount.Name))
+                    {
+                        return channelAccount.Name;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(channelAccount.Id))
+                    {
+                        return channelAccount.Id;
+                    }
                 }
             }
-            else if (messageRouterResult.Type == MessageRouterResultType.ConnectionAlreadyRequested)
-            {
-                messageToConversationClient = ConversationText.NotifyClientDuplicateRequest;
-            }
-            else if (messageRouterResult.Type == MessageRouterResultType.ConnectionRejected)
-            {
-                messageToConversationOwner = string.Format(ConversationText.NotifyOwnerRequestRejected, conversationClientName);
-                messageToConversationClient = ConversationText.NotifyClientRequestRejected;
-            }
-            else if (messageRouterResult.Type == MessageRouterResultType.Connected)
-            {
-                messageToConversationOwner = string.Format(ConversationText.NotifyOwnerConnected, conversationClientName);
-                messageToConversationClient = string.Format(ConversationText.NotifyClientConnected, conversationOwnerName);
-            }
-            else if (messageRouterResult.Type == MessageRouterResultType.Disconnected)
-            {
-                messageToConversationOwner = string.Format(ConversationText.NotifyOwnerDisconnected, conversationClientName);
-                messageToConversationClient = string.Format(ConversationText.NotifyClientDisconnected, conversationOwnerName);
-            }
 
-            if (agent != null
-                && !string.IsNullOrEmpty(messageToConversationOwner))
-            {
-                await _messageRouter.SendMessageAsync(agent, messageToConversationOwner);
-            }
-
-            if (client != null
-                && !string.IsNullOrEmpty(messageToConversationClient))
-            {
-                await _messageRouter.SendMessageAsync(client, messageToConversationClient);
-            }
+            return StringConstants.NoNameOrId;
         }
     }
 }

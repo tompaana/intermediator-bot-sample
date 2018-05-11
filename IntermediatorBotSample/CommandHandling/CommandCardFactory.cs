@@ -1,10 +1,10 @@
-﻿using IntermediatorBotSample.Strings;
+﻿using IntermediatorBotSample.Resources;
 using Microsoft.Bot.Schema;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Underscore.Bot.MessageRouting.DataStore;
-using Underscore.Bot.Models;
+using Underscore.Bot.MessageRouting.Models;
 
 namespace IntermediatorBotSample.CommandHandling
 {
@@ -22,11 +22,11 @@ namespace IntermediatorBotSample.CommandHandling
         {
             HeroCard card = new HeroCard()
             {
-                Title = ConversationText.CommandMenuTitle,
-                Subtitle = ConversationText.CommandMenuDescription,
+                Title = Strings.CommandMenuTitle,
+                Subtitle = Strings.CommandMenuDescription,
 
                 Text = string.Format(
-                    ConversationText.CommandMenuInstructions,
+                    Strings.CommandMenuInstructions,
                     Command.CommandKeyword,
                     botName,
                     new Command(Commands.AcceptRequest, new string[] { "<user ID>" }, botName).ToString()),
@@ -85,7 +85,7 @@ namespace IntermediatorBotSample.CommandHandling
             }
 
             string requestorChannelAccountName = string.IsNullOrEmpty(requestorChannelAccount.Name)
-                ? StringAndCharConstants.NoUserNamePlaceholder : requestorChannelAccount.Name;
+                ? StringConstants.NoUserNamePlaceholder : requestorChannelAccount.Name;
 
             string requestorChannelId = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(requestor.ChannelId);
             string requestorChannelAccountId = requestorChannelAccount.Id;
@@ -98,21 +98,21 @@ namespace IntermediatorBotSample.CommandHandling
 
             HeroCard card = new HeroCard()
             {
-                Title = ConversationText.ConnectionRequestTitle,
-                Subtitle = string.Format(ConversationText.RequestorDetailsTitle, requestorChannelAccountName, requestorChannelId),
-                Text = string.Format(ConversationText.AcceptRejectConnectionHint, acceptCommand, rejectCommand),
+                Title = Strings.ConnectionRequestTitle,
+                Subtitle = string.Format(Strings.RequestorDetailsTitle, requestorChannelAccountName, requestorChannelId),
+                Text = string.Format(Strings.AcceptRejectConnectionHint, acceptCommand, rejectCommand),
 
                 Buttons = new List<CardAction>()
                 {
                     new CardAction()
                     {
-                        Title = ConversationText.AcceptButtonTitle,
+                        Title = Strings.AcceptButtonTitle,
                         Type = ActionTypes.ImBack,
                         Value = acceptCommand
                     },
                     new CardAction()
                     {
-                        Title = ConversationText.RejectButtonTitle,
+                        Title = Strings.RejectButtonTitle,
                         Type = ActionTypes.ImBack,
                         Value = rejectCommand
                     }
@@ -156,11 +156,11 @@ namespace IntermediatorBotSample.CommandHandling
             HeroCard card = new HeroCard()
             {
                 Title = (doAccept
-                    ? ConversationText.AcceptConnectionRequestsCardTitle
-                    : ConversationText.RejectConnectionRequestCardTitle),
+                    ? Strings.AcceptConnectionRequestsCardTitle
+                    : Strings.RejectConnectionRequestCardTitle),
                 Subtitle = (doAccept
-                    ? ConversationText.AcceptConnectionRequestsCardInstructions
-                    : ConversationText.RejectConnectionRequestsCardInstructions),
+                    ? Strings.AcceptConnectionRequestsCardInstructions
+                    : Strings.RejectConnectionRequestsCardInstructions),
             };
 
             string command = null;
@@ -170,7 +170,7 @@ namespace IntermediatorBotSample.CommandHandling
             {
                 card.Buttons.Add(new CardAction()
                 {
-                    Title = ConversationText.RejectAll,
+                    Title = Strings.RejectAll,
                     Type = ActionTypes.ImBack,
                     Value = new Command(Commands.RejectRequest, new string[] { Command.CommandParameterAll }, botName).ToString()
                 });
@@ -187,7 +187,7 @@ namespace IntermediatorBotSample.CommandHandling
                 }
 
                 string requestorChannelAccountName = string.IsNullOrEmpty(requestorChannelAccount.Name)
-                    ? StringAndCharConstants.NoUserNamePlaceholder : requestorChannelAccount.Name;
+                    ? StringConstants.NoUserNamePlaceholder : requestorChannelAccount.Name;
 
                 string requestorChannelId =
                     CultureInfo.CurrentCulture.TextInfo.ToTitleCase(connectionRequest.Requestor.ChannelId);
@@ -200,7 +200,7 @@ namespace IntermediatorBotSample.CommandHandling
                 card.Buttons.Add(new CardAction()
                 {
                     Title = string.Format(
-                        ConversationText.RequestorDetailsItem,
+                        Strings.RequestorDetailsItem,
                         requestorChannelAccountName,
                         requestorChannelId,
                         requestorChannelAccountId),

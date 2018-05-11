@@ -1,4 +1,4 @@
-﻿using IntermediatorBotSample.Strings;
+﻿using IntermediatorBotSample.Resources;
 using Microsoft.Bot.Schema;
 using System;
 using System.Collections.Generic;
@@ -6,7 +6,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting;
 using Underscore.Bot.MessageRouting.DataStore;
-using Underscore.Bot.Models;
+using Underscore.Bot.MessageRouting.Models;
+using Underscore.Bot.MessageRouting.Results;
 
 namespace IntermediatorBotSample.MessageRouting
 {
@@ -61,7 +62,7 @@ namespace IntermediatorBotSample.MessageRouting
                 catch (InvalidOperationException e)
                 {
                     errorMessage = string.Format(
-                        ConversationText.FailedToFindPendingRequestForUserWithErrorMessage,
+                        Strings.FailedToFindPendingRequestForUserWithErrorMessage,
                         channelAccountIdOfPartyToAcceptOrReject,
                         e.Message);
                 }
@@ -84,7 +85,7 @@ namespace IntermediatorBotSample.MessageRouting
                     counterpart = connection.ConversationReference1;
                 }
 
-                MessageRouterResult messageRouterResult = null;
+                AbstractMessageRouterResult messageRoutingResult = null;
 
                 if (doAccept)
                 {
@@ -94,12 +95,12 @@ namespace IntermediatorBotSample.MessageRouting
                         if (counterpart != null)
                         {
                             errorMessage = string.Format(
-                                ConversationText.AlreadyConnectedWithUser,
+                                Strings.AlreadyConnectedWithUser,
                                 RoutingDataManager.GetChannelAccount(counterpart, out bool isBot)?.Name);
                         }
                         else
                         {
-                            errorMessage = ConversationText.ErrorOccured;
+                            errorMessage = Strings.ErrorOccured;
                         }
                     }
                     else
@@ -108,7 +109,7 @@ namespace IntermediatorBotSample.MessageRouting
                             !(NoDirectConversationsWithChannels.Contains(sender.ChannelId.ToLower()));
 
                         // Try to accept
-                        messageRouterResult = await messageRouter.ConnectAsync(
+                        messageRoutingResult = await messageRouter.ConnectAsync(
                             sender,
                             connectionRequest.Requestor,
                             createNewDirectConversation);
@@ -117,17 +118,17 @@ namespace IntermediatorBotSample.MessageRouting
                 else
                 {
                     // Note: Rejecting is OK even if the sender is alreay connected
-                    messageRouterResult = messageRouter.RejectConnectionRequest(connectionRequest.Requestor, sender);
+                    messageRoutingResult = messageRouter.RejectConnectionRequest(connectionRequest.Requestor, sender);
                 }
 
-                if (messageRouterResult != null)
+                if (messageRoutingResult != null)
                 {
-                    await messageRouterResultHandler.HandleResultAsync(messageRouterResult);
+                    await messageRouterResultHandler.HandleResultAsync(messageRoutingResult);
                 }
             }
             else
             {
-                errorMessage = ConversationText.FailedToFindPendingRequest;
+                errorMessage = Strings.FailedToFindPendingRequest;
             }
 
             return errorMessage;
@@ -147,16 +148,18 @@ namespace IntermediatorBotSample.MessageRouting
 
             if (connectionRequests.Count > 0)
             {
-                IList<MessageRouterResult> messageRouterResults = new List<MessageRouterResult>();
+                IList<ConnectionRequestResult> connectionRequestResults =
+                    new List<ConnectionRequestResult>();
 
                 foreach (ConnectionRequest connectionRequest in connectionRequests)
                 {
-                    messageRouterResults.Add(messageRouter.RejectConnectionRequest(connectionRequest.Requestor));
+                    connectionRequestResults.Add(
+                        messageRouter.RejectConnectionRequest(connectionRequest.Requestor));
                 }
 
-                foreach (MessageRouterResult messageRouterResult in messageRouterResults)
+                foreach (ConnectionRequestResult connectionRequestResult in connectionRequestResults)
                 {
-                    await messageRouterResultHandler.HandleResultAsync(messageRouterResult);
+                    await messageRouterResultHandler.HandleResultAsync(connectionRequestResult);
                 }
 
                 wasSuccessful = true;

@@ -1,5 +1,5 @@
-﻿using IntermediatorBotSample.Strings;
-using IntermediatorBotSample.MessageRouting;
+﻿using IntermediatorBotSample.MessageRouting;
+using IntermediatorBotSample.Resources;
 using Microsoft.Bot.Connector;
 using Microsoft.Bot.Schema;
 using System;
@@ -7,7 +7,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting;
 using Underscore.Bot.MessageRouting.DataStore;
-using Underscore.Bot.Models;
+using Underscore.Bot.MessageRouting.Models;
+using Underscore.Bot.MessageRouting.Results;
 
 namespace IntermediatorBotSample.CommandHandling
 {
@@ -68,11 +69,11 @@ namespace IntermediatorBotSample.CommandHandling
 
                     if (_messageRouter.RoutingDataManager.AddAggregationChannel(aggregationChannelToAdd))
                     {
-                        replyActivity = activity.CreateReply(ConversationText.AggregationChannelSet);
+                        replyActivity = activity.CreateReply(Strings.AggregationChannelSet);
                     }
                     else
                     {
-                        replyActivity = activity.CreateReply(ConversationText.AggregationChannelAlreadySet);
+                        replyActivity = activity.CreateReply(Strings.AggregationChannelAlreadySet);
                     }
 
                     wasHandled = true;
@@ -87,11 +88,11 @@ namespace IntermediatorBotSample.CommandHandling
 
                         if (_messageRouter.RoutingDataManager.RemoveAggregationChannel(aggregationChannelToRemove))
                         {
-                            replyActivity = activity.CreateReply(ConversationText.AggregationChannelRemoved);
+                            replyActivity = activity.CreateReply(Strings.AggregationChannelRemoved);
                         }
                         else
                         {
-                            replyActivity = activity.CreateReply(ConversationText.FailedToRemoveAggregationChannel);
+                            replyActivity = activity.CreateReply(Strings.FailedToRemoveAggregationChannel);
                         }
 
                         wasHandled = true;
@@ -116,7 +117,7 @@ namespace IntermediatorBotSample.CommandHandling
 
                             if (connectionRequests.Count == 0)
                             {
-                                replyActivity.Text = ConversationText.NoPendingRequests;
+                                replyActivity.Text = Strings.NoPendingRequests;
                             }
                             else
                             {
@@ -132,7 +133,7 @@ namespace IntermediatorBotSample.CommandHandling
                                     _messageRouter, _messageRouterResultHandler))
                             {
                                 replyActivity = activity.CreateReply();
-                                replyActivity.Text = ConversationText.FailedToRejectPendingRequests;
+                                replyActivity.Text = Strings.FailedToRejectPendingRequests;
                             }
                         }
                         else
@@ -152,7 +153,7 @@ namespace IntermediatorBotSample.CommandHandling
                     // it's okay when debugging
                     else
                     {
-                        replyActivity = activity.CreateReply(ConversationText.ConnectionRequestResponseNotAllowed);
+                        replyActivity = activity.CreateReply(Strings.ConnectionRequestResponseNotAllowed);
                     }
 #endif
 
@@ -160,19 +161,19 @@ namespace IntermediatorBotSample.CommandHandling
                     break;
 
                 case Commands.Disconnect:
-                    // End the 1:1 conversation
-                    IList<MessageRouterResult> messageRouterResults = _messageRouter.Disconnect(sender);
+                    // End the 1:1 conversation(s)
+                    IList<ConnectionResult> disconnectResults = _messageRouter.Disconnect(sender);
 
-                    foreach (MessageRouterResult messageRouterResult in messageRouterResults)
+                    foreach (ConnectionResult disconnectResult in disconnectResults)
                     {
-                        await _messageRouterResultHandler.HandleResultAsync(messageRouterResult);
+                        await _messageRouterResultHandler.HandleResultAsync(disconnectResult);
                     }
 
                     wasHandled = true;
                     break;
 
                 default:
-                    replyActivity = activity.CreateReply(string.Format(ConversationText.CommandNotRecognized, command.BaseCommand));
+                    replyActivity = activity.CreateReply(string.Format(Strings.CommandNotRecognized, command.BaseCommand));
                     break;
             }
 

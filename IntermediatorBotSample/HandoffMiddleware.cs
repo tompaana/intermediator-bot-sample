@@ -8,6 +8,7 @@ using Underscore.Bot.MessageRouting;
 using Underscore.Bot.MessageRouting.DataStore;
 using Underscore.Bot.MessageRouting.DataStore.Azure;
 using Underscore.Bot.MessageRouting.DataStore.Local;
+using Underscore.Bot.MessageRouting.Results;
 
 namespace IntermediatorBotSample
 {
@@ -73,7 +74,7 @@ namespace IntermediatorBotSample
 
                 MessageRouter.StoreConversationReferences(activity);
 
-                MessageRouterResult messageRouterResult = null;
+                AbstractMessageRouterResult messageRouterResult = null;
 
                 if (await CommandHandler.HandleCommandAsync(activity) == false)
                 {
@@ -83,7 +84,8 @@ namespace IntermediatorBotSample
                     messageRouterResult = await MessageRouter.HandleActivityAsync(
                         activity, false, rejectConnectionRequestIfNoAggregationChannel);
 
-                    if (messageRouterResult.Type == MessageRouterResultType.NoActionTaken)
+                    if (messageRouterResult is MessageRoutingResult
+                        && (messageRouterResult as MessageRoutingResult).Type == MessageRoutingResultType.NoActionTaken)
                     {
                         // No action was taken by the message router. This means that the user
                         // is not connected (in a 1:1 conversation) with a human

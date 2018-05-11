@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace IntermediatorBotSample.Strings {
+namespace IntermediatorBotSample.Resources {
     using System;
     
     
@@ -22,14 +22,14 @@ namespace IntermediatorBotSample.Strings {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "15.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class ConversationText {
+    internal class Strings {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
         private static global::System.Globalization.CultureInfo resourceCulture;
         
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal ConversationText() {
+        internal Strings() {
         }
         
         /// <summary>
@@ -39,7 +39,7 @@ namespace IntermediatorBotSample.Strings {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("IntermediatorBotSample.Strings.ConversationText", typeof(ConversationText).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("IntermediatorBotSample.Strings.en_US.Strings", typeof(Strings).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -214,11 +214,29 @@ namespace IntermediatorBotSample.Strings {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to A connection request error occurred: {0}.
+        /// </summary>
+        internal static string ConnectionRequestResultErrorWithResult {
+            get {
+                return ResourceManager.GetString("ConnectionRequestResultErrorWithResult", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Assistance request.
         /// </summary>
         internal static string ConnectionRequestTitle {
             get {
                 return ResourceManager.GetString("ConnectionRequestTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A connection error occurred: {0}.
+        /// </summary>
+        internal static string ConnectionResultErrorWithResult {
+            get {
+                return ResourceManager.GetString("ConnectionResultErrorWithResult", resourceCulture);
             }
         }
         
@@ -259,7 +277,7 @@ namespace IntermediatorBotSample.Strings {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to An error occured.
+        ///   Looks up a localized string similar to An error occurred.
         /// </summary>
         internal static string ErrorOccured {
             get {
@@ -268,7 +286,7 @@ namespace IntermediatorBotSample.Strings {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to An error occured (result: {0}).
+        ///   Looks up a localized string similar to An error occurred: {0}.
         /// </summary>
         internal static string ErrorOccuredWithResult {
             get {
@@ -277,7 +295,7 @@ namespace IntermediatorBotSample.Strings {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Failed to find the bot party on aggregation channel &quot;{0}&quot;.
+        ///   Looks up a localized string similar to Failed to find the bot instance on aggregation channel &quot;{0}&quot;.
         /// </summary>
         internal static string FailedToFindBotOnAggregationChannel {
             get {
@@ -556,7 +574,7 @@ namespace IntermediatorBotSample.Strings {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Request was made, but the details of the requestor party are missing.
+        ///   Looks up a localized string similar to Request was made, but the details of the requestor are missing.
         /// </summary>
         internal static string RequestorDetailsMissing {
             get {

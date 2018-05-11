@@ -24,4 +24,19 @@
     <ProjectReference Include="..\bot-message-routing\BotMessageRouting\BotMessageRouting.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Update="Resources\en_US\Strings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Strings.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\en_US\Strings.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Strings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>

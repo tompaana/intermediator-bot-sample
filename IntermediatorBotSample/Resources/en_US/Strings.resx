@@ -172,13 +172,13 @@
     <value>You said: {0}</value>
   </data>
   <data name="ErrorOccured" xml:space="preserve">
-    <value>An error occured</value>
+    <value>An error occurred</value>
   </data>
   <data name="ErrorOccuredWithResult" xml:space="preserve">
-    <value>An error occured (result: {0})</value>
+    <value>An error occurred: {0}</value>
   </data>
   <data name="FailedToFindBotOnAggregationChannel" xml:space="preserve">
-    <value>Failed to find the bot party on aggregation channel "{0}"</value>
+    <value>Failed to find the bot instance on aggregation channel "{0}"</value>
   </data>
   <data name="FailedToFindPendingRequestForUserWithErrorMessage" xml:space="preserve">
     <value>Failed to find a pending request for user "0": {1}</value>
@@ -296,5 +296,11 @@
   </data>
   <data name="RequestorDetailsMissing" xml:space="preserve">
     <value>Request was made, but the details of the requestor are missing</value>
+  </data>
+  <data name="ConnectionRequestResultErrorWithResult" xml:space="preserve">
+    <value>A connection request error occurred: {0}</value>
+  </data>
+  <data name="ConnectionResultErrorWithResult" xml:space="preserve">
+    <value>A connection error occurred: {0}</value>
   </data>
 </root>
