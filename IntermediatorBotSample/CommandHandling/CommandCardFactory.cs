@@ -72,12 +72,18 @@ namespace IntermediatorBotSample.CommandHandling
         /// <summary>
         /// Creates a connection (e.g. human agent) request card.
         /// </summary>
-        /// <param name="requestor">The party who requested a connection.</param>
+        /// <param name="connectionRequest">The connection request.</param>
         /// <param name="botName">The name of the bot (optional).</param>
         /// <returns>A newly created request card.</returns>
-        public static HeroCard CreateRequestCard(ConversationReference requestor, string botName = null)
+        public static HeroCard CreateRequestCard(ConnectionRequest connectionRequest, string botName = null)
         {
-            ChannelAccount requestorChannelAccount = RoutingDataManager.GetChannelAccount(requestor, out bool isBot);
+            if (connectionRequest == null || connectionRequest.Requestor == null)
+            {
+                throw new ArgumentNullException("The connection request or the conversation reference of the requestor is null");
+            }
+
+            ChannelAccount requestorChannelAccount =
+                RoutingDataManager.GetChannelAccount(connectionRequest.Requestor, out bool isBot);
 
             if (requestorChannelAccount == null)
             {
@@ -87,7 +93,7 @@ namespace IntermediatorBotSample.CommandHandling
             string requestorChannelAccountName = string.IsNullOrEmpty(requestorChannelAccount.Name)
                 ? StringConstants.NoUserNamePlaceholder : requestorChannelAccount.Name;
 
-            string requestorChannelId = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(requestor.ChannelId);
+            string requestorChannelId = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(connectionRequest.Requestor.ChannelId);
             string requestorChannelAccountId = requestorChannelAccount.Id;
 
             string acceptCommand =
@@ -134,10 +140,7 @@ namespace IntermediatorBotSample.CommandHandling
 
             foreach (ConnectionRequest connectionRequest in connectionRequests)
             {
-                if (RoutingDataManager.GetChannelAccount(connectionRequest.Requestor, out bool isBot) != null)
-                {
-                    attachments.Add(CreateRequestCard(connectionRequest.Requestor, botName).ToAttachment());
-                }
+                attachments.Add(CreateRequestCard(connectionRequest, botName).ToAttachment());
             }
 
             return attachments;

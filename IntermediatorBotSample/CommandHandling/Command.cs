@@ -1,4 +1,5 @@
 ﻿using Microsoft.Bot.Schema;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,12 +13,14 @@ namespace IntermediatorBotSample.CommandHandling
     public enum Commands
     {
         Undefined = 0,
+        GetRequests,
         CreateRequest,
         AcceptRequest,
         RejectRequest,
         Disconnect,
         Watch, // Adds aggregation channel
         Unwatch, // Removes aggregation channel
+        GetHistory,
         ShowOptions
     }
 
@@ -84,6 +87,38 @@ namespace IntermediatorBotSample.CommandHandling
         }
 
         /// <summary>
+        /// Tries to parse the given JSON string into a command object.
+        /// </summary>
+        /// <param name="commandAsJsonString">The command as JSON string.</param>
+        /// <returns>A newly created command instance or null, if failed to parse.</returns>
+        public static Command FromJson(string commandAsJsonString)
+        {
+            Command command = null;
+
+            if (!string.IsNullOrWhiteSpace(commandAsJsonString))
+            {
+                try
+                {
+                    command = JsonConvert.DeserializeObject<Command>(commandAsJsonString);
+                }
+                catch (Exception)
+                {
+                }
+            }
+
+            return command;
+        }
+
+        /// <summary>
+        /// Serializes this object into a JSON string.
+        /// </summary>
+        /// <returns>A newly created JSON string based on this object instance.</returns>
+        public string ToJson()
+        {
+            return JsonConvert.SerializeObject(this);
+        }
+
+        /// <summary>
         /// Tries to parse the given string into a command object.
         /// </summary>
         /// <param name="commandAsString">The command as string.</param>
@@ -100,7 +135,7 @@ namespace IntermediatorBotSample.CommandHandling
             Command command = null;
             int baseCommandIndex = -1;
 
-            for (int i = 0; i < commandAsStringArray.Length; ++i)
+            for (int i = 1; i < commandAsStringArray.Length; ++i)
             {
                 Commands baseCommand = StringToCommand(commandAsStringArray[i].Trim());
 
@@ -143,6 +178,16 @@ namespace IntermediatorBotSample.CommandHandling
         public static Command FromMessageActivity(IMessageActivity messageActivity)
         {
             return FromString(messageActivity.Text?.Trim());
+        }
+
+        /// <summary>
+        /// Tries to parse the string in the channel data of the given activity to a command object.
+        /// </summary>
+        /// <param name="activity">The activity whose channel data to parse.</param>
+        /// <returns>A newly created command instance or null, if no command found.</returns>
+        public static Command FromChannelData(Activity activity)
+        {
+            return FromJson(activity.ChannelData as string);
         }
 
         public string ToString(bool addCommandKeywordOrBotName = true)
@@ -194,9 +239,17 @@ namespace IntermediatorBotSample.CommandHandling
         /// <returns>The command (enum).</returns>
         public static Commands StringToCommand(string commandAsString)
         {
-            if (Enum.TryParse(commandAsString, out Commands command))
+            if (Enum.TryParse(commandAsString, out Commands result))
             {
-                return command;
+                return result;
+            }
+
+            foreach (Commands command in Enum.GetValues(typeof(Commands)))
+            {
+                if (command.ToString().ToLower().Equals(commandAsString.ToLower()))
+                {
+                    return command;
+                }
             }
 
             return Commands.Undefined;

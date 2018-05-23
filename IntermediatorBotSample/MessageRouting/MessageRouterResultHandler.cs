@@ -32,24 +32,22 @@ namespace IntermediatorBotSample.MessageRouting
         /// <returns>True, if the result was handled. False, if no action was taken.</returns>
         public virtual async Task<bool> HandleResultAsync(AbstractMessageRouterResult messageRouterResult)
         {
-            if (messageRouterResult == null)
+            if (messageRouterResult != null)
             {
-                throw new ArgumentNullException($"The given result ({nameof(messageRouterResult)}) is null");
-            }
+                if (messageRouterResult is ConnectionRequestResult)
+                {
+                    return await HandleConnectionRequestResultAsync(messageRouterResult as ConnectionRequestResult);
+                }
 
-            if (messageRouterResult is ConnectionRequestResult)
-            {
-                return await HandleConnectionRequestResultAsync(messageRouterResult as ConnectionRequestResult);
-            }
+                if (messageRouterResult is ConnectionResult)
+                {
+                    return await HandleConnectionResultAsync(messageRouterResult as ConnectionResult);
+                }
 
-            if (messageRouterResult is ConnectionResult)
-            {
-                return await HandleConnectionResultAsync(messageRouterResult as ConnectionResult);
-            }
-
-            if (messageRouterResult is MessageRoutingResult)
-            {
-                return await HandleMessageRoutingResultAsync(messageRouterResult as MessageRoutingResult);
+                if (messageRouterResult is MessageRoutingResult)
+                {
+                    return await HandleMessageRoutingResultAsync(messageRouterResult as MessageRoutingResult);
+                }
             }
 
             return false;
@@ -89,7 +87,7 @@ namespace IntermediatorBotSample.MessageRouting
                             messageActivity.Attachments = new List<Attachment>
                             {
                                 CommandCardFactory.CreateRequestCard(
-                                    connectionRequest.Requestor,
+                                    connectionRequest,
                                     RoutingDataManager.GetChannelAccount(
                                         botConversationReference, out isBot)?.Name).ToAttachment()
                             };

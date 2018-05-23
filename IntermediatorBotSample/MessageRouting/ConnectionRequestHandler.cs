@@ -38,13 +38,15 @@ namespace IntermediatorBotSample.MessageRouting
         /// <param name="sender">The sender party (accepter/rejecter).</param>
         /// <param name="doAccept">If true, will try to accept the request. If false, will reject.</param>
         /// <param name="channelAccountIdOfPartyToAcceptOrReject">The channel account ID of the party whose request to accep/reject.</param>
-        /// <returns>Null, if an accept/reject operation was executed successfully.
-        /// A user friendly error message otherwise.</returns>
-        public async Task<string> AcceptOrRejectRequestAsync(
+        /// <returns>The result.</returns>
+        public async Task<AbstractMessageRouterResult> AcceptOrRejectRequestAsync(
             MessageRouter messageRouter, MessageRouterResultHandler messageRouterResultHandler,
             ConversationReference sender, bool doAccept, string channelAccountIdOfPartyToAcceptOrReject)
         {
-            string errorMessage = null;
+            AbstractMessageRouterResult messageRouterResult = new ConnectionRequestResult()
+            {
+                Type = ConnectionRequestResultType.Error
+            };
 
             RoutingDataManager routingDataManager = messageRouter.RoutingDataManager;
             ConnectionRequest connectionRequest = null;
@@ -61,7 +63,7 @@ namespace IntermediatorBotSample.MessageRouting
                 }
                 catch (InvalidOperationException e)
                 {
-                    errorMessage = string.Format(
+                    messageRouterResult.ErrorMessage = string.Format(
                         Strings.FailedToFindPendingRequestForUserWithErrorMessage,
                         channelAccountIdOfPartyToAcceptOrReject,
                         e.Message);
@@ -70,22 +72,29 @@ namespace IntermediatorBotSample.MessageRouting
 
             if (connectionRequest != null)
             {
-                Connection connection = routingDataManager.FindConnection(sender);
+                Connection connection = null;
+
+                if (sender != null)
+                {
+                    connection = routingDataManager.FindConnection(sender);
+                }
+
                 ConversationReference senderInConnection = null;
                 ConversationReference counterpart = null;
 
-                if (RoutingDataManager.HaveMatchingChannelAccounts(sender, connection.ConversationReference1))
+                if (connection != null && connection.ConversationReference1 != null)
                 {
-                    senderInConnection = connection.ConversationReference1;
-                    counterpart = connection.ConversationReference2;
+                    if (RoutingDataManager.HaveMatchingChannelAccounts(sender, connection.ConversationReference1))
+                    {
+                        senderInConnection = connection.ConversationReference1;
+                        counterpart = connection.ConversationReference2;
+                    }
+                    else
+                    {
+                        senderInConnection = connection.ConversationReference2;
+                        counterpart = connection.ConversationReference1;
+                    }
                 }
-                else
-                {
-                    senderInConnection = connection.ConversationReference2;
-                    counterpart = connection.ConversationReference1;
-                }
-
-                AbstractMessageRouterResult messageRoutingResult = null;
 
                 if (doAccept)
                 {
@@ -94,13 +103,13 @@ namespace IntermediatorBotSample.MessageRouting
                         // The sender (accepter/rejecter) is ALREADY connected to another party
                         if (counterpart != null)
                         {
-                            errorMessage = string.Format(
+                            messageRouterResult.ErrorMessage = string.Format(
                                 Strings.AlreadyConnectedWithUser,
                                 RoutingDataManager.GetChannelAccount(counterpart, out bool isBot)?.Name);
                         }
                         else
                         {
-                            errorMessage = Strings.ErrorOccured;
+                            messageRouterResult.ErrorMessage = Strings.ErrorOccured;
                         }
                     }
                     else
@@ -109,7 +118,7 @@ namespace IntermediatorBotSample.MessageRouting
                             !(NoDirectConversationsWithChannels.Contains(sender.ChannelId.ToLower()));
 
                         // Try to accept
-                        messageRoutingResult = await messageRouter.ConnectAsync(
+                        messageRouterResult = await messageRouter.ConnectAsync(
                             sender,
                             connectionRequest.Requestor,
                             createNewDirectConversation);
@@ -118,20 +127,15 @@ namespace IntermediatorBotSample.MessageRouting
                 else
                 {
                     // Note: Rejecting is OK even if the sender is alreay connected
-                    messageRoutingResult = messageRouter.RejectConnectionRequest(connectionRequest.Requestor, sender);
-                }
-
-                if (messageRoutingResult != null)
-                {
-                    await messageRouterResultHandler.HandleResultAsync(messageRoutingResult);
+                    messageRouterResult = messageRouter.RejectConnectionRequest(connectionRequest.Requestor, sender);
                 }
             }
             else
             {
-                errorMessage = Strings.FailedToFindPendingRequest;
+                messageRouterResult.ErrorMessage = Strings.FailedToFindPendingRequest;
             }
 
-            return errorMessage;
+            return messageRouterResult;
         }
 
         /// <summary>

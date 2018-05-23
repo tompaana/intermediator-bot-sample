@@ -99,18 +99,22 @@ namespace IntermediatorBotSample
                                 MessageRouter.CreateSenderConversationReference(activity),
                                 rejectConnectionRequestIfNoAggregationChannel);
                         }
+                        else
+                        {
+                            // No action taken - this middleware did not consume the activity so let it propagate
+                            await next().ConfigureAwait(false);
+                        }
                     }
                 }
 
                 // Uncomment to see the result in a reply (may be useful for debugging)
-                //await MessageRouter.ReplyToActivityAsync(activity, messageRouterResult.ToString());
+                //if (messageRouterResult != null)
+                //{
+                //    await MessageRouter.ReplyToActivityAsync(activity, messageRouterResult.ToString());
+                //}
 
-                // Handle the result, if required
-                if (await MessageRouterResultHandler.HandleResultAsync(messageRouterResult) == false)
-                {
-                    // No action taken - this middleware did not consume the activity so let it propagate
-                    await next().ConfigureAwait(false);
-                }
+                // Handle the result, if necessary
+                await MessageRouterResultHandler.HandleResultAsync(messageRouterResult);
             }
         }
     }

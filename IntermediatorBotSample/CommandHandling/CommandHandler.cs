@@ -2,6 +2,7 @@
 using IntermediatorBotSample.Resources;
 using Microsoft.Bot.Connector;
 using Microsoft.Bot.Schema;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -34,15 +35,17 @@ namespace IntermediatorBotSample.CommandHandling
 
         /// <summary>
         /// Checks the given activity for a possible command.
-        /// 
-        /// All messages that start with a specific command keyword or contain a mention of the bot
-        /// ("@<bot name>") are checked for possible commands.
         /// </summary>
         /// <param name="activity">An Activity instance containing a possible command.</param>
         /// <returns>True, if a command was detected and handled. False otherwise.</returns>
         public async virtual Task<bool> HandleCommandAsync(Activity activity)
         {
             Command command = Command.FromMessageActivity(activity);
+
+            if (command == null)
+            {
+                command = Command.FromChannelData(activity);
+            }
 
             if (command == null)
             {
@@ -64,8 +67,9 @@ namespace IntermediatorBotSample.CommandHandling
 
                 case Commands.Watch:
                     // Add the sender's channel/conversation into the list of aggregation channels
-                    ConversationReference aggregationChannelToAdd =
-                        new ConversationReference(null, null, null, activity.Conversation, activity.ChannelId, activity.ServiceUrl);
+                    ConversationReference aggregationChannelToAdd = new ConversationReference(
+                        null, null, null,
+                        activity.Conversation, activity.ChannelId, activity.ServiceUrl);
 
                     if (_messageRouter.RoutingDataManager.AddAggregationChannel(aggregationChannelToAdd))
                     {
@@ -83,8 +87,9 @@ namespace IntermediatorBotSample.CommandHandling
                     // Remove the sender's channel/conversation from the list of aggregation channels
                     if (_messageRouter.RoutingDataManager.IsAssociatedWithAggregation(sender))
                     {
-                        ConversationReference aggregationChannelToRemove =
-                            new ConversationReference(null, null, null, activity.Conversation, activity.ChannelId, activity.ServiceUrl);
+                        ConversationReference aggregationChannelToRemove = new ConversationReference(
+                                null, null, null,
+                                activity.Conversation, activity.ChannelId, activity.ServiceUrl);
 
                         if (_messageRouter.RoutingDataManager.RemoveAggregationChannel(aggregationChannelToRemove))
                         {
@@ -100,6 +105,26 @@ namespace IntermediatorBotSample.CommandHandling
 
                     break;
 
+                case Commands.GetRequests:
+                    IList<ConnectionRequest> connectionRequests =
+                        _messageRouter.RoutingDataManager.GetConnectionRequests();
+
+                    replyActivity = activity.CreateReply();
+
+                    if (connectionRequests.Count == 0)
+                    {
+                        replyActivity.Text = Strings.NoPendingRequests;
+                    }
+                    else
+                    {
+                        replyActivity.Attachments = CommandCardFactory.CreateMultipleRequestCards(
+                            connectionRequests, activity.Recipient?.Name);
+                    }
+
+                    replyActivity.ChannelData = JsonConvert.SerializeObject(connectionRequests);
+                    wasHandled = true;
+                    break;
+
                 case Commands.AcceptRequest:
                 case Commands.RejectRequest:
                     // Accept/reject connection request
@@ -112,7 +137,7 @@ namespace IntermediatorBotSample.CommandHandling
                         {
                             replyActivity = activity.CreateReply();
 
-                            IList<ConnectionRequest> connectionRequests =
+                            connectionRequests =
                                 _messageRouter.RoutingDataManager.GetConnectionRequests();
 
                             if (connectionRequests.Count == 0)
@@ -138,14 +163,19 @@ namespace IntermediatorBotSample.CommandHandling
                         }
                         else
                         {
-                            string errorMessage = await new ConnectionRequestHandler().AcceptOrRejectRequestAsync(
-                                _messageRouter, _messageRouterResultHandler, sender, doAccept, command.Parameters[0]);
+                            AbstractMessageRouterResult messageRouterResult =
+                                await new ConnectionRequestHandler().AcceptOrRejectRequestAsync(
+                                    _messageRouter, _messageRouterResultHandler, sender, doAccept, command.Parameters[0]);
 
-                            if (!string.IsNullOrEmpty(errorMessage))
+                            await _messageRouterResultHandler.HandleResultAsync(messageRouterResult);
+
+                            if (!string.IsNullOrEmpty(messageRouterResult.ErrorMessage))
                             {
                                 replyActivity = activity.CreateReply();
-                                replyActivity.Text = errorMessage;
+                                replyActivity.Text = messageRouterResult.ErrorMessage;
                             }
+
+                            replyActivity.ChannelData = messageRouterResult.ToJson();
                         }
                     }
 #if DEBUG
@@ -164,12 +194,18 @@ namespace IntermediatorBotSample.CommandHandling
                     // End the 1:1 conversation(s)
                     IList<ConnectionResult> disconnectResults = _messageRouter.Disconnect(sender);
 
-                    foreach (ConnectionResult disconnectResult in disconnectResults)
+                    if (disconnectResults != null && disconnectResults.Count > 0)
                     {
-                        await _messageRouterResultHandler.HandleResultAsync(disconnectResult);
+                        foreach (ConnectionResult disconnectResult in disconnectResults)
+                        {
+                            await _messageRouterResultHandler.HandleResultAsync(disconnectResult);
+                        }
+
+                        replyActivity = activity.CreateReply();
+                        replyActivity.ChannelData = JsonConvert.SerializeObject(disconnectResults);
+                        wasHandled = true;
                     }
 
-                    wasHandled = true;
                     break;
 
                 default:
