@@ -91,10 +91,12 @@ namespace IntermediatorBotSample
                         // is not connected (in a 1:1 conversation) with a human
                         // (e.g. customer service agent) yet.
 
+                        // Check for cry for help (agent assistance)
                         if (!string.IsNullOrWhiteSpace(activity.Text)
                             && activity.Text.ToLower().Contains("human"))
                         {
                             // Create a connection request on behalf of the sender
+                            // Note that the returned result must be handled
                             messageRouterResult = MessageRouter.CreateConnectionRequest(
                                 MessageRouter.CreateSenderConversationReference(activity),
                                 rejectConnectionRequestIfNoAggregationChannel);

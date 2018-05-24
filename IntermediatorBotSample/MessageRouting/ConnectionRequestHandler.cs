@@ -1,8 +1,6 @@
 ﻿using IntermediatorBotSample.Resources;
 using Microsoft.Bot.Schema;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting;
 using Underscore.Bot.MessageRouting.DataStore;

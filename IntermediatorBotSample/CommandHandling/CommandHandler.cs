@@ -44,6 +44,7 @@ namespace IntermediatorBotSample.CommandHandling
 
             if (command == null)
             {
+                // Check for back channel command
                 command = Command.FromChannelData(activity);
             }
 
@@ -117,7 +118,7 @@ namespace IntermediatorBotSample.CommandHandling
                     }
                     else
                     {
-                        replyActivity.Attachments = CommandCardFactory.CreateMultipleRequestCards(
+                        replyActivity.Attachments = CommandCardFactory.CreateMultipleConnectionRequestCards(
                             connectionRequests, activity.Recipient?.Name);
                     }
 
@@ -147,13 +148,14 @@ namespace IntermediatorBotSample.CommandHandling
                             else
                             {
                                 replyActivity = CommandCardFactory.AddCardToActivity(
-                                    replyActivity, CommandCardFactory.CreateAcceptOrRejectCardForMultipleRequests(
+                                    replyActivity, CommandCardFactory.CreateMultiConnectionRequestCard(
                                         connectionRequests, doAccept, activity.Recipient?.Name));
                             }
                         }
                         else if (!doAccept
                             && command.Parameters[0].Equals(Command.CommandParameterAll))
                         {
+                            // Reject all pending connection requests
                             if (!await new ConnectionRequestHandler().RejectAllPendingRequestsAsync(
                                     _messageRouter, _messageRouterResultHandler))
                             {
@@ -163,6 +165,7 @@ namespace IntermediatorBotSample.CommandHandling
                         }
                         else if (command.Parameters.Count > 1)
                         {
+                            // Try to accept/reject the specified connection request
                             ChannelAccount requestorChannelAccount =
                                 new ChannelAccount(command.Parameters[0]);
                             ConversationAccount requestorConversationAccount =

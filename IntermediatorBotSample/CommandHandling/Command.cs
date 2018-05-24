@@ -1,9 +1,7 @@
-﻿using IntermediatorBotSample.Resources;
-using Microsoft.Bot.Schema;
+﻿using Microsoft.Bot.Schema;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 using Underscore.Bot.MessageRouting.DataStore;
@@ -17,15 +15,15 @@ namespace IntermediatorBotSample.CommandHandling
     public enum Commands
     {
         Undefined = 0,
+        ShowOptions,
+        Watch, // Adds aggregation channel
+        Unwatch, // Removes aggregation channel
         GetRequests,
         CreateRequest,
         AcceptRequest,
         RejectRequest,
-        Disconnect,
-        Watch, // Adds aggregation channel
-        Unwatch, // Removes aggregation channel
         GetHistory,
-        ShowOptions
+        Disconnect
     }
 
     /// <summary>

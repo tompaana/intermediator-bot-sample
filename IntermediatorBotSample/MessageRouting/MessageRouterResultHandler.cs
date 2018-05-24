@@ -86,7 +86,7 @@ namespace IntermediatorBotSample.MessageRouting
                             messageActivity.Recipient = RoutingDataManager.GetChannelAccount(aggregationChannel, out bool isBot);
                             messageActivity.Attachments = new List<Attachment>
                             {
-                                CommandCardFactory.CreateRequestCard(
+                                CommandCardFactory.CreateConnectionRequestCard(
                                     connectionRequest,
                                     RoutingDataManager.GetChannelAccount(
                                         botConversationReference, out isBot)?.Name).ToAttachment()

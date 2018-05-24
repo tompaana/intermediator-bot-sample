@@ -29,37 +29,52 @@ namespace IntermediatorBotSample.CommandHandling
                     Strings.CommandMenuInstructions,
                     Command.CommandKeyword,
                     botName,
-                    new Command(Commands.AcceptRequest, new string[] { "<user ID>" }, botName).ToString()),
+                    new Command(
+                        Commands.AcceptRequest,
+                        new string[] { "(user ID)", "(user conversation ID)" },
+                        botName).ToString()),
 
                 Buttons = new List<CardAction>()
                 {
                     new CardAction()
                     {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Command.CommandToString(Commands.Watch)),
+                        Title = Command.CommandToString(Commands.Watch),
                         Type = ActionTypes.ImBack,
                         Value = new Command(Commands.Watch, null, botName).ToString()
                     },
                     new CardAction()
                     {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Command.CommandToString(Commands.Unwatch)),
+                        Title = Command.CommandToString(Commands.Unwatch),
                         Type = ActionTypes.ImBack,
                         Value = new Command(Commands.Unwatch, null, botName).ToString()
                     },
                     new CardAction()
                     {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Command.CommandToString(Commands.AcceptRequest)),
+                        Title = Command.CommandToString(Commands.GetRequests),
+                        Type = ActionTypes.ImBack,
+                        Value = new Command(Commands.GetRequests, null, botName).ToString()
+                    },
+                    new CardAction()
+                    {
+                        Title = Command.CommandToString(Commands.AcceptRequest),
                         Type = ActionTypes.ImBack,
                         Value = new Command(Commands.AcceptRequest, null, botName).ToString()
                     },
                     new CardAction()
                     {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Command.CommandToString(Commands.RejectRequest)),
+                        Title = Command.CommandToString(Commands.RejectRequest),
                         Type = ActionTypes.ImBack,
                         Value = new Command(Commands.RejectRequest, null, botName).ToString()
                     },
                     new CardAction()
                     {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Command.CommandToString(Commands.Disconnect)),
+                        Title = Command.CommandToString(Commands.GetHistory),
+                        Type = ActionTypes.ImBack,
+                        Value = new Command(Commands.GetHistory, null, botName).ToString()
+                    },
+                    new CardAction()
+                    {
+                        Title = Command.CommandToString(Commands.Disconnect),
                         Type = ActionTypes.ImBack,
                         Value = new Command(Commands.Disconnect, null, botName).ToString()
                     }
@@ -70,12 +85,13 @@ namespace IntermediatorBotSample.CommandHandling
         }
 
         /// <summary>
-        /// Creates a connection (e.g. human agent) request card.
+        /// Creates a large connection request card.
         /// </summary>
         /// <param name="connectionRequest">The connection request.</param>
         /// <param name="botName">The name of the bot (optional).</param>
         /// <returns>A newly created request card.</returns>
-        public static HeroCard CreateRequestCard(ConnectionRequest connectionRequest, string botName = null)
+        public static HeroCard CreateConnectionRequestCard(
+            ConnectionRequest connectionRequest, string botName = null)
         {
             if (connectionRequest == null || connectionRequest.Requestor == null)
             {
@@ -127,32 +143,33 @@ namespace IntermediatorBotSample.CommandHandling
         }
 
         /// <summary>
-        /// Creates multiple request cards to be used e.g. in a carousel.
+        /// Creates multiple large connection request cards.
         /// </summary>
         /// <param name="connectionRequests">The connection requests.</param>
         /// <param name="botName">The name of the bot (optional).</param>
         /// <returns>A list of request cards as attachments.</returns>
-        public static IList<Attachment> CreateMultipleRequestCards(IList<ConnectionRequest> connectionRequests, string botName)
+        public static IList<Attachment> CreateMultipleConnectionRequestCards(
+            IList<ConnectionRequest> connectionRequests, string botName = null)
         {
             IList<Attachment> attachments = new List<Attachment>();
 
             foreach (ConnectionRequest connectionRequest in connectionRequests)
             {
-                attachments.Add(CreateRequestCard(connectionRequest, botName).ToAttachment());
+                attachments.Add(CreateConnectionRequestCard(connectionRequest, botName).ToAttachment());
             }
 
             return attachments;
         }
 
         /// <summary>
-        /// Creates a card for accepting/rejecting multiple requests.
+        /// Creates a compact card for accepting/rejecting multiple requests.
         /// </summary>
         /// <param name="connectionRequests">The connection requests.</param>
         /// <param name="doAccept">If true, will create an accept card. If false, will create a reject card.</param>
         /// <param name="botName">The name of the bot (optional).</param>
         /// <returns>The newly created card.</returns>
-        public static HeroCard CreateAcceptOrRejectCardForMultipleRequests(
-            IList<ConnectionRequest> connectionRequests, bool doAccept, string botName)
+        public static HeroCard CreateMultiConnectionRequestCard(
+            IList<ConnectionRequest> connectionRequests, bool doAccept, string botName = null)
         {
             HeroCard card = new HeroCard()
             {
