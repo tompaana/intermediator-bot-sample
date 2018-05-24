@@ -161,21 +161,32 @@ namespace IntermediatorBotSample.CommandHandling
                                 replyActivity.Text = Strings.FailedToRejectPendingRequests;
                             }
                         }
-                        else
+                        else if (command.Parameters.Count > 1)
                         {
+                            ChannelAccount requestorChannelAccount =
+                                new ChannelAccount(command.Parameters[0]);
+                            ConversationAccount requestorConversationAccount =
+                                new ConversationAccount(null, null, command.Parameters[1]);
+
                             AbstractMessageRouterResult messageRouterResult =
                                 await new ConnectionRequestHandler().AcceptOrRejectRequestAsync(
-                                    _messageRouter, _messageRouterResultHandler, sender, doAccept, command.Parameters[0]);
+                                    _messageRouter, _messageRouterResultHandler, sender, doAccept,
+                                    requestorChannelAccount, requestorConversationAccount);
 
                             await _messageRouterResultHandler.HandleResultAsync(messageRouterResult);
 
+                            replyActivity = activity.CreateReply();
+
                             if (!string.IsNullOrEmpty(messageRouterResult.ErrorMessage))
                             {
-                                replyActivity = activity.CreateReply();
                                 replyActivity.Text = messageRouterResult.ErrorMessage;
                             }
 
                             replyActivity.ChannelData = messageRouterResult.ToJson();
+                        }
+                        else
+                        {
+                            replyActivity = activity.CreateReply(Strings.InvalidOrMissingCommandParameter);
                         }
                     }
 #if DEBUG

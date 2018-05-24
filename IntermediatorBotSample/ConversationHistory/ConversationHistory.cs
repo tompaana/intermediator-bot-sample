@@ -59,7 +59,7 @@ namespace IntermediatorBotSample.ConversationHistory
 
             foreach (MessageLog messageLog in messageLogs)
             {
-                if (RoutingDataManager.HaveMatchingChannelAccounts(user, messageLog.User))
+                if (RoutingDataManager.Match(user, messageLog.User))
                 {
                     return messageLog;
                 }

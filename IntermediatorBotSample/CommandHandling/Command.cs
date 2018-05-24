@@ -1,9 +1,13 @@
-﻿using Microsoft.Bot.Schema;
+﻿using IntermediatorBotSample.Resources;
+using Microsoft.Bot.Schema;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
+using Underscore.Bot.MessageRouting.DataStore;
+using Underscore.Bot.MessageRouting.Models;
 
 namespace IntermediatorBotSample.CommandHandling
 {
@@ -84,6 +88,25 @@ namespace IntermediatorBotSample.CommandHandling
             }
 
             BotName = botName;
+        }
+
+        /// <summary>
+        /// Creates an accept/reject connection request command.
+        /// </summary>
+        /// <param name="connectionRequest">The connection request to accept/reject.</param>
+        /// <param name="doAccept">If true, will create an accept command. Reject command, if false.</param>
+        /// <param name="botName">The bot name (optional).</param>
+        /// <returns>A newly created accept/reject connection request command.</returns>
+        public static Command CreateAcceptOrRejectConnectionRequestCommand(
+            ConnectionRequest connectionRequest, bool doAccept, string botName = null)
+        {
+            ChannelAccount requestorChannelAccount =
+                RoutingDataManager.GetChannelAccount(connectionRequest.Requestor, out bool isBot);
+
+            return new Command(
+                doAccept ? Commands.AcceptRequest : Commands.RejectRequest,
+                new string[] { requestorChannelAccount?.Id, connectionRequest.Requestor.Conversation?.Id },
+                botName);
         }
 
         /// <summary>

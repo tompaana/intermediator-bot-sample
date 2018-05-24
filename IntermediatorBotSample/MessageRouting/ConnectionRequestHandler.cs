@@ -37,37 +37,34 @@ namespace IntermediatorBotSample.MessageRouting
         /// <param name="messageRouterResultHandler">The message router result handler.</param>
         /// <param name="sender">The sender party (accepter/rejecter).</param>
         /// <param name="doAccept">If true, will try to accept the request. If false, will reject.</param>
-        /// <param name="channelAccountIdOfPartyToAcceptOrReject">The channel account ID of the party whose request to accep/reject.</param>
+        /// <param name="requestorChannelAccountId">The channel account ID of the user/bot whose request to accept/reject.</param>
+        /// <param name="requestorConversationAccountId">The conversation account ID of the user/bot whose request to accept/reject.</param>
         /// <returns>The result.</returns>
         public async Task<AbstractMessageRouterResult> AcceptOrRejectRequestAsync(
             MessageRouter messageRouter, MessageRouterResultHandler messageRouterResultHandler,
-            ConversationReference sender, bool doAccept, string channelAccountIdOfPartyToAcceptOrReject)
+            ConversationReference sender, bool doAccept,
+            ChannelAccount requestorChannelAccountId, ConversationAccount requestorConversationAccountId)
         {
             AbstractMessageRouterResult messageRouterResult = new ConnectionRequestResult()
             {
                 Type = ConnectionRequestResultType.Error
             };
 
-            RoutingDataManager routingDataManager = messageRouter.RoutingDataManager;
-            ConnectionRequest connectionRequest = null;
+            ConversationReference requestor =
+                new ConversationReference(
+                    null, requestorChannelAccountId, null, requestorConversationAccountId);
 
-            if (routingDataManager.GetConnectionRequests().Count > 0)
+            ConnectionRequest connectionRequest =
+                messageRouter.RoutingDataManager.FindConnectionRequest(requestor);
+
+            if (connectionRequest == null)
             {
-                try
-                {
-                    // Find the connection request based on the channel account ID of the requestor
-                    connectionRequest = routingDataManager.GetConnectionRequests().Single(request =>
-                            (RoutingDataManager.GetChannelAccount(request.Requestor, out bool isBot) != null
-                              && RoutingDataManager.GetChannelAccount(request.Requestor, out isBot).Id
-                                .Equals(channelAccountIdOfPartyToAcceptOrReject)));
-                }
-                catch (InvalidOperationException e)
-                {
-                    messageRouterResult.ErrorMessage = string.Format(
-                        Strings.FailedToFindPendingRequestForUserWithErrorMessage,
-                        channelAccountIdOfPartyToAcceptOrReject,
-                        e.Message);
-                }
+                // Try bot
+                requestor.Bot = requestor.User;
+                requestor.User = null;
+
+                connectionRequest =
+                    messageRouter.RoutingDataManager.FindConnectionRequest(requestor);
             }
 
             if (connectionRequest != null)
@@ -76,7 +73,7 @@ namespace IntermediatorBotSample.MessageRouting
 
                 if (sender != null)
                 {
-                    connection = routingDataManager.FindConnection(sender);
+                    connection = messageRouter.RoutingDataManager.FindConnection(sender);
                 }
 
                 ConversationReference senderInConnection = null;
@@ -84,7 +81,7 @@ namespace IntermediatorBotSample.MessageRouting
 
                 if (connection != null && connection.ConversationReference1 != null)
                 {
-                    if (RoutingDataManager.HaveMatchingChannelAccounts(sender, connection.ConversationReference1))
+                    if (RoutingDataManager.Match(sender, connection.ConversationReference1))
                     {
                         senderInConnection = connection.ConversationReference1;
                         counterpart = connection.ConversationReference2;

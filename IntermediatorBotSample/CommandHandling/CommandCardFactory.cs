@@ -92,21 +92,19 @@ namespace IntermediatorBotSample.CommandHandling
 
             string requestorChannelAccountName = string.IsNullOrEmpty(requestorChannelAccount.Name)
                 ? StringConstants.NoUserNamePlaceholder : requestorChannelAccount.Name;
+            string requestorChannelId =
+                CultureInfo.CurrentCulture.TextInfo.ToTitleCase(connectionRequest.Requestor.ChannelId);
 
-            string requestorChannelId = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(connectionRequest.Requestor.ChannelId);
-            string requestorChannelAccountId = requestorChannelAccount.Id;
-
-            string acceptCommand =
-                new Command(Commands.AcceptRequest, new string[] { requestorChannelAccountId }, botName).ToString();
-
-            string rejectCommand =
-                new Command(Commands.RejectRequest, new string[] { requestorChannelAccountId }, botName).ToString();
+            Command acceptCommand =
+                Command.CreateAcceptOrRejectConnectionRequestCommand(connectionRequest, true, botName);
+            Command rejectCommand =
+                Command.CreateAcceptOrRejectConnectionRequestCommand(connectionRequest, false, botName);
 
             HeroCard card = new HeroCard()
             {
                 Title = Strings.ConnectionRequestTitle,
                 Subtitle = string.Format(Strings.RequestorDetailsTitle, requestorChannelAccountName, requestorChannelId),
-                Text = string.Format(Strings.AcceptRejectConnectionHint, acceptCommand, rejectCommand),
+                Text = string.Format(Strings.AcceptRejectConnectionHint, acceptCommand.ToString(), rejectCommand.ToString()),
 
                 Buttons = new List<CardAction>()
                 {
@@ -114,13 +112,13 @@ namespace IntermediatorBotSample.CommandHandling
                     {
                         Title = Strings.AcceptButtonTitle,
                         Type = ActionTypes.ImBack,
-                        Value = acceptCommand
+                        Value = acceptCommand.ToString()
                     },
                     new CardAction()
                     {
                         Title = Strings.RejectButtonTitle,
                         Type = ActionTypes.ImBack,
-                        Value = rejectCommand
+                        Value = rejectCommand.ToString()
                     }
                 }
             };
@@ -166,7 +164,6 @@ namespace IntermediatorBotSample.CommandHandling
                     : Strings.RejectConnectionRequestsCardInstructions),
             };
 
-            string command = null;
             card.Buttons = new List<CardAction>();
 
             if (!doAccept && connectionRequests.Count > 1)
@@ -191,14 +188,12 @@ namespace IntermediatorBotSample.CommandHandling
 
                 string requestorChannelAccountName = string.IsNullOrEmpty(requestorChannelAccount.Name)
                     ? StringConstants.NoUserNamePlaceholder : requestorChannelAccount.Name;
-
                 string requestorChannelId =
                     CultureInfo.CurrentCulture.TextInfo.ToTitleCase(connectionRequest.Requestor.ChannelId);
                 string requestorChannelAccountId = requestorChannelAccount.Id;
 
-                command = new Command(
-                    (doAccept ? Commands.AcceptRequest : Commands.RejectRequest),
-                    new string[] { requestorChannelAccountId }, botName).ToString();
+                Command command =
+                    Command.CreateAcceptOrRejectConnectionRequestCommand(connectionRequest, doAccept, botName);
 
                 card.Buttons.Add(new CardAction()
                 {
@@ -208,7 +203,7 @@ namespace IntermediatorBotSample.CommandHandling
                         requestorChannelId,
                         requestorChannelAccountId),
                     Type = ActionTypes.ImBack,
-                    Value = command
+                    Value = command.ToString()
                 });
             }
 
