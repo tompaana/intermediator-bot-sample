@@ -100,7 +100,7 @@ namespace IntermediatorBotSample.MessageRouting
                         {
                             messageRouterResult.ErrorMessage = string.Format(
                                 Strings.AlreadyConnectedWithUser,
-                                RoutingDataManager.GetChannelAccount(counterpart, out bool isBot)?.Name);
+                                RoutingDataManager.GetChannelAccount(counterpart)?.Name);
                         }
                         else
                         {

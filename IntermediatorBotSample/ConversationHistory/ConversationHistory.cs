@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting.DataStore;
 using Underscore.Bot.MessageRouting.DataStore.Azure;
 
-//string rowKey = MessageRoutingUtils.GetChannelAccount(log.User).Id;
 namespace IntermediatorBotSample.ConversationHistory
 {
     public class ConversationHistory

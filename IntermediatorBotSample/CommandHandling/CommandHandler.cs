@@ -245,7 +245,7 @@ namespace IntermediatorBotSample.CommandHandling
         /// <param name="messageActivity">The message activity.</param>
         /// <param name="strict">Use false for channels that do not properly support mentions.</param>
         /// <returns>True, if the message was address directly to the bot. False otherwise.</returns>
-        private bool WasBotAddressedDirectly(IMessageActivity messageActivity, bool strict = true)
+        public bool WasBotAddressedDirectly(IMessageActivity messageActivity, bool strict = true)
         {
             bool botWasMentioned = false;
 
@@ -257,7 +257,7 @@ namespace IntermediatorBotSample.CommandHandling
                 {
                     foreach (ConversationReference bot in _messageRouter.RoutingDataManager.GetBotInstances())
                     {
-                        if (mention.Mentioned.Id.Equals(RoutingDataManager.GetChannelAccount(bot, out bool isBot).Id))
+                        if (mention.Mentioned.Id.Equals(RoutingDataManager.GetChannelAccount(bot).Id))
                         {
                             botWasMentioned = true;
                             break;

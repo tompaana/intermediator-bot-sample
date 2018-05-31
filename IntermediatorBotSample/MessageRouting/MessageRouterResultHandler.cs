@@ -83,13 +83,13 @@ namespace IntermediatorBotSample.MessageRouting
                         {
                             IMessageActivity messageActivity = Activity.CreateMessageActivity();
                             messageActivity.Conversation = aggregationChannel.Conversation;
-                            messageActivity.Recipient = RoutingDataManager.GetChannelAccount(aggregationChannel, out bool isBot);
+                            messageActivity.Recipient = RoutingDataManager.GetChannelAccount(aggregationChannel);
                             messageActivity.Attachments = new List<Attachment>
                             {
                                 CommandCardFactory.CreateConnectionRequestCard(
                                     connectionRequest,
                                     RoutingDataManager.GetChannelAccount(
-                                        botConversationReference, out isBot)?.Name).ToAttachment()
+                                        botConversationReference)?.Name).ToAttachment()
                             };
 
                             await _messageRouter.SendMessageAsync(aggregationChannel, messageActivity);
@@ -259,7 +259,7 @@ namespace IntermediatorBotSample.MessageRouting
             if (conversationReference != null)
             {
                 ChannelAccount channelAccount =
-                    RoutingDataManager.GetChannelAccount(conversationReference, out bool isBot);
+                    RoutingDataManager.GetChannelAccount(conversationReference);
 
                 if (channelAccount != null)
                 {

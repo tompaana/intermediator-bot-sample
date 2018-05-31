@@ -99,7 +99,7 @@ namespace IntermediatorBotSample.CommandHandling
             ConnectionRequest connectionRequest, bool doAccept, string botName = null)
         {
             ChannelAccount requestorChannelAccount =
-                RoutingDataManager.GetChannelAccount(connectionRequest.Requestor, out bool isBot);
+                RoutingDataManager.GetChannelAccount(connectionRequest.Requestor);
 
             return new Command(
                 doAccept ? Commands.AcceptRequest : Commands.RejectRequest,

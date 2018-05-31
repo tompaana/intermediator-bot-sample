@@ -57,7 +57,7 @@ namespace IntermediatorBotSample
                 routingDataStore = new AzureTableStorageRoutingDataStore(connectionString);
             }
 
-            MessageRouter = new MessageRouter(routingDataStore);
+            MessageRouter = new MessageRouter(routingDataStore, null);
             MessageRouterResultHandler = new MessageRouterResultHandler(MessageRouter);
             CommandHandler = new CommandHandler(MessageRouter, MessageRouterResultHandler);
             ConversationHistory = new ConversationHistory.ConversationHistory(connectionString);

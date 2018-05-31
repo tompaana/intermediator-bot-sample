@@ -99,7 +99,7 @@ namespace IntermediatorBotSample.CommandHandling
             }
 
             ChannelAccount requestorChannelAccount =
-                RoutingDataManager.GetChannelAccount(connectionRequest.Requestor, out bool isBot);
+                RoutingDataManager.GetChannelAccount(connectionRequest.Requestor);
 
             if (requestorChannelAccount == null)
             {
