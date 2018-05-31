@@ -7,8 +7,7 @@ two users on different channels. This is sample utilizes the core functionality 
 A possible use case for this type of a bot would be a customer service scenario where the bot relays
 the messages between a customer and a customer service agent.
 
-This is a C# sample - if you're looking to do this with Node, see
-[this sample](https://github.com/palindromed/Bot-HandOff).
+This is a C# sample - there is a [Node sample](https://github.com/palindromed/Bot-HandOff) also available.
 
 ## Getting started ##
 
