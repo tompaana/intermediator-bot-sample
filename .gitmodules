@@ -1,4 +1,4 @@
 [submodule "BotMessageRouting"]
 	path = bot-message-routing
 	url = https://github.com/tompaana/bot-message-routing
-	branch = development_v4
+	branch = development

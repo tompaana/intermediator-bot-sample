@@ -53,8 +53,8 @@ namespace IntermediatorBotSample
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"Found a connection string - using {nameof(AzureTableStorageRoutingDataStore)}");
-                routingDataStore = new AzureTableStorageRoutingDataStore(connectionString);
+                System.Diagnostics.Debug.WriteLine($"Found a connection string - using {nameof(AzureTableRoutingDataStore)}");
+                routingDataStore = new AzureTableRoutingDataStore(connectionString);
             }
 
             MessageRouter = new MessageRouter(routingDataStore, null);
@@ -81,8 +81,7 @@ namespace IntermediatorBotSample
                     // No command detected/handled
 
                     // Let the message router handle the activity
-                    messageRouterResult = await MessageRouter.HandleActivityAsync(
-                        activity, false, rejectConnectionRequestIfNoAggregationChannel);
+                    messageRouterResult = await MessageRouter.RouteMessageIfSenderIsConnectedAsync(activity);
 
                     if (messageRouterResult is MessageRoutingResult
                         && (messageRouterResult as MessageRoutingResult).Type == MessageRoutingResultType.NoActionTaken)
