@@ -109,7 +109,8 @@ namespace IntermediatorBotSample.MessageRouting
                     if (connectionRequestResult.Rejecter != null)
                     {
                         await _messageRouter.SendMessageAsync(
-                            connectionRequestResult.Rejecter, Strings.NotifyOwnerRequestRejected);
+                            connectionRequestResult.Rejecter,
+                            string.Format(Strings.NotifyOwnerRequestRejected, GetNameOrId(connectionRequest.Requestor)));
                     }
 
                     await _messageRouter.SendMessageAsync(

@@ -1,8 +1,11 @@
 ﻿using IntermediatorBotSample.CommandHandling;
+using IntermediatorBotSample.ConversationHistory;
 using IntermediatorBotSample.MessageRouting;
-using IntermediatorBotSample.Settings;
 using Microsoft.Bot.Builder;
+using Microsoft.Bot.Connector.Authentication;
 using Microsoft.Bot.Schema;
+using Microsoft.Extensions.Configuration;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Underscore.Bot.MessageRouting;
 using Underscore.Bot.MessageRouting.DataStore;
@@ -10,10 +13,21 @@ using Underscore.Bot.MessageRouting.DataStore.Azure;
 using Underscore.Bot.MessageRouting.DataStore.Local;
 using Underscore.Bot.MessageRouting.Results;
 
-namespace IntermediatorBotSample
+namespace IntermediatorBotSample.Middleware
 {
     public class HandoffMiddleware : IMiddleware
     {
+        private const string KeyAzureTableStorageConnectionString = "AzureTableStorageConnectionString";
+        private const string KeyRejectConnectionRequestIfNoAggregationChannel = "RejectConnectionRequestIfNoAggregationChannel";
+        private const string KeyPermittedAggregationChannels = "PermittedAggregationChannels";
+        private const string KeyNoDirectConversationsWithChannels = "NoDirectConversationsWithChannels";
+
+        public IConfiguration Configuration
+        {
+            get;
+            protected set;
+        }
+
         public MessageRouter MessageRouter
         {
             get;
@@ -32,18 +46,16 @@ namespace IntermediatorBotSample
             protected set;
         }
 
-        public ConversationHistory.ConversationHistory ConversationHistory
+        public MessageLogs MessageLogs
         {
             get;
             protected set;
         }
 
-        private BotSettings _botSettings;
-
-        public HandoffMiddleware(BotSettings botSettings)
+        public HandoffMiddleware(IConfiguration configuration)
         {
-            _botSettings = botSettings;
-            string connectionString = _botSettings[BotSettings.KeyRoutingDataStoreConnectionString];
+            Configuration = configuration;
+            string connectionString = Configuration[KeyAzureTableStorageConnectionString];
             IRoutingDataStore routingDataStore = null;
 
             if (string.IsNullOrEmpty(connectionString))
@@ -57,10 +69,24 @@ namespace IntermediatorBotSample
                 routingDataStore = new AzureTableRoutingDataStore(connectionString);
             }
 
-            MessageRouter = new MessageRouter(routingDataStore, null);
+            MessageRouter = new MessageRouter(
+                routingDataStore,
+                new MicrosoftAppCredentials(Configuration["MicrosoftAppId"], Configuration["MicrosoftAppPassword"]));
+
+            //MessageRouter.Logger = new Logging.AggregationChannelLogger(MessageRouter);
+
             MessageRouterResultHandler = new MessageRouterResultHandler(MessageRouter);
-            CommandHandler = new CommandHandler(MessageRouter, MessageRouterResultHandler);
-            ConversationHistory = new ConversationHistory.ConversationHistory(connectionString);
+
+            ConnectionRequestHandler connectionRequestHandler =
+                new ConnectionRequestHandler(GetChannelList(KeyNoDirectConversationsWithChannels));
+
+            CommandHandler = new CommandHandler(
+                MessageRouter,
+                MessageRouterResultHandler,
+                connectionRequestHandler,
+                GetChannelList(KeyPermittedAggregationChannels));
+
+            MessageLogs = new MessageLogs(connectionString);
         }
 
         public async Task OnTurn(ITurnContext context, MiddlewareSet.NextDelegate next)
@@ -69,18 +95,23 @@ namespace IntermediatorBotSample
 
             if (activity.Type is ActivityTypes.Message)
             {
-                bool rejectConnectionRequestIfNoAggregationChannel =
-                    _botSettings.RejectConnectionRequestIfNoAggregationChannel;
+                bool.TryParse(
+                    Configuration[KeyRejectConnectionRequestIfNoAggregationChannel],
+                    out bool rejectConnectionRequestIfNoAggregationChannel);
 
+                // Store the conversation references (identities of the sender and the recipient [bot])
+                // in the activity
                 MessageRouter.StoreConversationReferences(activity);
 
                 AbstractMessageRouterResult messageRouterResult = null;
 
-                if (await CommandHandler.HandleCommandAsync(activity) == false)
+                // Check the activity for commands
+                if (await CommandHandler.HandleCommandAsync(context) == false)
                 {
                     // No command detected/handled
 
-                    // Let the message router handle the activity
+                    // Let the message router route the activity, if the sender is connected with
+                    // another user/bot
                     messageRouterResult = await MessageRouter.RouteMessageIfSenderIsConnectedAsync(activity);
 
                     if (messageRouterResult is MessageRoutingResult
@@ -117,6 +148,39 @@ namespace IntermediatorBotSample
                 // Handle the result, if necessary
                 await MessageRouterResultHandler.HandleResultAsync(messageRouterResult);
             }
+        }
+
+        /// <summary>
+        /// Extracts the channel list from the settings matching the given key.
+        /// </summary>
+        /// <returns>The list of channels or null, if none found.</returns>
+        private IList<string> GetChannelList(string key)
+        {
+            IList<string> channelList = null;
+
+            string channels = Configuration[key];
+
+            if (!string.IsNullOrWhiteSpace(channels))
+            {
+                System.Diagnostics.Debug.WriteLine($"Channels by key \"{key}\": {channels}");
+                string[] channelArray = channels.Split(',');
+
+                if (channelArray.Length > 0)
+                {
+                    channelList = new List<string>();
+
+                    foreach (string channel in channelArray)
+                    {
+                        channelList.Add(channel.Trim());
+                    }
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"No channels defined by key \"{key}\" in app settings");
+            }
+
+            return channelList;
         }
     }
 }

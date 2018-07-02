@@ -349,6 +349,15 @@ namespace IntermediatorBotSample.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Failed to set the aggregation channel: {0}.
+        /// </summary>
+        internal static string FailedToSetAggregationChannel {
+            get {
+                return ResourceManager.GetString("FailedToSetAggregationChannel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Invalid command.
         /// </summary>
         internal static string InvalidCommand {
@@ -489,6 +498,15 @@ namespace IntermediatorBotSample.Resources {
         internal static string NotifyOwnerRequestRejected {
             get {
                 return ResourceManager.GetString("NotifyOwnerRequestRejected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} is not a permitted aggregation channel.
+        /// </summary>
+        internal static string NotPermittedAggregationChannel {
+            get {
+                return ResourceManager.GetString("NotPermittedAggregationChannel", resourceCulture);
             }
         }
         

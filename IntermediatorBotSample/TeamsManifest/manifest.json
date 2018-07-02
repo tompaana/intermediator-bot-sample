@@ -1,0 +1,46 @@
+{
+  "$schema": "https://statics.teams.microsoft.com/sdk/v1.2/manifest/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.2",
+  "version": "0.0.1",
+  "id": "INSERT YOUR TEAMS APP ID HERE",
+  "packageName": "com.underscore.intermediator.bot.sample",
+  "developer": {
+    "name": "Tomi",
+    "websiteUrl": "https://github.com/tompaana/intermediator-bot-sample",
+    "privacyUrl": "https://github.com/tompaana/intermediator-bot-sample/README.md",
+    "termsOfUseUrl": "https://github.com/tompaana/intermediator-bot-sample/LICENSE"
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "name": {
+    "short": "Intermediator Bot",
+    "full": "Intermediator Bot Sample"
+  },
+  "description": {
+    "short": "Intermediator Bot Sample",
+    "full": "A sample bot, that routes messages between two users on different channels."
+  },
+  "accentColor": "#00FF00",
+  "configurableTabs": [
+  ],
+  "staticTabs": [
+  ],
+  "bots": [
+    {
+      "botId": "INSERT YOUR BOT'S MICROSOFT APP ID HERE",
+      "scopes": [
+        "personal",
+        "team"
+      ]
+    }
+  ],
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ],
+  "validDomains": [
+    "*.azurewebsites.net"
+  ]
+}

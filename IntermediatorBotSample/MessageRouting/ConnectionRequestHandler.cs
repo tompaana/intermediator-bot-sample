@@ -14,19 +14,17 @@ namespace IntermediatorBotSample.MessageRouting
     /// </summary>
     public class ConnectionRequestHandler
     {
-        private const string ChannelIdEmulator = "emulator";
-        private const string ChannelIdFacebook = "facebook";
-        private const string ChannelIdSkype = "skype";
+        private IList<string> _noDirectConversationsWithChannels;
 
         /// <summary>
-        /// Do not try to create direct conversations when the owner is on one of these channels
+        /// Constructor.
         /// </summary>
-        private readonly IList<string> NoDirectConversationsWithChannels = new List<string>()
+        /// <param name="noDirectConversationsWithChannels">Does not try to create direct
+        /// conversations when the agent is on one of the channels on this list.</param>
+        public ConnectionRequestHandler(IList<string> noDirectConversationsWithChannels)
         {
-            ChannelIdEmulator,
-            ChannelIdFacebook,
-            ChannelIdSkype
-        };
+            _noDirectConversationsWithChannels = noDirectConversationsWithChannels;
+        }
 
         /// <summary>
         /// Tries to accept/reject a pending connection request.
@@ -110,7 +108,8 @@ namespace IntermediatorBotSample.MessageRouting
                     else
                     {
                         bool createNewDirectConversation =
-                            !(NoDirectConversationsWithChannels.Contains(sender.ChannelId.ToLower()));
+                            (_noDirectConversationsWithChannels == null
+                             || !(_noDirectConversationsWithChannels.Contains(sender.ChannelId.ToLower())));
 
                         // Try to accept
                         messageRouterResult = await messageRouter.ConnectAsync(

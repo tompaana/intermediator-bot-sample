@@ -1,5 +1,6 @@
 ﻿using IntermediatorBotSample.MessageRouting;
 using IntermediatorBotSample.Resources;
+using Microsoft.Bot.Builder;
 using Microsoft.Bot.Connector;
 using Microsoft.Bot.Schema;
 using Newtonsoft.Json;
@@ -20,26 +21,38 @@ namespace IntermediatorBotSample.CommandHandling
     {
         private MessageRouter _messageRouter;
         private MessageRouterResultHandler _messageRouterResultHandler;
+        private ConnectionRequestHandler _connectionRequestHandler;
+        private IList<string> _permittedAggregationChannels;
 
         /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="messageRouter">The message router.</param>
-        /// <param name="messageRouterResultHandler"/>A MessageRouterResultHandler instance for
+        /// <param name="messageRouterResultHandler">A MessageRouterResultHandler instance for
         /// handling possible routing actions such as accepting connection requests.</param>
-        public CommandHandler(MessageRouter messageRouter, MessageRouterResultHandler messageRouterResultHandler)
+        /// <param name="connectionRequestHandler">The connection request handler.</param>
+        /// <param name="permittedAggregationChannels">Permitted aggregation channels.
+        /// Null list means all channels are allowed.</param>
+        public CommandHandler(
+            MessageRouter messageRouter,
+            MessageRouterResultHandler messageRouterResultHandler,
+            ConnectionRequestHandler connectionRequestHandler,
+            IList<string> permittedAggregationChannels = null)
         {
             _messageRouter = messageRouter;
             _messageRouterResultHandler = messageRouterResultHandler;
+            _connectionRequestHandler = connectionRequestHandler;
+            _permittedAggregationChannels = permittedAggregationChannels;
         }
 
         /// <summary>
         /// Checks the given activity for a possible command.
         /// </summary>
-        /// <param name="activity">An Activity instance containing a possible command.</param>
+        /// <param name="activity">The context containing the activity, which in turn may contain a possible command.</param>
         /// <returns>True, if a command was detected and handled. False otherwise.</returns>
-        public async virtual Task<bool> HandleCommandAsync(Activity activity)
+        public async virtual Task<bool> HandleCommandAsync(ITurnContext context)
         {
+            Activity activity = context.Activity;
             Command command = Command.FromMessageActivity(activity);
 
             if (command == null)
@@ -68,17 +81,52 @@ namespace IntermediatorBotSample.CommandHandling
 
                 case Commands.Watch:
                     // Add the sender's channel/conversation into the list of aggregation channels
-                    ConversationReference aggregationChannelToAdd = new ConversationReference(
-                        null, null, null,
-                        activity.Conversation, activity.ChannelId, activity.ServiceUrl);
+                    bool isPermittedAggregationChannel = false;
 
-                    if (_messageRouter.RoutingDataManager.AddAggregationChannel(aggregationChannelToAdd))
+                    if (_permittedAggregationChannels != null && _permittedAggregationChannels.Count > 0)
                     {
-                        replyActivity = activity.CreateReply(Strings.AggregationChannelSet);
+                        foreach (string permittedAggregationChannel in _permittedAggregationChannels)
+                        {
+                            if (!string.IsNullOrWhiteSpace(activity.ChannelId)
+                                && activity.ChannelId.ToLower().Equals(permittedAggregationChannel.ToLower()))
+                            {
+                                isPermittedAggregationChannel = true;
+                                break;
+                            }
+                        }
                     }
                     else
                     {
-                        replyActivity = activity.CreateReply(Strings.AggregationChannelAlreadySet);
+                        isPermittedAggregationChannel = true;
+                    }
+
+                    if (isPermittedAggregationChannel)
+                    {
+                        ConversationReference aggregationChannelToAdd = new ConversationReference(
+                            null, null, null,
+                            activity.Conversation, activity.ChannelId, activity.ServiceUrl);
+
+                        ModifyRoutingDataResult modifyRoutingDataResult =
+                            _messageRouter.RoutingDataManager.AddAggregationChannel(aggregationChannelToAdd);
+
+                        if (modifyRoutingDataResult.Type == ModifyRoutingDataResultType.Added)
+                        {
+                            replyActivity = activity.CreateReply(Strings.AggregationChannelSet);
+                        }
+                        else if (modifyRoutingDataResult.Type == ModifyRoutingDataResultType.AlreadyExists)
+                        {
+                            replyActivity = activity.CreateReply(Strings.AggregationChannelAlreadySet);
+                        }
+                        else if (modifyRoutingDataResult.Type == ModifyRoutingDataResultType.Error)
+                        {
+                            replyActivity = activity.CreateReply(
+                                string.Format(Strings.FailedToSetAggregationChannel, modifyRoutingDataResult.ErrorMessage));
+                        }
+                    }
+                    else
+                    {
+                        replyActivity = activity.CreateReply(
+                            string.Format(Strings.NotPermittedAggregationChannel, activity.ChannelId));
                     }
 
                     wasHandled = true;
@@ -156,7 +204,7 @@ namespace IntermediatorBotSample.CommandHandling
                             && command.Parameters[0].Equals(Command.CommandParameterAll))
                         {
                             // Reject all pending connection requests
-                            if (!await new ConnectionRequestHandler().RejectAllPendingRequestsAsync(
+                            if (!await _connectionRequestHandler.RejectAllPendingRequestsAsync(
                                     _messageRouter, _messageRouterResultHandler))
                             {
                                 replyActivity = activity.CreateReply();
@@ -172,20 +220,11 @@ namespace IntermediatorBotSample.CommandHandling
                                 new ConversationAccount(null, null, command.Parameters[1]);
 
                             AbstractMessageRouterResult messageRouterResult =
-                                await new ConnectionRequestHandler().AcceptOrRejectRequestAsync(
+                                await _connectionRequestHandler.AcceptOrRejectRequestAsync(
                                     _messageRouter, _messageRouterResultHandler, sender, doAccept,
                                     requestorChannelAccount, requestorConversationAccount);
 
                             await _messageRouterResultHandler.HandleResultAsync(messageRouterResult);
-
-                            replyActivity = activity.CreateReply();
-
-                            if (!string.IsNullOrEmpty(messageRouterResult.ErrorMessage))
-                            {
-                                replyActivity.Text = messageRouterResult.ErrorMessage;
-                            }
-
-                            replyActivity.ChannelData = messageRouterResult.ToJson();
                         }
                         else
                         {
@@ -229,8 +268,7 @@ namespace IntermediatorBotSample.CommandHandling
 
             if (replyActivity != null)
             {
-                ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
-                await connector.Conversations.ReplyToActivityAsync(replyActivity);
+                await context.SendActivity(replyActivity);
             }
 
             return wasHandled;

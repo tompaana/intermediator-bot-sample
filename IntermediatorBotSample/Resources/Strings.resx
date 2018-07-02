@@ -303,4 +303,10 @@
   <data name="ConnectionResultErrorWithResult" xml:space="preserve">
     <value>A connection error occurred: {0}</value>
   </data>
+  <data name="FailedToSetAggregationChannel" xml:space="preserve">
+    <value>Failed to set the aggregation channel: {0}</value>
+  </data>
+  <data name="NotPermittedAggregationChannel" xml:space="preserve">
+    <value>{0} is not a permitted aggregation channel</value>
+  </data>
 </root>
