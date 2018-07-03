@@ -254,8 +254,6 @@ namespace IntermediatorBotSample.CommandHandling
                             await _messageRouterResultHandler.HandleResultAsync(disconnectResult);
                         }
 
-                        replyActivity = activity.CreateReply();
-                        replyActivity.ChannelData = JsonConvert.SerializeObject(disconnectResults);
                         wasHandled = true;
                     }
 
