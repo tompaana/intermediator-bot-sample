@@ -6,7 +6,7 @@ This is a sample bot, built with the [Microsoft Bot Framework](https://dev.botfr
 that routes messages between two users on different channels. This sample utilizes the
 [Bot Message Routing (component) project](https://github.com/tompaana/bot-message-routing).
 The general gist of the message routing is explained in this article:
-[Chatbots as Middlemen blog post](http://tomipaananen.azurewebsites.net/?p=1851).
+[Chatbots as Middlemen blog post](https://tompaana.github.io/content/chatbots_as_middlemen.html).
 
 A possible use case for this type of a bot would be a customer service scenario where the bot relays
 the messages between a customer and a customer service agent.
@@ -24,10 +24,10 @@ If you prefer **Node.js**, fear not, there are these two great samples to look i
 
 * [Getting started](#getting-started)
 * [Deploying the bot](#deploying-the-bot)
-* [App settings and credentials}(#app-settings-and-credentials)
-* [Testing the hand-off](#testing-the-handoff)
+* [App settings and credentials](#app-settings-and-credentials)
+* [Testing the hand-off](#testing-the-hand-off)
 * [About the implementation](#implementation)
-* [Custom agent portal](#what-if-I-want-to-have-a-custom-agent-portal/channel?)
+* [Custom agent portal](#what-if-i-want-to-have-a-custom-agent-portalchannel)
 * [Helpful links](#see-also)
 
 ## Getting started ##
@@ -205,4 +205,4 @@ hard to say which one is the best, but if I were to do it, I'd propably start by
 
 * [Bot Message Routing (component) project](https://github.com/tompaana/bot-message-routing)
     * [NuGet package](https://www.nuget.org/packages/BotMessageRouting)
-* [Chatbots as Middlemen blog post](http://tomipaananen.azurewebsites.net/?p=1851)
+* [Chatbots as Middlemen blog post](https://tompaana.github.io/content/chatbots_as_middlemen.html)
