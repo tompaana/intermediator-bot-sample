@@ -2,44 +2,113 @@
 
 [![Build status](https://ci.appveyor.com/api/projects/status/i1u8puahyxl79ha6?svg=true)](https://ci.appveyor.com/project/tompaana/intermediator-bot-sample)
 
-A bot build on [Microsoft Bot Framework](https://dev.botframework.com/) that routes messages between
-two users on different channels. This is sample utilizes the core functionality found in
+This is a sample bot, built with the [Microsoft Bot Framework](https://dev.botframework.com/) (v4),
+that routes messages between two users on different channels. This sample utilizes the
 [Bot Message Routing (component) project](https://github.com/tompaana/bot-message-routing).
+The general gist of the message routing is explained in this article:
+[Chatbots as Middlemen blog post](https://tompaana.github.io/content/chatbots_as_middlemen.html).
 
 A possible use case for this type of a bot would be a customer service scenario where the bot relays
 the messages between a customer and a customer service agent.
 
-This is a C# sample - if you're looking to do this with Node, see
-[this sample](https://github.com/palindromed/Bot-HandOff).
+This is a C# sample targeting the latest version (v4) of the Microsoft Bot Framework. The sample
+did previously target the v3.x and you can find that last release
+[here](https://github.com/tompaana/intermediator-bot-sample/releases/tag/v1.1).
+
+If you prefer **Node.js**, fear not, there are these two great samples to look into:
+
+* [botframework-v4-handoff](https://github.com/GeekTrainer/botframework-v4-handoff)
+* [Bot-HandOff (v3)](https://github.com/palindromed/Bot-HandOff)
+
+#### Contents ####
+
+* [Getting started](#getting-started)
+* [Deploying the bot](#deploying-the-bot)
+* [App settings and credentials](#app-settings-and-credentials)
+* [Testing the hand-off](#testing-the-hand-off)
+* [About the implementation](#implementation)
+* [Custom agent portal](#what-if-i-want-to-have-a-custom-agent-portalchannel)
+* [Helpful links](#see-also)
 
 ## Getting started ##
 
 Since this is an advanced bot scenario, the prerequisites include that you are familiar with the
 basic concepts of the Microsoft Bot Framework and you know the C# programming language. Before
-getting started it is recommended that you have installed the following tools:
+getting started it is recommended that you have the following tools installed:
 
 * [Visual Studio IDE](https://www.visualstudio.com/vs/)
 * [ngrok](https://ngrok.com/)
 * [Bot Framework Emulator](https://github.com/Microsoft/BotFramework-Emulator) ([download](https://github.com/Microsoft/BotFramework-Emulator/releases))
-    * [Debug bots with the Bot Framework Emulator](https://docs.microsoft.com/fi-fi/bot-framework/bot-service-debug-emulator)
+    * [Debug bots with the Bot Framework Emulator](https://docs.microsoft.com/en-us/azure/bot-service/bot-service-debug-emulator?view=azure-bot-service-4.0)
 
-### Publishing the bot ###
+Altough the bot can be practically hosted anywhere, the deployment instructions (below) are for
+Azure. If you don't have an Azure subscription yet, you can get one for free here:
+[Create your Azure free account today](https://azure.microsoft.com/en-us/free/).
+
+## Deploying the bot ##
 
 This sample demonstrates routing messages between different users on different channels. Hence,
 using only the emulator to test the sample may prove difficult. To utilize other channels, you must
-first publish the bot:
+first compile and publish the bot:
 
-1. Go to the [Azure Portal](https://portal.azure.com)
-2. Create a new **Bot Service** (**Web App Bot** is the recommended type for this sample)
-3. Collect the **application ID** and **application password** of the newly created Bot Service
-4. Copy and rename the application settings and credentials template file ([AppSettingsAndCredentials.config.template](/IntermediatorBotSample/AppSettingsAndCredentials.config.template)) by removing the `.template` postfix
-5. Open the solution file ([IntermediatorBotSample.sln](/IntermediatorBotSample.sln)) in Visual Studio
-6. Insert the settings and credentials into `AppSettingsAndCredentials.config` file
-    * See [App settings and credentials](#app-settings-and-credentials) section for more details
-7. Build the solution and publish (right-click the **IntermediatorBotSample** project in the **Solution Explorer** in Visual Studio and select **Publish**)
-    * For more details, see [Publish a bot to Bot Service](https://docs.microsoft.com/en-us/bot-framework/bot-service-continuous-deployment)
+1. Open the solution (`IntermediatorBotSample.sln`) in Visual Studio/your IDE and make sure it
+   compiles without any errors (or warnings)
+2. Follow the steps in this article carefully:
+   [Deploy your bot to Azure](https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-howto-deploy-azure?view=azure-bot-service-4.0)
+   * Top tip: Create a new [Azure resource group](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-overview#resource-groups)
+     for the app so that if stuff goes wrong, it's really easy to just delete the whole group and
+     start over
+   * Having issues testing the bot (as in "The dang thing doesn't work!!") - check the following:
+     * Did you remember to include `/api/messages` in the messaging endpoint
+       (Bot Channels Registration/Settings)?
+     * Did you remember to create and add the credentials (`MicrosoftAppId` and `MicrosoftAppPassword`)?
+3. Add the credentials (`MicrosoftAppId` and `MicrosoftAppPassword`) to the
+   [`appsettings.json` file](/IntermediatorBotSample/appsettings.json) and republish the bot - now
+   all you need to do to republish is to right-click the app project in the **Solution Explorer** in
+   Visual Studio, select **Publish...** and click the **Publish** button on the tab (named in the
+   sample "IntermediatorBotSample").
 
-### Scenario 1: Channel <-> channel ###
+## App settings and credentials ##
+
+App settings and credentials are available in the
+[`appsettings.json`](/IntermediatorBotSample/appsettings.json)
+file of this sample. The file contains both bot and storage credentials as well as the settings that
+can be used to tailor the experience. The default content of the file looks something like this:
+
+```json
+{
+  "MicrosoftAppId": "",
+  "MicrosoftAppPassword": "",
+  "BotBasePath": "/api",
+  "BotMessagesPath": "/messages",
+  "AzureTableStorageConnectionString": "",
+  "RejectConnectionRequestIfNoAggregationChannel": true,
+  "PermittedAggregationChannels": "",
+  "NoDirectConversationsWithChannels": "emulator, facebook, skype, msteams, webchat"
+}
+```
+
+### Settings ###
+
+* `BotBasePath` and `BotMessagesPath` can be used to define the messaging endpoint of the bot. The
+  endpoint by default is `http(s)://<bot URL>/api/messages`.
+* `RejectConnectionRequestIfNoAggregationChannel` defines whether to reject connection requests
+  automatically if no aggregation channel is set or not. Pretty straightforward, don't you think?
+* `PermittedAggregationChannels` can be used to rule out certain channels as aggregation channels.
+  If, for instance, the list contains `facebook`, the bot will refuse to set any Facebook
+  conversation as an aggregation channel.
+* The solution allows the bot to try and create direct conversations with the accepted "customers".
+  `NoDirectConversationsWithChannels` defines the channels where the bot should not try to do this.
+
+### Credentials ###
+
+* `MicrosoftAppId` and `MicrosoftAppPassword` should contain the bot's credentials, which you
+  acquire from the [Azure portal](https://portal.azure.com) when you publish the bot.
+* The bot needs to have a centralized storage for routing data. When you insert a valid Azure Table
+  Storage connection string as the value of the `AzureTableStorageConnectionString` property, the
+  storage automatically taken in use.
+
+## Testing the hand-off ##
 
 This scenario utilizes an aggregation concept (see the terminology table in this document). One or
 more channels act as aggregated channels where the customer requests (for human assistance) are
@@ -62,83 +131,27 @@ command watch
 Now all the requests from another channels are forwarded to this channel.
 See the default flow below:
 
-| Emulator with ngrok | Slack |
-| ------------------- | ----- |
-| | ![Initialization](Documentation/Screenshots/Initialization.png?raw=true) |
-| ![Request sent](/Documentation/Screenshots/RequestSent.png?raw=true) | ![Request accepted](/Documentation/Screenshots/RequestAccepted.png?raw=true) |
-| | ![Direct messaging channel created](/Documentation/Screenshots/DirectMessagingChannelCreated.png?raw=true) |
-| ![Conversation in emulator](/Documentation/Screenshots/ConversationInEmulator.png?raw=true) | ![Conversation in Slack](/Documentation/Screenshots/ConversationInSlack.png?raw=true) |
-
-### Scenario 2: Channel <-> call center (agent UI) ###
-
-**BETA - [Help wanted!](https://github.com/tompaana/intermediator-bot-sample/issues/27)**
-
-In this scenario the conversation owners (e.g. customer service agents) access the bot via the
-webchat component, [Agent UI](https://github.com/billba/agent), implemented by
-[Bill Barnes](https://github.com/billba). Each customer request (for human assistance) automatically
-opens a new chat window in the agent UI.
-
-| Emulator | Agent UI |
-| -------- | -------- |
-| ![Emulator](Documentation/Screenshots/ConversationInEmulatorWithAgentUI.png?raw=true) | ![Agent UI](Documentation/Screenshots/AgentUI.png?raw=true) |
-
-To set this up, follow these steps:
-
-0. Make sure you have [Node.js](https://nodejs.org) installed
-1. Clone or download [the Agent UI repository](https://github.com/billba/agent)
-2. Inside `index.ts`, update the line below with your bot's endpoint:
-
-    `fetch("http://YOUR_BOT_ENDPOINT/api/agent/1")`
-    
-    Example: `fetch("http://mybot.azurewebsites.net/api/agent/1")`
-
-3. Inside `index.ts`, update the line below with your bot secret key (which you can find in your **Bot Service**)
-
-    ```js
-    iframe.src = 'botchat?s=YOUR_DIRECTLINE_SECRET_ID';
-    ```
-
-4. Run `npm install` to get the npm packages 
-
-    * You only need to run this command once, unless you add other node packages to the project
-    * If you encounter `error TS2300`, run `npm install typescript@2.0.10`
-
-5. Run `npm run build` to build the app 
-
-    * You need to run this every time you make changes to the code before you start the application
-
-6. Run `npm run start` to start the app
-7. Go to http://localhost:8080 to see the Agent UI
-
-#### Troubleshooting agent UI scenario ####
-
-Make sure that the value of `RejectConnectionRequestIfNoAggregationChannel` key in
-[Web.config](/IntermediatorBotSample/Web.config) is `false`:
-
-```xml
-<add key="RejectConnectionRequestIfNoAggregationChannel" value="false" />
-```
-
-Otherwise the agent UI will not receive the requests, but they are automatically rejected
-(if no aggregation channel is set).
+| Teams | Slack |
+| ----- | ----- |
+| ![Setting the aggregation channel](Documentation/Screenshots/msteams-1-watch.png?raw=true) | |
+| | ![Connection request sent](/Documentation/Screenshots/slack-1-connection-request.png?raw=true) | |
+| ![Connection request accepted](/Documentation/Screenshots/msteams-2-accept-connection-request.png?raw=true) | |
+| ![Conversation in Teams](/Documentation/Screenshots/msteams-3-conversation.png?raw=true) | ![Conversation in Slack](/Documentation/Screenshots/slack-2-conversation.png?raw=true) |
 
 ### Commands ###
 
-The bot comes with a simple command handling mechanism, which implements the commands in the table below.
+The bot comes with a simple command handling mechanism, which supports the commands in the table
+below.
 
 | Command | Description |
 | ------- | ----------- |
-| `options` | Displays the command options as a card with buttons (convenient!) |
-| `watch` | Marks the current channel as **aggregation** channel (where requests are sent). |
-| `unwatch` | Removes the current channel from the list of aggregation channels. |
-| `accept <user ID>` | Accepts the conversation connection request of the given user. |
-| `reject <user ID>` | Rejects the conversation connection request of the given user. |
-| `disconnect` | Ends the current conversation with a user. |
-| `reset` | Deletes all routing data! *(Enabled only in debug builds)* |
-| `list parties` | Lists all parties the bot is aware of. *(Enabled only in debug builds)* |
-| `list requests` | Lists all pending requests. *(Enabled only in debug builds)* |
-| `list conversations` | Lists all conversations (connections). *(Enabled only in debug builds)* |
-| `list results` | Lists all handled results (`MessageRouterResult`). *(Enabled only in debug builds)* |
+| `showOptions` | Displays the command options as a card with buttons (convenient!) |
+| `Watch` | Marks the current channel as **aggregation** channel (where requests are sent). |
+| `Unwatch` | Removes the current channel from the list of aggregation channels. |
+| `GetRequests` | Lists all pending connection requests. |
+| `AcceptRequest <user ID>` | Accepts the conversation connection request of the given user. If no user ID is entered, the bot will render a nice card with accept/reject buttons given that pending connection requests exist. |
+| `RejectRequest <user ID>` | Rejects the conversation connection request of the given user. If no user ID is entered, the bot will render a nice card with accept/reject buttons given that pending connection requests exist. |
+| `Disconnect` | Ends the current conversation with a user. |
 
 To issue a command use the bot name:
 
@@ -160,96 +173,36 @@ can then reject or accept.
 The core message routing functionality comes from the
 [Bot Message Routing (component)](https://github.com/tompaana/bot-message-routing) project.
 This sample demonstrates how to use the component and provides the necessary "plumbing" such as
-command handling.
+command handling. Here are the main classes of the sample:
 
-### Key classes of the sample ###
-
-**Command handling**
-
-* **[BackChannelMessageHandler](/IntermediatorBotSample/CommandHandling/BackChannelMessageHandler.cs)**:
-  Provides implementation for checking and acting on back channel (command) messages. Back channel
-  messages are used by the agent UI.
-
-* **[CommandMessageHandler](/IntermediatorBotSample/CommandHandling/CommandMessageHandler.cs)**:
+* **[HandoffMiddleware](/IntermediatorBotSample/Middleware/HandoffMiddleware.cs)**: Contains all the
+  components (class instances) required by the hand-off and implements the main logic flow. This
+  middleware class will check every incoming message for hand-off related actions.
+* **[CommandHandler](/IntermediatorBotSample/CommandHandling/CommandHandler.cs)**:
   Provides implementation for checking and acting on commands in messages before they are passed to
   a dialog etc.
-
-**Controllers**
-
-* **[AgentController](/IntermediatorBotSample/Controllers/AgentController.cs)**:
-  A controller for the agent UI. Enables the agent UI to check the status of pending requests and
-  automatically accept them.
-
-* **[MessagesController](/IntermediatorBotSample/Controllers/MessagesController.cs)**:
-  This class is included in the bot project template. In this sample it is beneficial to look into
-  how to the command handling and message routing implementations integrate into the bot code
-  (see the [`Post`](https://github.com/tompaana/intermediator-bot-sample/blob/dd9c6ff2e81dfc1037295d3f67065df4ed39bbc0/IntermediatorBotSample/Controllers/MessagesController.cs#L29) method).
-
-**Message routing (utils)**
-
 * **[MessageRouterResultHandler](/IntermediatorBotSample/MessageRouting/MessageRouterResultHandler.cs)**:
-  Handles the results of the operations executed by `MessageRouterManager`.
+  Handles the results of the operations executed by the **`MessageRouter`** of the Bot Message
+  Routing component.
+* **[ConnectionRequestHandler](/IntermediatorBotSample/MessageRouting/ConnectionRequestHandler.cs)**:
+  Implements the main logic for accepting or rejecting connection requests.
 
-### App settings and credentials ###
+## What if I want to have a custom agent portal/channel? ##
 
-App settings and credentials are available in the [Web.config](/IntermediatorBotSample/Web.config)
-file of this sample. The settings can be used to tailor the experience.
+Well, right now you have to implement it. There are couple of different ways to go about it. It's
+hard to say which one is the best, but if I were to do it, I'd propably start by...
 
-#### Credentials ####
-
-The credentials (and the bot ID) can be placed either directly in the `Web.config` file (**not
-recommended** when the code is managed in a repository to avoid accidentally leaking them there) or
-in the separate `AppSettingsAndCredentials.config` file in the `IntermediatorBotSample` folder of
-the project (**recommended**). The content of the `AppSettingsAndCredentials.config` file is added
-into the `Web.config` when the project is built. The format of the
-`AppSettingsAndCredentials.config` file is as follows:
-
-```xml
-<appSettings>
-  <!-- Update these with your BotId, Microsoft App Id and your Microsoft App Password-->
-  <add key="BotId" value="" />
-  <add key="MicrosoftAppId" value="" />
-  <add key="MicrosoftAppPassword" value="" />
-
-  <!-- Add your connection string for routing data storage below -->
-  <add key="RoutingDataStorageConnectionString" value="" />
-</appSettings>
-```
-
-Note that since the `AppSettingsAndCredentials.config` file is not included in the repository,
-**you must create the file**.
-A [template file](/IntermediatorBotSample/AppSettingsAndCredentials.config.template) is provided
-for your convenience. Simply remove the `.template` postfix and fill in the details.
-
-#### Settings ####
-
-**RejectConnectionRequestIfNoAggregationChannel**: This setting, which is set to true by default,
-will cause the `IRoutingDataManager` implementation to return the `NoAgentsAvailable` result when no
-agents are watching for incoming requests. You can then send an appropriate response to let the user
-know no agents are available within the implementation of your `MessageRouterResult` handler.
-If this is set to `false`, then the `IRoutingDataManager` implementation will process and add
-the user's request to the pending requests list and return the `ConnectionRequested` result instead.
-
-```xml
-<add key="RejectConnectionRequestIfNoAggregationChannel" value="false" />
-```
-
-**PermittedAggregationChannels**: If you wish to only allow conversation owners (i.e. customer
-service agent) to use a specific channel or channels, you can specify a comma separated list of
-channel IDs here.  This will prevent agent commands from being used on other channels and prevent
-users from accidentally or deliberately calling such commands. If you leave the value empty, all
-channels are considered permitted. If, for instance, you wanted to restrict the agents to use the
-emulator and Skype channels, you would use:
-
-```xml
-<add key="PermittedAggregationChannels" value="emulator,skype" />
-```
-
-The provided [BotSettings](/IntermediatorBotSample/Settings/BotSettings.cs) utility class can be
-used to easily access the settings in the code.
+1. ...implementing a REST API endpoint
+   (see for instance [Create a Web API with ASP.NET Core](https://docs.microsoft.com/en-us/aspnet/core/tutorials/first-web-api?view=aspnetcore-2.1)).
+   Then I'd hook the REST API into the message routing code and finally removed the text based
+   command handling altogether.
+2. Another options is to use back channel messages and hook them up into the current command
+   pipeline. Granted some changes would need to be made to separate the direct commands from the
+   back channel ones. Also, the response would likely need to be (or recommended to be) in JSON.
+3. Something else - remember, it's just a web app!
 
 ## See also ##
 
 * [Bot Message Routing (component) project](https://github.com/tompaana/bot-message-routing)
-    * [NuGet package](https://www.nuget.org/packages/Underscore.Bot.MessageRouting)
-* [Chatbots as Middlemen blog post](http://tomipaananen.azurewebsites.net/?p=1851)
+    * [NuGet package](https://www.nuget.org/packages/BotMessageRouting)
+* [Chatbots as Middlemen blog post](https://tompaana.github.io/content/chatbots_as_middlemen.html)

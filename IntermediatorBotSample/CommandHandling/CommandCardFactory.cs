@@ -1,9 +1,10 @@
-﻿using IntermediatorBot.Strings;
-using Microsoft.Bot.Connector;
+﻿using IntermediatorBotSample.Resources;
+using Microsoft.Bot.Schema;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Underscore.Bot.Models;
+using Underscore.Bot.MessageRouting.DataStore;
+using Underscore.Bot.MessageRouting.Models;
 
 namespace IntermediatorBotSample.CommandHandling
 {
@@ -21,80 +22,62 @@ namespace IntermediatorBotSample.CommandHandling
         {
             HeroCard card = new HeroCard()
             {
-                Title = ConversationText.CommandMenuTitle,
-                Subtitle = ConversationText.CommandMenuDescription,
+                Title = Strings.CommandMenuTitle,
+                Subtitle = Strings.CommandMenuDescription,
 
                 Text = string.Format(
-                    ConversationText.CommandMenuInstructions,
-                    Commands.CommandKeyword,
+                    Strings.CommandMenuInstructions,
+                    Command.CommandKeyword,
                     botName,
-                    Command.ResolveFullCommand(botName, Commands.CommandAcceptRequest, new string[] { "<user ID>" })),
+                    new Command(
+                        Commands.AcceptRequest,
+                        new string[] { "(user ID)", "(user conversation ID)" },
+                        botName).ToString()),
 
                 Buttons = new List<CardAction>()
                 {
                     new CardAction()
                     {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandAddAggregationChannel),
+                        Title = Command.CommandToString(Commands.Watch),
                         Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandAddAggregationChannel)
+                        Value = new Command(Commands.Watch, null, botName).ToString()
                     },
                     new CardAction()
                     {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandRemoveAggregationChannel),
+                        Title = Command.CommandToString(Commands.Unwatch),
                         Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandRemoveAggregationChannel)
+                        Value = new Command(Commands.Unwatch, null, botName).ToString()
                     },
                     new CardAction()
                     {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandAcceptRequest),
+                        Title = Command.CommandToString(Commands.GetRequests),
                         Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandAcceptRequest)
+                        Value = new Command(Commands.GetRequests, null, botName).ToString()
                     },
                     new CardAction()
                     {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandRejectRequest),
+                        Title = Command.CommandToString(Commands.AcceptRequest),
                         Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandRejectRequest)
+                        Value = new Command(Commands.AcceptRequest, null, botName).ToString()
                     },
                     new CardAction()
                     {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandDisconnect),
+                        Title = Command.CommandToString(Commands.RejectRequest),
                         Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandDisconnect)
+                        Value = new Command(Commands.RejectRequest, null, botName).ToString()
+                    },
+                    new CardAction()
+                    {
+                        Title = Command.CommandToString(Commands.GetHistory),
+                        Type = ActionTypes.ImBack,
+                        Value = new Command(Commands.GetHistory, null, botName).ToString()
+                    },
+                    new CardAction()
+                    {
+                        Title = Command.CommandToString(Commands.Disconnect),
+                        Type = ActionTypes.ImBack,
+                        Value = new Command(Commands.Disconnect, null, botName).ToString()
                     }
-#if DEBUG
-                    ,
-                    new CardAction()
-                    {
-                        Title = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandDeleteAllRoutingData),
-                        Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandDeleteAllRoutingData)
-                    },
-                    new CardAction()
-                    {
-                        Title = $"{CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandList)} {Commands.CommandParameterParties}",
-                        Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandList, new string[] { Commands.CommandParameterParties })
-                    },
-                    new CardAction()
-                    {
-                        Title = $"{CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandList)} {Commands.CommandParameterRequests}",
-                        Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandList, new string[] { Commands.CommandParameterRequests })
-                    },
-                    new CardAction()
-                    {
-                        Title = $"{CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandList)} {Commands.CommandParameterConnections}",
-                        Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandList, new string[] { Commands.CommandParameterConnections })
-                    },
-                    new CardAction()
-                    {
-                        Title = $"{CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Commands.CommandList)} {Commands.CommandParameterResults}",
-                        Type = ActionTypes.ImBack,
-                        Value = Command.ResolveFullCommand(botName, Commands.CommandList, new string[] { Commands.CommandParameterResults })
-                    }
-#endif
                 }
             };
 
@@ -102,51 +85,56 @@ namespace IntermediatorBotSample.CommandHandling
         }
 
         /// <summary>
-        /// Creates a connection (e.g. human agent) request card.
+        /// Creates a large connection request card.
         /// </summary>
-        /// <param name="requestorParty">The party who requested a connection.</param>
+        /// <param name="connectionRequest">The connection request.</param>
         /// <param name="botName">The name of the bot (optional).</param>
         /// <returns>A newly created request card.</returns>
-        public static HeroCard CreateRequestCard(Party requestorParty, string botName = null)
+        public static HeroCard CreateConnectionRequestCard(
+            ConnectionRequest connectionRequest, string botName = null)
         {
-            if (requestorParty.ChannelAccount == null)
+            if (connectionRequest == null || connectionRequest.Requestor == null)
+            {
+                throw new ArgumentNullException("The connection request or the conversation reference of the requestor is null");
+            }
+
+            ChannelAccount requestorChannelAccount =
+                RoutingDataManager.GetChannelAccount(connectionRequest.Requestor);
+
+            if (requestorChannelAccount == null)
             {
                 throw new ArgumentNullException("The channel account of the requestor is null");
             }
 
-            string requestorChannelAccountName = string.IsNullOrEmpty(requestorParty.ChannelAccount.Name)
-                ? StringAndCharConstants.NoUserNamePlaceholder : requestorParty.ChannelAccount.Name;
+            string requestorChannelAccountName = string.IsNullOrEmpty(requestorChannelAccount.Name)
+                ? StringConstants.NoUserNamePlaceholder : requestorChannelAccount.Name;
+            string requestorChannelId =
+                CultureInfo.CurrentCulture.TextInfo.ToTitleCase(connectionRequest.Requestor.ChannelId);
 
-            string requestorChannelId = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(requestorParty.ChannelId);
-            string requestorChannelAccountId = requestorParty.ChannelAccount.Id;
-
-            string acceptCommand =
-                Command.ResolveFullCommand(
-                    botName, Commands.CommandAcceptRequest, new string[] { requestorChannelAccountId });
-
-            string rejectCommand =
-                Command.ResolveFullCommand(
-                    botName, Commands.CommandRejectRequest, new string[] { requestorChannelAccountId });
+            Command acceptCommand =
+                Command.CreateAcceptOrRejectConnectionRequestCommand(connectionRequest, true, botName);
+            Command rejectCommand =
+                Command.CreateAcceptOrRejectConnectionRequestCommand(connectionRequest, false, botName);
 
             HeroCard card = new HeroCard()
             {
-                Title = ConversationText.ConnectionRequestTitle,
-                Subtitle = string.Format(ConversationText.RequestorDetailsTitle, requestorChannelAccountName, requestorChannelId),
-                Text = string.Format(ConversationText.AcceptRejectConnectionHint, acceptCommand, rejectCommand),
+                Title = Strings.ConnectionRequestTitle,
+                Subtitle = string.Format(Strings.RequestorDetailsTitle, requestorChannelAccountName, requestorChannelId),
+                Text = string.Format(Strings.AcceptRejectConnectionHint, acceptCommand.ToString(), rejectCommand.ToString()),
 
                 Buttons = new List<CardAction>()
                 {
                     new CardAction()
                     {
-                        Title = ConversationText.AcceptButtonTitle,
+                        Title = Strings.AcceptButtonTitle,
                         Type = ActionTypes.ImBack,
-                        Value = acceptCommand
+                        Value = acceptCommand.ToString()
                     },
                     new CardAction()
                     {
-                        Title = ConversationText.RejectButtonTitle,
+                        Title = Strings.RejectButtonTitle,
                         Type = ActionTypes.ImBack,
-                        Value = rejectCommand
+                        Value = rejectCommand.ToString()
                     }
                 }
             };
@@ -155,86 +143,84 @@ namespace IntermediatorBotSample.CommandHandling
         }
 
         /// <summary>
-        /// Creates multiple request cards to be used e.g. in a carousel.
+        /// Creates multiple large connection request cards.
         /// </summary>
-        /// <param name="requestorParties">The list of requestor parties (pending requests).</param>
+        /// <param name="connectionRequests">The connection requests.</param>
         /// <param name="botName">The name of the bot (optional).</param>
         /// <returns>A list of request cards as attachments.</returns>
-        public static IList<Attachment> CreateMultipleRequestCards(IList<Party> requestorParties, string botName)
+        public static IList<Attachment> CreateMultipleConnectionRequestCards(
+            IList<ConnectionRequest> connectionRequests, string botName = null)
         {
             IList<Attachment> attachments = new List<Attachment>();
 
-            foreach (Party requestorParty in requestorParties)
+            foreach (ConnectionRequest connectionRequest in connectionRequests)
             {
-                if (requestorParty.ChannelAccount != null)
-                {
-                    attachments.Add(CreateRequestCard(requestorParty, botName).ToAttachment());
-                }
+                attachments.Add(CreateConnectionRequestCard(connectionRequest, botName).ToAttachment());
             }
 
             return attachments;
         }
 
         /// <summary>
-        /// Creates a card for accepting/rejecting multiple requests.
+        /// Creates a compact card for accepting/rejecting multiple requests.
         /// </summary>
-        /// <param name="requestorParties">The list of requestor parties (pending requests).</param>
+        /// <param name="connectionRequests">The connection requests.</param>
         /// <param name="doAccept">If true, will create an accept card. If false, will create a reject card.</param>
         /// <param name="botName">The name of the bot (optional).</param>
         /// <returns>The newly created card.</returns>
-        public static HeroCard CreateAcceptOrRejectCardForMultipleRequests(IList<Party> requestorParties, bool doAccept, string botName)
+        public static HeroCard CreateMultiConnectionRequestCard(
+            IList<ConnectionRequest> connectionRequests, bool doAccept, string botName = null)
         {
             HeroCard card = new HeroCard()
             {
                 Title = (doAccept
-                    ? ConversationText.AcceptConnectionRequestsCardTitle
-                    : ConversationText.RejectConnectionRequestCardTitle),
+                    ? Strings.AcceptConnectionRequestsCardTitle
+                    : Strings.RejectConnectionRequestCardTitle),
                 Subtitle = (doAccept
-                    ? ConversationText.AcceptConnectionRequestsCardInstructions
-                    : ConversationText.RejectConnectionRequestsCardInstructions),
+                    ? Strings.AcceptConnectionRequestsCardInstructions
+                    : Strings.RejectConnectionRequestsCardInstructions),
             };
 
-            string command = null;
             card.Buttons = new List<CardAction>();
 
-            if (!doAccept && requestorParties.Count > 1)
+            if (!doAccept && connectionRequests.Count > 1)
             {
                 card.Buttons.Add(new CardAction()
                 {
-                    Title = ConversationText.RejectAll,
+                    Title = Strings.RejectAll,
                     Type = ActionTypes.ImBack,
-                    Value = Command.ResolveFullCommand(
-                        botName, Commands.CommandRejectRequest, new string[] { Commands.CommandParameterAll })
+                    Value = new Command(Commands.RejectRequest, new string[] { Command.CommandParameterAll }, botName).ToString()
                 });
             }
 
-            foreach (Party requestorParty in requestorParties)
+            foreach (ConnectionRequest connectionRequest in connectionRequests)
             {
-                if (requestorParty.ChannelAccount == null)
+                ChannelAccount requestorChannelAccount =
+                    RoutingDataManager.GetChannelAccount(connectionRequest.Requestor, out bool isBot);
+
+                if (requestorChannelAccount == null)
                 {
                     throw new ArgumentNullException("The channel account of the requestor is null");
                 }
 
-                string requestorChannelAccountName = string.IsNullOrEmpty(requestorParty.ChannelAccount.Name)
-                    ? StringAndCharConstants.NoUserNamePlaceholder : requestorParty.ChannelAccount.Name;
+                string requestorChannelAccountName = string.IsNullOrEmpty(requestorChannelAccount.Name)
+                    ? StringConstants.NoUserNamePlaceholder : requestorChannelAccount.Name;
+                string requestorChannelId =
+                    CultureInfo.CurrentCulture.TextInfo.ToTitleCase(connectionRequest.Requestor.ChannelId);
+                string requestorChannelAccountId = requestorChannelAccount.Id;
 
-                string requestorChannelId = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(requestorParty.ChannelId);
-                string requestorChannelAccountId = requestorParty.ChannelAccount.Id;
-
-                command = Command.ResolveFullCommand(
-                    botName,
-                    (doAccept ? Commands.CommandAcceptRequest : Commands.CommandRejectRequest),
-                    new string[] { requestorChannelAccountId });
+                Command command =
+                    Command.CreateAcceptOrRejectConnectionRequestCommand(connectionRequest, doAccept, botName);
 
                 card.Buttons.Add(new CardAction()
                 {
                     Title = string.Format(
-                        ConversationText.RequestorDetailsItem,
+                        Strings.RequestorDetailsItem,
                         requestorChannelAccountName,
                         requestorChannelId,
                         requestorChannelAccountId),
                     Type = ActionTypes.ImBack,
-                    Value = command
+                    Value = command.ToString()
                 });
             }
 

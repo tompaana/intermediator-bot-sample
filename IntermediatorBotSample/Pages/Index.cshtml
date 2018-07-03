@@ -1,0 +1,33 @@
+﻿@page
+@using  IntermediatorBotSample.Pages
+@model IndexModel
+@{
+}
+
+<h1>Intermediator Bot Sample</h1>
+
+<p>
+The purpose is to serve as a sample on how to implement the human hand-off.
+Visit <a href="https://github.com/tompaana/intermediator-bot-sample">https://github.com/tompaana/intermediator-bot-sample</a> to learn more.
+</p>
+
+<p>The bot endpoint URL is: <a id="botEndpointUrl" /></p>
+
+<script>
+    var botEndpointUrlLink = document.getElementById("botEndpointUrl");
+    botEndpointUrlLink.setAttribute('href', location.protocol + "//" + location.host + "@Model.BotEndpointPath");
+    botEndpointUrlLink.innerHTML = location.protocol + "//" + location.host + "@Model.BotEndpointPath";
+</script>
+
+<p>The bot credentials are:</p>
+<ul>
+    <li id="botAppId" />
+    <li id="botAppPassword" />
+</ul>
+
+<script>
+    var botAppIdItem = document.getElementById("botAppId");
+    botAppIdItem.innerHTML = "App ID: @Model.BotAppId";
+    var botAppPasswordItem = document.getElementById("botAppPassword");
+    botAppPasswordItem.innerHTML = "App password: @Model.BotAppPassword";
+</script>
