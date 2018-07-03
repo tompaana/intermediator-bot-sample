@@ -85,12 +85,12 @@ command watch
 Now all the requests from another channels are forwarded to this channel.
 See the default flow below:
 
-| Emulator with ngrok | Slack |
-| ------------------- | ----- |
-| | ![Initialization](Documentation/Screenshots/Initialization.png?raw=true) |
-| ![Request sent](/Documentation/Screenshots/RequestSent.png?raw=true) | ![Request accepted](/Documentation/Screenshots/RequestAccepted.png?raw=true) |
-| | ![Direct messaging channel created](/Documentation/Screenshots/DirectMessagingChannelCreated.png?raw=true) |
-| ![Conversation in emulator](/Documentation/Screenshots/ConversationInEmulator.png?raw=true) | ![Conversation in Slack](/Documentation/Screenshots/ConversationInSlack.png?raw=true) |
+| Teams | Slack |
+| ----- | ----- |
+| ![Setting the aggregation channel](Documentation/Screenshots/msteams-1-watch.png?raw=true) | |
+| | ![Connection request sent](/Documentation/Screenshots/slack-1-connection-request.png?raw=true) | |
+| ![Connection request accepted](/Documentation/Screenshots/msteams-2-accept-connection-request.png?raw=true) | |
+| ![Conversation in Teams](/Documentation/Screenshots/msteams-3-conversation.png?raw=true) | ![Conversation in Slack](/Documentation/Screenshots/slack-2-conversation.png?raw=true) |
 
 ### Commands ###
 
