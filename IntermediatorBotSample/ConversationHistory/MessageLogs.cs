@@ -32,7 +32,7 @@ namespace IntermediatorBotSample.ConversationHistory
             {
                 System.Diagnostics.Debug.WriteLine("Using Azure Table Storage for storing message logs");
                 _messageLogsTable = AzureStorageHelper.GetTable(connectionString, MessageLogsTableName);
-                MakeSureConversationHistoryTableExistsAsync().RunSynchronously();
+                MakeSureConversationHistoryTableExistsAsync().Wait();
             }
         }
 
