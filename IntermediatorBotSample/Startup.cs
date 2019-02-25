@@ -2,8 +2,10 @@
 using IntermediatorBotSample.Middleware;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Bot.Builder.BotFramework;
+using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Core.Extensions;
+using Microsoft.Bot.Builder.BotFramework;
+using Microsoft.Bot.Builder.Integration;
 using Microsoft.Bot.Builder.Integration.AspNet.Core;
 using Microsoft.Bot.Builder.TraceExtensions;
 using Microsoft.Extensions.Configuration;
@@ -50,8 +52,8 @@ namespace IntermediatorBotSample
                 // an "Ooops" message is sent. 
                 options.Middleware.Add(new CatchExceptionMiddleware<Exception>(async (context, exception) =>
                 {
-                    await context.TraceActivity("Bot Exception", exception);
-                    await context.SendActivity($"Sorry, it looks like something went wrong: {exception.Message}");
+                    await context.TraceActivityAsync("Bot Exception", exception);
+                    await context.SendActivityAsync($"Sorry, it looks like something went wrong: {exception.Message}");
                 }));
 
                 // The Memory Storage used here is for local bot debugging only. When the bot
@@ -94,13 +96,7 @@ namespace IntermediatorBotSample
             app.UseDefaultFiles()
                 .UseStaticFiles()
                 .UseMvc() // Required Razor pages
-                .UseBotFramework(bot =>
-                {
-                    // This is how you can define a custom endpoint in case you're unhappy with
-                    // the default "/api/messages":
-                    bot.BasePath = Configuration["BotBasePath"];
-                    bot.MessagesPath = Configuration["BotMessagesPath"];
-                });
+                .UseBotFramework();
         }
     }
 }
