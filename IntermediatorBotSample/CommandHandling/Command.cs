@@ -262,7 +262,10 @@ namespace IntermediatorBotSample.CommandHandling
         {
             if (Enum.TryParse(commandAsString, out Commands result))
             {
-                return result;
+                if (Enum.IsDefined(typeof(Commands), commandAsString))
+                {
+                    return result;
+                }
             }
 
             foreach (Commands command in Enum.GetValues(typeof(Commands)))
