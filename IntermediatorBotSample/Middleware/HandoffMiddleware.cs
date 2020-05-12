@@ -149,6 +149,11 @@ namespace IntermediatorBotSample.Middleware
                 // Handle the result, if necessary
                 await MessageRouterResultHandler.HandleResultAsync(messageRouterResult);
             }
+            else
+            {
+                // No action taken - this middleware did not consume the activity so let it propagate
+                await next(ct).ConfigureAwait(false);
+            }
         }
 
         /// <summary>
