@@ -266,7 +266,7 @@ namespace IntermediatorBotSample.CommandHandling
 
             if (replyActivity != null)
             {
-                await context.SendActivity(replyActivity);
+                await context.SendActivityAsync(replyActivity);
             }
 
             return wasHandled;
